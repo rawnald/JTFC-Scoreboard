@@ -43,7 +43,7 @@ async function load(){const r=await api('ops');
   if(r.status===401){$('login').classList.remove('hidden');$('app').classList.add('hidden');return}
   const d=await r.json();$('login').classList.add('hidden');$('app').classList.remove('hidden');$('tgt').value=d.target;
   $('rows').innerHTML=d.rows.map(o=>`<tr class="border-b"><td class="py-2">${o.op_date}</td><td>${esc(o.unit)}</td><td>${esc(o.threat_group)}</td><td>${o.surrendered}/${o.killed}/${o.captured}/${o.apprehended}</td><td>${o.firearms}</td><td>${o.tolf}</td><td>${o.kia}/${o.wia}</td><td><button onclick="del(${o.id})" class="text-red-600"><span class="ms">delete</span></button></td></tr>`).join('')}
-async function login(e){e.preventDefault();const r=await api('login','POST',{password:$('pw').value});if(r.ok){$('pw').value='';load()}else $('lerr').textContent='Invalid password';return false}
+async function login(e){e.preventDefault();const r=await api('login','POST',{password:$('pw').value});if(r.ok){$('pw').value='';load()}else{const d=await r.json().catch(()=>({}));$('lerr').textContent=d.error||'Error: '+r.status}return false}
 async function logout(){await api('logout','POST');load()}
 async function add(e){e.preventDefault();const f=e.target,b=Object.fromEntries(new FormData(f));const r=await api('ops','POST',b);
   $('msg').textContent=r.ok?'Saved ✓':(await r.json()).error;$('msg').className='text-sm '+(r.ok?'text-green-600':'text-red-600');if(r.ok){f.reset();load()}return false}

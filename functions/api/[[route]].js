@@ -77,5 +77,5 @@ export async function onRequest({ request, env, params }) {
       return json({ ok: true });
     }
     return json({ error: 'Not found' }, 404);
-  } catch (e) { return json({ error: 'Server error' }, 500); }
+  } catch (e) { return json({ error: e.message || String(e), stack: e.stack }, 500); }
 }
