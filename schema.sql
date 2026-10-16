@@ -12,14 +12,14 @@ CREATE TABLE IF NOT EXISTS ops (
   enemy_wounded INTEGER DEFAULT 0,
   captured INTEGER DEFAULT 0,
   apprehended INTEGER DEFAULT 0,
-  firearms INTEGER DEFAULT 0,
-  fa_captured INTEGER DEFAULT 0,
-  fa_confiscated INTEGER DEFAULT 0,
-  fa_surrendered INTEGER DEFAULT 0,
-  fa_recovered INTEGER DEFAULT 0,
-  fa_csw INTEGER DEFAULT 0,
-  fa_high_powered INTEGER DEFAULT 0,
-  fa_low_powered INTEGER DEFAULT 0,
+  firearms INTEGER DEFAULT 0,       -- Total firearms gained (sum of all categories)
+  fa_captured INTEGER DEFAULT 0,    -- Captured total (CSW + HP + LP)
+  fa_confiscated INTEGER DEFAULT 0, -- Confiscated total (CSW + HP + LP)
+  fa_surrendered INTEGER DEFAULT 0, -- Surrendered total (CSW + HP + LP)
+  fa_recovered INTEGER DEFAULT 0,   -- Recovered total (CSW + HP + LP)
+  fa_csw INTEGER DEFAULT 0,         -- Total Crew-Served Weapons (.50 cal, M60, Mortar)
+  fa_high_powered INTEGER DEFAULT 0,-- Total High Powered Rifles (M16, M14, AK47)
+  fa_low_powered INTEGER DEFAULT 0, -- Total Low Powered Firearms (Pistols, Revolvers, Shotguns)
   tolf INTEGER DEFAULT 0,           -- loose firearms turned over
   kia INTEGER DEFAULT 0,
   wia INTEGER DEFAULT 0,

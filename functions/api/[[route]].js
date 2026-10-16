@@ -85,8 +85,31 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
           return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
         }
+        if (b.fa_breakdown) {
+          const bd = b.fa_breakdown;
+          const cap = bd.captured || {}, conf = bd.confiscated || {}, sur = bd.surrendered || {}, rec = bd.recovered || {};
+          const capCSW = n(cap.csw), capHP = n(cap.hp), capLP = n(cap.lp);
+          const confCSW = n(conf.csw), confHP = n(conf.hp), confLP = n(conf.lp);
+          const surCSW = n(sur.csw), surHP = n(sur.hp), surLP = n(sur.lp);
+          const recCSW = n(rec.csw), recHP = n(rec.hp), recLP = n(rec.lp);
+
+          b.fa_captured = capCSW + capHP + capLP;
+          b.fa_confiscated = confCSW + confHP + confLP;
+          b.fa_surrendered = surCSW + surHP + surLP;
+          b.fa_recovered = recCSW + recHP + recLP;
+
+          b.fa_csw = capCSW + confCSW + surCSW + recCSW;
+          b.fa_high_powered = capHP + confHP + surHP + recHP;
+          b.fa_low_powered = capLP + confLP + surLP + recLP;
+
+          b.firearms = b.fa_captured + b.fa_confiscated + b.fa_surrendered + b.fa_recovered;
+
+          if (typeof b.war_materiel === 'object' && b.war_materiel !== null) {
+            b.war_materiel.fa_breakdown = bd;
+          }
+        }
         const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
-        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 2000);
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         await db.prepare(`INSERT INTO ops (
           op_date,unit,area,province,threat_category,threat_group,engagement_type,
           surrendered,killed,enemy_wounded,captured,apprehended,
@@ -108,8 +131,31 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
           return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
         }
+        if (b.fa_breakdown) {
+          const bd = b.fa_breakdown;
+          const cap = bd.captured || {}, conf = bd.confiscated || {}, sur = bd.surrendered || {}, rec = bd.recovered || {};
+          const capCSW = n(cap.csw), capHP = n(cap.hp), capLP = n(cap.lp);
+          const confCSW = n(conf.csw), confHP = n(conf.hp), confLP = n(conf.lp);
+          const surCSW = n(sur.csw), surHP = n(sur.hp), surLP = n(sur.lp);
+          const recCSW = n(rec.csw), recHP = n(rec.hp), recLP = n(rec.lp);
+
+          b.fa_captured = capCSW + capHP + capLP;
+          b.fa_confiscated = confCSW + confHP + confLP;
+          b.fa_surrendered = surCSW + surHP + surLP;
+          b.fa_recovered = recCSW + recHP + recLP;
+
+          b.fa_csw = capCSW + confCSW + surCSW + recCSW;
+          b.fa_high_powered = capHP + confHP + surHP + recHP;
+          b.fa_low_powered = capLP + confLP + surLP + recLP;
+
+          b.firearms = b.fa_captured + b.fa_confiscated + b.fa_surrendered + b.fa_recovered;
+
+          if (typeof b.war_materiel === 'object' && b.war_materiel !== null) {
+            b.war_materiel.fa_breakdown = bd;
+          }
+        }
         const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
-        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 2000);
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         await db.prepare(`UPDATE ops SET
           op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
           surrendered=?,killed=?,enemy_wounded=?,captured=?,apprehended=?,
