@@ -814,120 +814,171 @@ function renderCombatModalForm(record) {
       </div>
     </div>
 
-    <!-- SECTION 4: Firearms Gained (Spreadsheet Table matching official ops tracking template) -->
-    <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-3.5 shadow-sm">
+    <!-- SECTION 4: Firearms Gained (4 Exact Spreadsheet Blocks Matching User's Image) -->
+    <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-4 shadow-sm">
       <div class="flex items-center justify-between">
         <div class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
           <span class="ms !text-lg text-green-700">grid_on</span> Firearms Gained Breakdown
         </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-500 hidden sm:inline">Official Operations Tracking Grid</span>
-          <div id="fa-total-badge" class="badge bg-green-100 text-green-800 font-bold text-xs py-1 px-3">
-            Total Firearms: ${record?.firearms ?? 0}
-          </div>
+        <div id="fa-total-badge" class="badge bg-green-100 text-green-800 font-bold text-xs py-1 px-3">
+          Total Firearms: ${record?.firearms ?? 0}
         </div>
       </div>
 
-      <!-- SPREADSHEET TABLE (Styled exactly like the official Excel sheet) -->
-      <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
-        <table class="w-full text-center border-collapse min-w-[760px]">
+      <!-- 4 Spreadsheet Tables Grid: Captured, Confiscated, Surrendered, Recovered -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+
+        <!-- 1. FAs CAPTURED -->
+        <div class="border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  FAs CAPTURED
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs">
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">CSW</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">HP</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-b border-black w-1/3">LP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-b border-black"><input id="f_cap_csw" type="number" min="0" value="${fa.captured.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-r border-b border-black"><input id="f_cap_hp" type="number" min="0" value="${fa.captured.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-b border-black"><input id="f_cap_lp" type="number" min="0" value="${fa.captured.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+              </tr>
+              <tr class="bg-[#cbe5f8] font-bold text-xs text-black">
+                <td colspan="3" class="py-1.5 px-2 text-center border-t border-black">
+                  Captured Total: <span id="sub-cap-badge" class="font-extrabold text-blue-950 ml-1">0</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 2. FAs CONFISCATED -->
+        <div class="border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  FAs CONFISCATED
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs">
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">CSW</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">HP</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-b border-black w-1/3">LP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-b border-black"><input id="f_conf_csw" type="number" min="0" value="${fa.confiscated.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-r border-b border-black"><input id="f_conf_hp" type="number" min="0" value="${fa.confiscated.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-b border-black"><input id="f_conf_lp" type="number" min="0" value="${fa.confiscated.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+              </tr>
+              <tr class="bg-[#cbe5f8] font-bold text-xs text-black">
+                <td colspan="3" class="py-1.5 px-2 text-center border-t border-black">
+                  Confiscated Total: <span id="sub-conf-badge" class="font-extrabold text-blue-950 ml-1">0</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 3. FAs SURRENDERED -->
+        <div class="border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  FAs SURRENDERED
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs">
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">CSW</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">HP</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-b border-black w-1/3">LP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-b border-black"><input id="f_sur_csw" type="number" min="0" value="${fa.surrendered.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-r border-b border-black"><input id="f_sur_hp" type="number" min="0" value="${fa.surrendered.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-b border-black"><input id="f_sur_lp" type="number" min="0" value="${fa.surrendered.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+              </tr>
+              <tr class="bg-[#cbe5f8] font-bold text-xs text-black">
+                <td colspan="3" class="py-1.5 px-2 text-center border-t border-black">
+                  Surrendered Total: <span id="sub-sur-badge" class="font-extrabold text-blue-950 ml-1">0</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 4. FAs RECOVERED -->
+        <div class="border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  FAs RECOVERED
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs">
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">CSW</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">HP</th>
+                <th class="bg-[#84cc58] py-1.5 px-1 border-b border-black w-1/3">LP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-b border-black"><input id="f_rec_csw" type="number" min="0" value="${fa.recovered.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-r border-b border-black"><input id="f_rec_hp" type="number" min="0" value="${fa.recovered.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+                <td class="p-0 border-b border-black"><input id="f_rec_lp" type="number" min="0" value="${fa.recovered.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+              </tr>
+              <tr class="bg-[#cbe5f8] font-bold text-xs text-black">
+                <td colspan="3" class="py-1.5 px-2 text-center border-t border-black">
+                  Recovered Total: <span id="sub-rec-badge" class="font-extrabold text-blue-950 ml-1">0</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- Combined TOTAL FAs GAINED Table (Light Blue Theme) -->
+      <div class="border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm">
+        <table class="w-full text-center border-collapse">
           <thead>
-            <!-- Top Merged Category Headers (Light Green) -->
             <tr>
-              <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2.5 px-2 border border-black tracking-wider text-xs sm:text-sm">
-                FAs CAPTURED
-              </th>
-              <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2.5 px-2 border border-black tracking-wider text-xs sm:text-sm">
-                FAs CONFISCATED
-              </th>
-              <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2.5 px-2 border border-black tracking-wider text-xs sm:text-sm">
-                FAs SURRENDERED
-              </th>
-              <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2.5 px-2 border border-black tracking-wider text-xs sm:text-sm">
-                FAs RECOVERED
-              </th>
-              <th colspan="4" class="bg-[#bae6fd] text-black font-extrabold uppercase py-2.5 px-2 border border-black tracking-wider text-xs sm:text-sm">
-                TOTAL FAs
+              <th colspan="4" class="bg-[#bae6fd] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                TOTAL FIREARMS GAINED SUMMARY
               </th>
             </tr>
-            <!-- Subheaders: CSW, HP, LP (Lime / Olive Green) -->
             <tr class="font-bold text-black text-xs">
-              <!-- Captured -->
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">CSW</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">HP</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">LP</th>
-              <!-- Confiscated -->
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">CSW</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">HP</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">LP</th>
-              <!-- Surrendered -->
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">CSW</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">HP</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">LP</th>
-              <!-- Recovered -->
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">CSW</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">HP</th>
-              <th class="bg-[#84cc58] py-2 px-1 border border-black w-14">LP</th>
-              <!-- Totals -->
-              <th class="bg-[#7dd3fc] py-2 px-1 border border-black w-14">CSW</th>
-              <th class="bg-[#7dd3fc] py-2 px-1 border border-black w-14">HP</th>
-              <th class="bg-[#7dd3fc] py-2 px-1 border border-black w-14">LP</th>
-              <th class="bg-[#38bdf8] py-2 px-1 border border-black w-16 text-blue-950 font-black">TOTAL</th>
+              <th class="bg-[#7dd3fc] py-1.5 px-1 border-r border-b border-black w-1/4">TOTAL CSW</th>
+              <th class="bg-[#7dd3fc] py-1.5 px-1 border-r border-b border-black w-1/4">TOTAL HP</th>
+              <th class="bg-[#7dd3fc] py-1.5 px-1 border-r border-b border-black w-1/4">TOTAL LP</th>
+              <th class="bg-[#38bdf8] py-1.5 px-1 border-b border-black w-1/4 text-blue-950 font-black">GRAND TOTAL</th>
             </tr>
           </thead>
           <tbody>
-            <!-- Input Row (White Cells with Dark Grid Borders) -->
-            <tr class="bg-white">
-              <!-- Captured -->
-              <td class="p-0 border border-black"><input id="f_cap_csw" type="number" min="0" value="${fa.captured.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_cap_hp" type="number" min="0" value="${fa.captured.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_cap_lp" type="number" min="0" value="${fa.captured.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-
-              <!-- Confiscated -->
-              <td class="p-0 border border-black"><input id="f_conf_csw" type="number" min="0" value="${fa.confiscated.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_conf_hp" type="number" min="0" value="${fa.confiscated.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_conf_lp" type="number" min="0" value="${fa.confiscated.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-
-              <!-- Surrendered -->
-              <td class="p-0 border border-black"><input id="f_sur_csw" type="number" min="0" value="${fa.surrendered.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_sur_hp" type="number" min="0" value="${fa.surrendered.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_sur_lp" type="number" min="0" value="${fa.surrendered.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-
-              <!-- Recovered -->
-              <td class="p-0 border border-black"><input id="f_rec_csw" type="number" min="0" value="${fa.recovered.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_rec_hp" type="number" min="0" value="${fa.recovered.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-              <td class="p-0 border border-black"><input id="f_rec_lp" type="number" min="0" value="${fa.recovered.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
-
-              <!-- Total Column Values (Auto-computed) -->
-              <td id="tbl_tot_csw" class="py-2 px-1 border border-black bg-sky-50 font-bold text-sky-950 text-sm">0</td>
-              <td id="tbl_tot_hp" class="py-2 px-1 border border-black bg-sky-50 font-bold text-sky-950 text-sm">0</td>
-              <td id="tbl_tot_lp" class="py-2 px-1 border border-black bg-sky-50 font-bold text-sky-950 text-sm">0</td>
-              <td id="tbl_tot_grand" class="py-2 px-1 border border-black bg-sky-100 font-black text-blue-950 text-base">0</td>
-            </tr>
-            <!-- Bottom Total Row (Light Blue matching the image) -->
-            <tr class="bg-[#cbe5f8] font-bold text-xs text-black">
-              <td colspan="3" class="py-2 px-2 border border-black text-center">
-                Captured: <span id="sub-cap-badge" class="font-extrabold text-blue-900 ml-1">0</span>
-              </td>
-              <td colspan="3" class="py-2 px-2 border border-black text-center">
-                Confiscated: <span id="sub-conf-badge" class="font-extrabold text-blue-900 ml-1">0</span>
-              </td>
-              <td colspan="3" class="py-2 px-2 border border-black text-center">
-                Surrendered: <span id="sub-sur-badge" class="font-extrabold text-blue-900 ml-1">0</span>
-              </td>
-              <td colspan="3" class="py-2 px-2 border border-black text-center">
-                Recovered: <span id="sub-rec-badge" class="font-extrabold text-blue-900 ml-1">0</span>
-              </td>
-              <td colspan="4" class="py-2 px-2 border border-black text-center bg-[#b9ddf8]">
-                Total Firearms: <span id="fa-summary-total" class="font-black text-blue-950 text-sm ml-1">0</span>
-              </td>
+            <tr class="bg-white font-bold text-base sm:text-lg">
+              <td id="tbl_tot_csw" class="py-2.5 px-1 border-r border-black text-sky-950">0</td>
+              <td id="tbl_tot_hp" class="py-2.5 px-1 border-r border-black text-sky-950">0</td>
+              <td id="tbl_tot_lp" class="py-2.5 px-1 border-r border-black text-sky-950">0</td>
+              <td id="tbl_tot_grand" class="py-2.5 px-1 bg-[#cbe5f8] text-blue-950 font-black text-xl">0</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <!-- Quick Legend & Explanations -->
-      <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2 px-1">
+      <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2 px-1 pt-1">
         <div class="flex flex-wrap items-center gap-3">
           <span><b class="text-slate-700">CSW:</b> Crew-Served Weapons (.50 cal, M60, Mortar)</span>
           <span><b class="text-slate-700">HP:</b> High-Powered Rifles (M16, M14, AK-47)</span>
