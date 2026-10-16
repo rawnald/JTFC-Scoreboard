@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JTFC Combat Scoreboard</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Material+Symbols+Outlined" rel="stylesheet">
+<style>body{font-family:Roboto,sans-serif}.ms{font-family:'Material Symbols Outlined';font-size:24px;line-height:1}.card{background:#fff;border-radius:20px;box-shadow:0 1px 3px rgba(30,50,120,.12),0 4px 12px rgba(30,50,120,.06)}</style></head>
+<body class="bg-[#e8eefc] text-slate-800 lg:flex min-h-screen">
+<aside class="lg:w-64 bg-gradient-to-b from-[#0b1b5e] to-[#0a1442] text-white p-5 flex lg:flex-col gap-4 lg:fixed lg:h-screen items-center lg:items-stretch">
+  <div class="lg:text-center"><span class="ms text-5xl text-slate-300">military_tech</span>
+    <div class="font-bold text-lg">JTFC Operations</div><div class="text-sm text-slate-300 hidden lg:block">Combat Scoreboard</div></div>
+  <nav class="flex lg:flex-col gap-2 lg:mt-6 ml-auto lg:ml-0">
+    <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 shadow"><span class="ms">speed</span>Overview</a>
+    <a href="/admin.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10"><span class="ms">admin_panel_settings</span>Admin</a>
+  </nav>
+  <div class="hidden lg:block mt-auto rounded-2xl p-5 text-xl font-medium bg-gradient-to-br from-violet-600 to-blue-500">“Operational Readiness, Strategic Success”</div>
+</aside>
+<main class="flex-1 lg:ml-64 p-4 lg:p-6 space-y-5">
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div><h1 class="text-2xl lg:text-3xl font-bold text-[#0b1b5e]">COMBAT SCOREBOARD</h1><p class="text-slate-600">Overview of operations and security metrics</p></div>
+    <div class="flex gap-2 items-center"><span class="ms text-slate-500">calendar_month</span>
+      <select id="year" class="card px-4 py-2 outline-none"></select></div>
+  </header>
+  <section id="kpis" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"></section>
+  <section class="grid xl:grid-cols-3 gap-4">
+    <div class="card p-5 xl:col-span-2"><h2 class="font-bold text-lg mb-2">Monthly Operational Trend</h2><div class="h-64"><canvas id="trend"></canvas></div></div>
+    <div class="card p-5"><h2 class="font-bold text-lg">Firearms Target Achievement</h2>
+      <div class="h-40 relative mt-4"><canvas id="gauge"></canvas><div class="absolute inset-x-0 bottom-0 text-center"><div id="gpct" class="text-3xl font-bold text-green-600"></div><div class="text-sm">of Target</div></div></div>
+      <div id="gstats" class="grid grid-cols-3 text-center mt-5"></div></div>
+  </section>
+  <section class="grid xl:grid-cols-3 gap-4">
+    <div class="card p-5"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-56"><canvas id="groups"></canvas></div></div>
+    <div class="card p-5"><h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2><div class="h-56"><canvas id="donut"></canvas></div></div>
+    <div class="card p-5 overflow-x-auto"><h2 class="font-bold text-lg mb-2">Operational Matrix</h2>
+      <table class="w-full text-sm"><thead><tr class="text-left border-b"><th class="py-2">Unit</th><th>Firearms</th><th>Encounters</th><th>Area</th></tr></thead><tbody id="matrix"></tbody></table></div>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id), blue='#1d5bff', charts={};
+const delta=(c,p,inv)=>{if(!p)return'<span class="text-slate-400">—</span>';const d=(c-p)/p*100,good=inv?d<=0:d>=0;return `<span class="${good?'text-green-600':'text-red-600'} font-medium flex items-center"><span class="ms !text-base">${d>=0?'arrow_upward':'arrow_downward'}</span>${d>=0?'+':''}${d.toFixed(1)}%</span>`};
+const draw=(id,cfg)=>{charts[id]?.destroy();charts[id]=new Chart($(id),cfg)};
+const opt={responsive:true,maintainAspectRatio:false};
+function kpi(icon,color,label,val,d){return `<div class="card p-4"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}"><span class="ms">${icon}</span></div><div><div class="text-sm font-medium" style="color:${color}">${label}</div><div class="text-2xl font-bold">${val}</div></div></div><div class="flex justify-between text-sm mt-3 text-slate-500">vs Last Year ${d}</div></div>`}
+async function load(y){
+  const s=await (await fetch('/api/stats'+(y?'?year='+y:''))).json(), c=s.cur, p=s.prev;
+  if(!$('year').options.length){for(let i=s.year;i>=s.year-4;i--)$('year').add(new Option(i,i))}
+  const rate=c.neutralized?c.sur/c.neutralized*100:0, prate=p.neutralized?p.sur/p.neutralized*100:0;
+  $('kpis').innerHTML=kpi('shield','#2563eb','Total Neutralized',c.neutralized,delta(c.neutralized,p.neutralized))+
+   kpi('gps_fixed','#16a34a','Firearms Gained',c.fa,delta(c.fa,p.fa))+
+   kpi('percent','#7c3aed','Surrender Rate',rate.toFixed(1)+'%',delta(rate,prate))+
+   kpi('groups','#f97316','Total Encounters',c.enc,delta(c.enc,p.enc))+
+   kpi('inventory_2','#0891b2','Loose FAs (TOLF)',c.tolf,delta(c.tolf,p.tolf))+
+   kpi('healing','#e11d48','Friendly Casualties',`${c.kia} KIA / ${c.wia} WIA`,delta(c.kia+c.wia,p.kia+p.wia,true));
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  draw('trend',{type:'line',data:{labels:M,datasets:[{label:'Encounters (Current Year)',data:c.monthly,borderColor:blue,backgroundColor:'rgba(29,91,255,.15)',fill:true,tension:.3,pointBackgroundColor:blue},{label:'Encounters (Last Year)',data:p.monthly,borderColor:blue,borderDash:[5,5],pointRadius:0,tension:.3}]},options:{...opt,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  const pct=s.target?c.fa/s.target*100:0;
+  draw('gauge',{type:'doughnut',data:{datasets:[{data:[Math.min(pct,150),Math.max(150-pct,0)],backgroundColor:['#22a85a','#e5e7eb'],borderWidth:0}]},options:{...opt,circumference:180,rotation:270,cutout:'72%',plugins:{tooltip:{enabled:false}}}});
+  $('gpct').textContent=pct.toFixed(1)+'%';
+  $('gstats').innerHTML=[[c.fa,'Actual'],[s.target,'Target'],[(c.fa-s.target>=0?'+':'')+(c.fa-s.target),'Variance']].map(([v,l],i)=>`<div><div class="text-2xl font-bold ${i==2?(c.fa>=s.target?'text-green-600':'text-red-600'):''}">${v}</div><div class="text-sm">${l}</div></div>`).join('');
+  const g=Object.entries(c.groups).sort((a,b)=>b[1]-a[1]);
+  draw('groups',{type:'bar',data:{labels:g.map(x=>x[0]),datasets:[{data:g.map(x=>x[1]),backgroundColor:blue,borderRadius:4}]},options:{...opt,indexAxis:'y',plugins:{legend:{display:false}}}});
+  draw('donut',{type:'doughnut',data:{labels:['Surrendered','Killed','Captured','Apprehended'],datasets:[{data:[c.sur,c.kil,c.cap,c.app],backgroundColor:['#2196f3','#0d3b8c','#26b5a8','#f5a623'],borderWidth:2}]},options:{...opt,cutout:'60%',plugins:{legend:{position:'right'}}}});
+  $('matrix').innerHTML=s.matrix.map(u=>`<tr class="border-b"><td class="py-2">${esc(u.unit)}</td><td>${u.firearms}</td><td><span class="bg-green-100 px-2 py-1 rounded">${u.enc}</span></td><td>${esc(u.area)}</td></tr>`).join('')||'<tr><td colspan=4 class="py-4 text-slate-400">No data yet</td></tr>';
+}
+const esc=t=>String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+$('year').onchange=e=>load(e.target.value); load();
+</script></body></html>
