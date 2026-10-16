@@ -2,16 +2,28 @@ CREATE TABLE IF NOT EXISTS ops (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 602nd Bde
-  area TEXT NOT NULL,               -- e.g. Region XII
-  threat_group TEXT NOT NULL,       -- e.g. BIFF
+  area TEXT NOT NULL,               -- e.g. Pikit
+  province TEXT,                    -- e.g. Cotabato, Maguindanao del Sur
+  threat_category TEXT,             -- Local Terrorist Groups (LTG), Communist Terrorist Group (CTG), PIAGs
+  threat_group TEXT NOT NULL,       -- e.g. BIFF-PSRL, GF Musa, MILF
+  engagement_type TEXT,             -- Government Initiated (Encounter), Enemy Initiated (Ambush, etc.)
   surrendered INTEGER DEFAULT 0,
   killed INTEGER DEFAULT 0,
+  enemy_wounded INTEGER DEFAULT 0,
   captured INTEGER DEFAULT 0,
   apprehended INTEGER DEFAULT 0,
   firearms INTEGER DEFAULT 0,
+  fa_captured INTEGER DEFAULT 0,
+  fa_confiscated INTEGER DEFAULT 0,
+  fa_surrendered INTEGER DEFAULT 0,
+  fa_recovered INTEGER DEFAULT 0,
+  fa_csw INTEGER DEFAULT 0,
+  fa_high_powered INTEGER DEFAULT 0,
+  fa_low_powered INTEGER DEFAULT 0,
   tolf INTEGER DEFAULT 0,           -- loose firearms turned over
   kia INTEGER DEFAULT 0,
   wia INTEGER DEFAULT 0,
+  war_materiel TEXT,
   remarks TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_ops_date ON ops(op_date);

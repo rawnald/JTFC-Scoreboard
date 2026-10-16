@@ -85,8 +85,22 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
           return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
         }
-        await db.prepare('INSERT INTO ops (op_date,unit,area,threat_group,surrendered,killed,captured,apprehended,firearms,tolf,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
-          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.threat_group), n(b.surrendered), n(b.killed), n(b.captured), n(b.apprehended), n(b.firearms), n(b.tolf), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+        const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 2000);
+        await db.prepare(`INSERT INTO ops (
+          op_date,unit,area,province,threat_category,threat_group,engagement_type,
+          surrendered,killed,enemy_wounded,captured,apprehended,
+          firearms,fa_captured,fa_confiscated,fa_surrendered,fa_recovered,
+          fa_csw,fa_high_powered,fa_low_powered,tolf,kia,wia,
+          war_materiel,remarks
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+          .bind(
+            b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type),
+            n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+            totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+            n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+            warMat, txt(b.remarks, 1000)
+          ).run();
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -94,8 +108,22 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
           return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
         }
-        await db.prepare('UPDATE ops SET op_date=?,unit=?,area=?,threat_group=?,surrendered=?,killed=?,captured=?,apprehended=?,firearms=?,tolf=?,kia=?,wia=?,remarks=? WHERE id=?')
-          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.threat_group), n(b.surrendered), n(b.killed), n(b.captured), n(b.apprehended), n(b.firearms), n(b.tolf), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+        const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 2000);
+        await db.prepare(`UPDATE ops SET
+          op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
+          surrendered=?,killed=?,enemy_wounded=?,captured=?,apprehended=?,
+          firearms=?,fa_captured=?,fa_confiscated=?,fa_surrendered=?,fa_recovered=?,
+          fa_csw=?,fa_high_powered=?,fa_low_powered=?,tolf=?,kia=?,wia=?,
+          war_materiel=?,remarks=?
+        WHERE id=?`)
+          .bind(
+            b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type),
+            n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+            totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+            n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+            warMat, txt(b.remarks, 1000), n(r1)
+          ).run();
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {

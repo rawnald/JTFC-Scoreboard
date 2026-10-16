@@ -12,21 +12,20 @@
     .card { background: #fff; border-radius: 20px; box-shadow: 0 1px 4px rgba(11,27,94,.07), 0 4px 16px rgba(11,27,94,.04); }
     .f { width: 100%; border: 1px solid #cbd5e1; border-radius: 12px; padding: .65rem .85rem; outline: none; background: #fff; font-size: .875rem; transition: all .15s; }
     .f:focus { border-color: #1d5bff; box-shadow: 0 0 0 3px rgba(29,91,255,.2); }
-    label { font-size: .75rem; color: #475569; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: .3rem; display: block; }
+    label { font-size: .72rem; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: .25rem; display: block; }
     .btn { background: #1d5bff; color: #fff; border-radius: 12px; padding: .65rem 1.35rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; transition: all .15s ease; }
     .btn:hover { background: #1545c9; box-shadow: 0 4px 14px rgba(29,91,255,.35); }
     .side-tab { transition: all .2s; border-radius: 14px; }
     .side-tab:hover { background: rgba(255,255,255,0.08); }
     .side-tab-active { background: #2563eb !important; color: #fff !important; font-weight: 600; box-shadow: 0 4px 14px rgba(37,99,235,.4); }
     .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
-    /* Hide scrollbar for tabs on mobile */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-[#eef3fb] text-slate-800 antialiased min-h-screen">
 
-<!-- LOGIN VIEW (Centered, Full Page) -->
+<!-- LOGIN VIEW (Full Screen, Centered) -->
 <div id="login" class="min-h-screen w-full flex items-center justify-center p-4">
   <form onsubmit="return login(event)" class="card p-8 sm:p-10 w-full max-w-md space-y-6 border border-slate-200/60 shadow-xl">
     <div class="text-center">
@@ -51,7 +50,7 @@
 <!-- FULL-PAGE RESPONSIVE APP LAYOUT -->
 <div id="app" class="hidden min-h-screen w-full lg:flex">
 
-  <!-- SIDEBAR (Fixed on Desktop, hidden/drawer on Mobile) -->
+  <!-- SIDEBAR (Desktop Fixed, 72 width) -->
   <aside id="sidebar" class="lg:w-72 bg-gradient-to-b from-[#0b1b5e] via-[#0b1952] to-[#081138] text-white p-5 lg:fixed lg:inset-y-0 lg:left-0 z-40 flex flex-col justify-between hidden lg:flex shadow-2xl">
     <div>
       <!-- Brand Header -->
@@ -139,7 +138,7 @@
   <!-- MAIN FULL-WIDTH CONTENT AREA -->
   <main class="flex-1 lg:ml-72 w-full p-4 sm:p-6 lg:p-8 space-y-6">
 
-    <!-- TOP CATEGORY BANNER / ACTION BAR -->
+    <!-- ACTION / BANNER BAR -->
     <section class="card p-5 sm:p-6 border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
       <div class="flex-1 min-w-[280px]">
         <div class="flex items-center gap-3">
@@ -151,12 +150,12 @@
               <h2 id="section-title" class="text-xl sm:text-2xl font-bold text-[#0b1b5e]">Combat / Military Operations</h2>
               <span id="record-count" class="badge bg-blue-100 text-blue-800">0 records</span>
             </div>
-            <p id="section-desc" class="text-xs sm:text-sm text-slate-500 mt-0.5">Kinetic encounters, neutralized elements, firearms gained, and casualties</p>
+            <p id="section-desc" class="text-xs sm:text-sm text-slate-500 mt-0.5">Kinetic encounters, threat neutralizations, firearms gained, and war materiel</p>
           </div>
         </div>
       </div>
 
-      <!-- Controls: Search & Add Button -->
+      <!-- Search & Add Record Button -->
       <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
         <div class="relative flex-1 sm:w-64">
           <span class="ms absolute left-3 top-3 text-slate-400 !text-lg">search</span>
@@ -168,7 +167,7 @@
       </div>
     </section>
 
-    <!-- FULL RESPONSIVE DATA TABLE CARD -->
+    <!-- RESPONSIVE DATA TABLE CARD -->
     <section class="card overflow-hidden border border-slate-200/80">
       <div class="overflow-x-auto min-h-[360px] w-full">
         <table class="w-full text-left text-sm whitespace-nowrap">
@@ -178,14 +177,14 @@
       </div>
     </section>
 
-    <!-- ANNUAL TARGET SETTINGS (Accessible full-width card) -->
+    <!-- ANNUAL TARGET SETTINGS -->
     <section class="card p-5 sm:p-6 border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
       <div class="max-w-xl">
         <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
           <span class="ms text-blue-600">flag</span> Scoreboard Annual Firearms Target
         </h3>
         <p class="text-xs text-slate-500 mt-1">
-          Set the annual baseline recovery target used to compute total scoreboard achievement gauge percentages.
+          Target number of gained firearms used to calculate overall scoreboard achievement percentages.
         </p>
       </div>
       <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -202,15 +201,15 @@
   </main>
 </div>
 
-<!-- FULL RESPONSIVE MODAL (Bottom sheet on mobile, dialog on desktop) -->
+<!-- FULL RESPONSIVE MODAL -->
 <div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-  <div class="bg-white w-full sm:max-w-3xl sm:rounded-3xl rounded-t-3xl shadow-2xl max-h-[90vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom sm:zoom-in-95 duration-150">
+  <div class="bg-white w-full sm:max-w-4xl sm:rounded-3xl rounded-t-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom sm:zoom-in-95 duration-150">
     
     <!-- Modal Header -->
     <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-3">
         <div id="modal-icon-wrap" class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 grid place-items-center">
-          <span id="modal-icon" class="ms text-2xl">add_circle</span>
+          <span id="modal-icon" class="ms text-2xl">swords</span>
         </div>
         <div>
           <h3 id="modal-title" class="font-bold text-base sm:text-lg text-slate-900">Add Record</h3>
@@ -223,15 +222,10 @@
     </div>
 
     <!-- Modal Form Body -->
-    <form id="record-form" onsubmit="return handleFormSubmit(event)" class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+    <form id="record-form" onsubmit="return handleFormSubmit(event)" class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
       <input type="hidden" id="edit-id">
-      <div id="dynamic-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
       
-      <!-- Remarks Field -->
-      <div>
-        <label>Remarks / Context</label>
-        <textarea id="f_remarks" rows="2" class="f" placeholder="Optional details, notes, or narrative summary..."></textarea>
-      </div>
+      <div id="modal-form-content" class="space-y-5"></div>
 
       <div id="modal-msg" class="text-xs font-medium min-h-[1.25rem]"></div>
 
@@ -256,43 +250,79 @@ const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&
 let currentTab = 'ops';
 let tabData = { ops: [], sleo: [], tolf: [], rido: [], hadr: [] };
 
+// Threat Group Mapping per Category
+const THREAT_MAPPING = {
+  'Local Terrorist Groups (LTG)': [
+    'BIFF-PSRL',
+    'BIFF-NPSRL',
+    'DITG-PSRL',
+    'DITG-NPSRL',
+    'ALG',
+    'LLE'
+  ],
+  'Communist Terrorist Group (CTG)': [
+    'SRC Daguma',
+    'GF Musa',
+    'SROC',
+    'ROC',
+    'FSMR',
+    'GF 73',
+    'Milisyang Bayan',
+    'UGMO'
+  ],
+  'PIAGs': [
+    'MILF',
+    'MNLF'
+  ]
+};
+
 const CATEGORIES = {
   ops: {
     title: 'Combat / Military Operations',
-    desc: 'Kinetic encounters, neutralized threat elements, firearms gained, and casualties',
+    desc: 'Kinetic encounters, neutralized threat elements, firearms gained, and captured war materiel',
     icon: 'swords',
-    color: 'blue',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
-      { key: 'area', label: 'Area / Location' },
-      { key: 'threat_group', label: 'Threat Group' },
-      { key: 'neutralized', label: 'Sur/Kil/Cap/App', render: o => `<span class="badge bg-blue-100 text-blue-800 font-mono">${o.surrendered}/${o.killed}/${o.captured}/${o.apprehended}</span>` },
-      { key: 'firearms', label: 'FA Gained', render: o => `<span class="font-bold text-green-700">+${o.firearms}</span>` },
-      { key: 'tolf', label: 'TOLF' },
-      { key: 'friendly', label: 'Friendly Casualties', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium">${o.kia} KIA / ${o.wia} WIA</span>` : '<span class="text-slate-400">0</span>' },
-      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[150px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
-    ],
-    fields: [
-      { id: 'op_date', label: 'Date of Operation', type: 'date', required: true },
-      { id: 'unit', label: 'Unit / Brigade', placeholder: 'e.g. 602nd Bde, 1BCT', required: true },
-      { id: 'area', label: 'Area / Municipality', placeholder: 'e.g. Pikit, Cotabato' },
-      { id: 'threat_group', label: 'Threat Group', placeholder: 'e.g. BIFF, DI-Hassan, NPA', required: true },
-      { id: 'surrendered', label: 'Surrendered', type: 'number', value: 0 },
-      { id: 'killed', label: 'Killed in Action (Enemy)', type: 'number', value: 0 },
-      { id: 'captured', label: 'Captured', type: 'number', value: 0 },
-      { id: 'apprehended', label: 'Apprehended', type: 'number', value: 0 },
-      { id: 'firearms', label: 'Firearms Gained', type: 'number', value: 0 },
-      { id: 'tolf', label: 'Loose Firearms (TOLF)', type: 'number', value: 0 },
-      { id: 'kia', label: 'Friendly KIA', type: 'number', value: 0 },
-      { id: 'wia', label: 'Friendly WIA', type: 'number', value: 0 }
+      { key: 'location', label: 'Location', render: o => `<span>${esc(o.area || '—')}${o.province ? ', ' + esc(o.province) : ''}</span>` },
+      { key: 'threat', label: 'Threat Classification', render: o => {
+        let badgeColor = 'bg-red-100 text-red-800';
+        if (o.threat_category && o.threat_category.includes('CTG')) badgeColor = 'bg-purple-100 text-purple-800';
+        if (o.threat_category && o.threat_category.includes('PIAGs')) badgeColor = 'bg-amber-100 text-amber-800';
+        return `<div><span class="badge ${badgeColor} text-[10px] mr-1">${esc(o.threat_category || 'Threat')}</span><span class="font-bold text-slate-800">${esc(o.threat_group || '—')}</span></div>`;
+      }},
+      { key: 'engagement_type', label: 'Engagement', render: o => `<span class="badge bg-slate-100 text-slate-800 font-medium">${esc(o.engagement_type || 'Encounter')}</span>` },
+      { key: 'enemy_casualties', label: 'Enemy Neutralized', render: o => {
+        const k = o.killed || 0, w = o.enemy_wounded || 0, s = o.surrendered || 0, c = o.captured || 0, a = o.apprehended || 0;
+        return `<span class="badge bg-blue-50 text-blue-800 font-mono text-xs" title="Killed: ${k}, Wounded: ${w}, Surrendered: ${s}, Captured: ${c}, Apprehended: ${a}">${k}K / ${w}W / ${s}S / ${c}C / ${a}App</span>`;
+      }},
+      { key: 'firearms', label: 'Firearms Gained', render: o => {
+        const tot = o.firearms || 0;
+        const csw = o.fa_csw || 0, hp = o.fa_high_powered || 0, lp = o.fa_low_powered || 0;
+        return `<div><span class="font-bold text-green-700 text-sm">+${tot}</span> <span class="text-[11px] text-slate-400 font-mono">(${csw} CSW/${hp} HP/${lp} LP)</span></div>`;
+      }},
+      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium">${o.kia} KIA / ${o.wia} WIA</span>` : '<span class="text-slate-400">0</span>' },
+      { key: 'war_mat', label: 'War Materiel', render: o => {
+        let parsed = null;
+        try { parsed = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
+        if (!parsed) return '<span class="text-slate-400">—</span>';
+        const badges = [];
+        if (parsed.enemy_camp) badges.push(`${parsed.enemy_camp} Camp`);
+        if (parsed.ied) badges.push(`${parsed.ied} IED`);
+        if (parsed.uxo) badges.push(`${parsed.uxo} UXO`);
+        if (parsed.ammo) badges.push(`${parsed.ammo} Ammo`);
+        if (parsed.magazine) badges.push(`${parsed.magazine} Mag`);
+        if (parsed.radio) badges.push(`${parsed.radio} Radio`);
+        if (parsed.vehicle || parsed.motorcycle) badges.push(`${(parsed.vehicle||0)+(parsed.motorcycle||0)} Veh`);
+        return badges.length ? `<span class="badge bg-amber-50 text-amber-900 text-[11px]">${badges.slice(0, 3).join(', ')}${badges.length > 3 ? '...' : ''}</span>` : '<span class="text-slate-400">—</span>';
+      }},
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[120px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ]
   },
   sleo: {
     title: 'Support to Law Enforcement Operations',
     desc: 'Joint operations supporting PNP, PDEA, NBI, anti-illegal drugs, search warrants, and checkpoints',
     icon: 'local_police',
-    color: 'indigo',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
@@ -325,7 +355,6 @@ const CATEGORIES = {
     title: 'Turn-Over of Loose Firearms (TOLF)',
     desc: 'Voluntary turnover of loose firearms, light weapons, and ordnance from communities & LGUs',
     icon: 'inventory_2',
-    color: 'emerald',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
@@ -354,7 +383,6 @@ const CATEGORIES = {
     title: 'Rido Cases (Clan Feud Settlement)',
     desc: 'Monitoring, arbitration, mediation, and peaceful settlement of family and clan feuds',
     icon: 'handshake',
-    color: 'amber',
     columns: [
       { key: 'case_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
@@ -387,7 +415,6 @@ const CATEGORIES = {
     title: 'HADR Operations',
     desc: 'Humanitarian Assistance and Disaster Relief: flood, typhoon, earthquake, and fire response',
     icon: 'health_and_safety',
-    color: 'rose',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
@@ -549,6 +576,37 @@ function renderTable() {
   $('tbl-body').innerHTML = html;
 }
 
+// Dynamic Threat Category to Threat Group dropdown for Combat Operations
+function onThreatCategoryChange(selectedCategory, preselectedGroup) {
+  const groupSelect = $('f_threat_group');
+  if (!groupSelect) return;
+  const groups = THREAT_MAPPING[selectedCategory] || [];
+  groupSelect.innerHTML = groups.map(g => `<option value="${g}" ${g === preselectedGroup ? 'selected' : ''}>${g}</option>`).join('');
+  if (!groups.length) {
+    groupSelect.innerHTML = `<option value="">-- Select Threat Category First --</option>`;
+  }
+}
+
+// Auto-sum Firearms in Combat Modal
+function calcCombatFirearms() {
+  const cap = parseInt($('f_fa_captured')?.value || 0, 10) || 0;
+  const conf = parseInt($('f_fa_confiscated')?.value || 0, 10) || 0;
+  const sur = parseInt($('f_fa_surrendered')?.value || 0, 10) || 0;
+  const rec = parseInt($('f_fa_recovered')?.value || 0, 10) || 0;
+  const sumStatus = cap + conf + sur + rec;
+
+  const csw = parseInt($('f_fa_csw')?.value || 0, 10) || 0;
+  const hp = parseInt($('f_fa_high_powered')?.value || 0, 10) || 0;
+  const lp = parseInt($('f_fa_low_powered')?.value || 0, 10) || 0;
+  const sumCat = csw + hp + lp;
+
+  const total = sumStatus || sumCat || 0;
+  const badge = $('fa-total-badge');
+  if (badge) {
+    badge.textContent = `Total Firearms: ${total}`;
+  }
+}
+
 // Modal handling
 function openModal(mode, id) {
   const cat = CATEGORIES[currentTab];
@@ -558,13 +616,271 @@ function openModal(mode, id) {
   const record = id ? tabData[currentTab].find(x => x.id === id) : null;
   $('edit-id').value = id || '';
 
-  $('modal-icon').textContent = id ? 'edit_note' : 'add_circle';
+  $('modal-icon').textContent = id ? 'edit_note' : cat.icon;
   $('modal-title').textContent = id ? `Edit ${cat.title}` : `Add New ${cat.title}`;
-  $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the details below`;
+  $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the operation details below`;
   $('modal-submit-btn').innerHTML = `<span class="ms">save</span> ${id ? 'Update Record' : 'Save Record'}`;
 
-  // Build dynamic form fields
-  let fieldsHtml = '';
+  // Specially customized form for Combat / Military Operations
+  if (currentTab === 'ops') {
+    renderCombatModalForm(record);
+  } else {
+    renderStandardModalForm(cat, record);
+  }
+
+  $('modal').classList.remove('hidden');
+}
+
+function renderCombatModalForm(record) {
+  let warMat = {};
+  if (record && record.war_materiel) {
+    try {
+      warMat = typeof record.war_materiel === 'string' ? JSON.parse(record.war_materiel) : record.war_materiel;
+    } catch(e) {
+      warMat = { other: record.war_materiel };
+    }
+  }
+
+  const opDate = record ? record.op_date : new Date().toISOString().slice(0, 10);
+  const selCat = record ? (record.threat_category || 'Local Terrorist Groups (LTG)') : 'Local Terrorist Groups (LTG)';
+  const selGroup = record ? record.threat_group : (THREAT_MAPPING[selCat] ? THREAT_MAPPING[selCat][0] : '');
+
+  $('modal-form-content').innerHTML = `
+    <!-- SECTION 1: Incident & Location Details -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
+        <span class="ms !text-lg text-blue-600">pin_drop</span> General & Location Information
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div>
+          <label>Date of Operation <span class="text-red-500">*</span></label>
+          <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
+        </div>
+        <div>
+          <label>Unit / Brigade <span class="text-red-500">*</span></label>
+          <input id="f_unit" value="${esc(record?.unit || '')}" placeholder="e.g. 602nd Bde, 1BCT" class="f" required>
+        </div>
+        <div>
+          <label>Area / Municipality</label>
+          <input id="f_area" value="${esc(record?.area || '')}" placeholder="e.g. Pikit, Shariff Saydona" class="f">
+        </div>
+        <div>
+          <label>Province</label>
+          <input id="f_province" value="${esc(record?.province || '')}" placeholder="e.g. Cotabato, Maguindanao del Sur" class="f">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Threat Classification & Engagement Type -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
+        <span class="ms !text-lg text-red-600">radar</span> Threat Classification & Engagement Type
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div>
+          <label>Threat Category <span class="text-red-500">*</span></label>
+          <select id="f_threat_category" class="f" onchange="onThreatCategoryChange(this.value, '')">
+            <option value="Local Terrorist Groups (LTG)" ${selCat === 'Local Terrorist Groups (LTG)' ? 'selected' : ''}>Local Terrorist Groups (LTG)</option>
+            <option value="Communist Terrorist Group (CTG)" ${selCat === 'Communist Terrorist Group (CTG)' ? 'selected' : ''}>Communist Terrorist Group (CTG)</option>
+            <option value="PIAGs" ${selCat === 'PIAGs' ? 'selected' : ''}>PIAGs</option>
+          </select>
+        </div>
+        <div>
+          <label>Threat Group <span class="text-red-500">*</span></label>
+          <select id="f_threat_group" class="f" required></select>
+        </div>
+        <div>
+          <label>Engagement Type <span class="text-red-500">*</span></label>
+          <select id="f_engagement_type" class="f">
+            <optgroup label="Government Initiated">
+              <option value="Encounter" ${record?.engagement_type === 'Encounter' ? 'selected' : ''}>Encounter (Govt Initiated)</option>
+            </optgroup>
+            <optgroup label="Enemy Initiated">
+              <option value="Harassment" ${record?.engagement_type === 'Harassment' ? 'selected' : ''}>Harassment</option>
+              <option value="Grenade Throwing" ${record?.engagement_type === 'Grenade Throwing' ? 'selected' : ''}>Grenade Throwing</option>
+              <option value="IED Explosion" ${record?.engagement_type === 'IED Explosion' ? 'selected' : ''}>IED Explosion</option>
+              <option value="Ambush" ${record?.engagement_type === 'Ambush' ? 'selected' : ''}>Ambush</option>
+              <option value="Shooting" ${record?.engagement_type === 'Shooting' ? 'selected' : ''}>Shooting</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Casualties (Friendly & Enemy) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Friendly Casualties -->
+      <div class="card p-4 sm:p-5 border border-red-200/80 bg-red-50/20 space-y-3">
+        <div class="text-xs font-bold text-red-900 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="ms !text-lg text-red-600">shield</span> Government Casualties (Friendly)
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label>Friendly KIA</label>
+            <input id="f_kia" type="number" min="0" value="${record?.kia ?? 0}" class="f">
+          </div>
+          <div>
+            <label>Friendly WIA</label>
+            <input id="f_wia" type="number" min="0" value="${record?.wia ?? 0}" class="f">
+          </div>
+        </div>
+      </div>
+
+      <!-- Enemy Casualties -->
+      <div class="card p-4 sm:p-5 border border-blue-200/80 bg-blue-50/20 space-y-3">
+        <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="ms !text-lg text-blue-600">person_off</span> Enemy Casualties & Neutralizations
+        </div>
+        <div class="grid grid-cols-3 gap-2.5">
+          <div>
+            <label>Killed</label>
+            <input id="f_killed" type="number" min="0" value="${record?.killed ?? 0}" class="f">
+          </div>
+          <div>
+            <label>Wounded</label>
+            <input id="f_enemy_wounded" type="number" min="0" value="${record?.enemy_wounded ?? 0}" class="f">
+          </div>
+          <div>
+            <label>Surrendered</label>
+            <input id="f_surrendered" type="number" min="0" value="${record?.surrendered ?? 0}" class="f">
+          </div>
+          <div>
+            <label>Captured</label>
+            <input id="f_captured" type="number" min="0" value="${record?.captured ?? 0}" class="f">
+          </div>
+          <div>
+            <label>Apprehended</label>
+            <input id="f_apprehended" type="number" min="0" value="${record?.apprehended ?? 0}" class="f">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Firearms (Status & Categories) -->
+    <div class="card p-4 sm:p-5 border border-green-200/80 bg-green-50/15 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="text-xs font-bold text-green-900 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="ms !text-lg text-green-700">security</span> Firearms Gained
+        </div>
+        <div id="fa-total-badge" class="badge bg-green-100 text-green-800 font-bold text-xs py-1 px-3">
+          Total Firearms: ${record?.firearms ?? 0}
+        </div>
+      </div>
+
+      <!-- By Acquisition Status -->
+      <div>
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">By Acquisition Status</div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div>
+            <label>Captured</label>
+            <input id="f_fa_captured" type="number" min="0" value="${record?.fa_captured ?? 0}" oninput="calcCombatFirearms()" class="f">
+          </div>
+          <div>
+            <label>Confiscated</label>
+            <input id="f_fa_confiscated" type="number" min="0" value="${record?.fa_confiscated ?? 0}" oninput="calcCombatFirearms()" class="f">
+          </div>
+          <div>
+            <label>Surrendered</label>
+            <input id="f_fa_surrendered" type="number" min="0" value="${record?.fa_surrendered ?? 0}" oninput="calcCombatFirearms()" class="f">
+          </div>
+          <div>
+            <label>Recovered</label>
+            <input id="f_fa_recovered" type="number" min="0" value="${record?.fa_recovered ?? 0}" oninput="calcCombatFirearms()" class="f">
+          </div>
+        </div>
+      </div>
+
+      <!-- By Weapon Category -->
+      <div class="pt-3 border-t border-green-200/60">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">By Weapon Category</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label>Crew-Served Weapons (CSW)</label>
+            <input id="f_fa_csw" type="number" min="0" value="${record?.fa_csw ?? 0}" oninput="calcCombatFirearms()" placeholder=".50 cal, M60, Mortar" class="f">
+          </div>
+          <div>
+            <label>High Powered (HPR)</label>
+            <input id="f_fa_high_powered" type="number" min="0" value="${record?.fa_high_powered ?? 0}" oninput="calcCombatFirearms()" placeholder="M16, M14, FAL, R4, AK47" class="f">
+          </div>
+          <div>
+            <label>Low Powered (LPR)</label>
+            <input id="f_fa_low_powered" type="number" min="0" value="${record?.fa_low_powered ?? 0}" oninput="calcCombatFirearms()" placeholder="Pistols, Revolvers, Shotguns" class="f">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5: Captured/Seized War Materiel -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+        <span class="ms !text-lg text-amber-600">inventory_2</span> Captured / Seized War Materiel & Items
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div>
+          <label>Enemy Camp</label>
+          <input id="wm_enemy_camp" type="number" min="0" value="${warMat.enemy_camp ?? 0}" class="f">
+        </div>
+        <div>
+          <label>IED</label>
+          <input id="wm_ied" type="number" min="0" value="${warMat.ied ?? 0}" class="f">
+        </div>
+        <div>
+          <label>UXO</label>
+          <input id="wm_uxo" type="number" min="0" value="${warMat.uxo ?? 0}" class="f">
+        </div>
+        <div>
+          <label>Explosives</label>
+          <input id="wm_explosives" type="number" min="0" value="${warMat.explosives ?? 0}" class="f">
+        </div>
+        <div>
+          <label>Magazine</label>
+          <input id="wm_magazine" type="number" min="0" value="${warMat.magazine ?? 0}" class="f">
+        </div>
+        <div>
+          <label>Ammunition</label>
+          <input id="wm_ammo" type="number" min="0" value="${warMat.ammo ?? 0}" class="f">
+        </div>
+        <div>
+          <label>Radio Transceiver</label>
+          <input id="wm_radio" type="number" min="0" value="${warMat.radio ?? 0}" class="f">
+        </div>
+        <div>
+          <label>Vehicle (4-Wheel)</label>
+          <input id="wm_vehicle" type="number" min="0" value="${warMat.vehicle ?? 0}" class="f">
+        </div>
+        <div>
+          <label>Motorcycle</label>
+          <input id="wm_motorcycle" type="number" min="0" value="${warMat.motorcycle ?? 0}" class="f">
+        </div>
+        <div>
+          <label>ISIS Flag</label>
+          <input id="wm_isis_flag" type="number" min="0" value="${warMat.isis_flag ?? 0}" class="f">
+        </div>
+        <div>
+          <label>Subversive Docs</label>
+          <input id="wm_subversive_docs" type="number" min="0" value="${warMat.subversive_docs ?? 0}" class="f">
+        </div>
+      </div>
+      <div class="pt-2">
+        <label>Other War Materiel & Notes</label>
+        <input id="wm_other" value="${esc(warMat.other || '')}" placeholder="Specify other recovered ordnance, tactical gear, or contraband" class="f">
+      </div>
+    </div>
+
+    <!-- Remarks Field -->
+    <div>
+      <label>Operational Narrative / Remarks</label>
+      <textarea id="f_remarks" rows="2" class="f" placeholder="Narrative summary, intelligence notes, or mission context...">${esc(record?.remarks || '')}</textarea>
+    </div>
+  `;
+
+  // Initialize dynamic threat group dropdown
+  onThreatCategoryChange(selCat, selGroup);
+  calcCombatFirearms();
+}
+
+function renderStandardModalForm(cat, record) {
+  let fieldsHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
   cat.fields.forEach(f => {
     const val = record ? (record[f.id] ?? '') : (f.value !== undefined ? f.value : (f.type === 'date' ? new Date().toISOString().slice(0, 10) : ''));
     const colClass = f.colSpan === 2 ? 'sm:col-span-2' : '';
@@ -586,11 +902,15 @@ function openModal(mode, id) {
         </div>`;
     }
   });
+  fieldsHtml += '</div>';
 
-  $('dynamic-fields').innerHTML = fieldsHtml;
-  $('f_remarks').value = record ? (record.remarks || '') : '';
+  fieldsHtml += `
+    <div>
+      <label>Remarks / Context</label>
+      <textarea id="f_remarks" rows="2" class="f" placeholder="Optional details, notes, or narrative summary...">${esc(record?.remarks || '')}</textarea>
+    </div>`;
 
-  $('modal').classList.remove('hidden');
+  $('modal-form-content').innerHTML = fieldsHtml;
 }
 
 function closeModal() {
@@ -600,18 +920,72 @@ function closeModal() {
 // Submit Form (Create or Update)
 async function handleFormSubmit(e) {
   e.preventDefault();
-  const cat = CATEGORIES[currentTab];
   const editId = $('edit-id').value;
   const method = editId ? 'PUT' : 'POST';
   const url = editId ? `${currentTab}/${editId}` : currentTab;
 
-  const payload = { remarks: $('f_remarks').value };
-  cat.fields.forEach(f => {
-    const el = $('f_' + f.id);
-    if (el) {
-      payload[f.id] = f.type === 'number' ? (parseInt(el.value, 10) || 0) : el.value;
-    }
-  });
+  let payload = { remarks: $('f_remarks').value };
+
+  if (currentTab === 'ops') {
+    const warMat = {
+      enemy_camp: parseInt($('wm_enemy_camp')?.value || 0, 10) || 0,
+      ied: parseInt($('wm_ied')?.value || 0, 10) || 0,
+      uxo: parseInt($('wm_uxo')?.value || 0, 10) || 0,
+      explosives: parseInt($('wm_explosives')?.value || 0, 10) || 0,
+      magazine: parseInt($('wm_magazine')?.value || 0, 10) || 0,
+      ammo: parseInt($('wm_ammo')?.value || 0, 10) || 0,
+      radio: parseInt($('wm_radio')?.value || 0, 10) || 0,
+      vehicle: parseInt($('wm_vehicle')?.value || 0, 10) || 0,
+      motorcycle: parseInt($('wm_motorcycle')?.value || 0, 10) || 0,
+      isis_flag: parseInt($('wm_isis_flag')?.value || 0, 10) || 0,
+      subversive_docs: parseInt($('wm_subversive_docs')?.value || 0, 10) || 0,
+      other: $('wm_other')?.value || ''
+    };
+
+    const faCap = parseInt($('f_fa_captured')?.value || 0, 10) || 0;
+    const faConf = parseInt($('f_fa_confiscated')?.value || 0, 10) || 0;
+    const faSur = parseInt($('f_fa_surrendered')?.value || 0, 10) || 0;
+    const faRec = parseInt($('f_fa_recovered')?.value || 0, 10) || 0;
+    const faCSW = parseInt($('f_fa_csw')?.value || 0, 10) || 0;
+    const faHP = parseInt($('f_fa_high_powered')?.value || 0, 10) || 0;
+    const faLP = parseInt($('f_fa_low_powered')?.value || 0, 10) || 0;
+    const totalFA = (faCap + faConf + faSur + faRec) || (faCSW + faHP + faLP) || 0;
+
+    payload = {
+      ...payload,
+      op_date: $('f_op_date').value,
+      unit: $('f_unit').value,
+      area: $('f_area').value,
+      province: $('f_province').value,
+      threat_category: $('f_threat_category').value,
+      threat_group: $('f_threat_group').value,
+      engagement_type: $('f_engagement_type').value,
+      kia: parseInt($('f_kia')?.value || 0, 10) || 0,
+      wia: parseInt($('f_wia')?.value || 0, 10) || 0,
+      killed: parseInt($('f_killed')?.value || 0, 10) || 0,
+      enemy_wounded: parseInt($('f_enemy_wounded')?.value || 0, 10) || 0,
+      surrendered: parseInt($('f_surrendered')?.value || 0, 10) || 0,
+      captured: parseInt($('f_captured')?.value || 0, 10) || 0,
+      apprehended: parseInt($('f_apprehended')?.value || 0, 10) || 0,
+      firearms: totalFA,
+      fa_captured: faCap,
+      fa_confiscated: faConf,
+      fa_surrendered: faSur,
+      fa_recovered: faRec,
+      fa_csw: faCSW,
+      fa_high_powered: faHP,
+      fa_low_powered: faLP,
+      war_materiel: warMat
+    };
+  } else {
+    const cat = CATEGORIES[currentTab];
+    cat.fields.forEach(f => {
+      const el = $('f_' + f.id);
+      if (el) {
+        payload[f.id] = f.type === 'number' ? (parseInt(el.value, 10) || 0) : el.value;
+      }
+    });
+  }
 
   $('modal-msg').textContent = 'Saving to database...';
   $('modal-msg').className = 'text-xs font-medium text-blue-600';
