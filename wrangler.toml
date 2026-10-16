@@ -5,4 +5,4 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "jtfc-scoreboard"
-database_id = "PASTE_YOUR_D1_ID_HERE"
+database_id = "445957a4-7553-4c81-bbbe-bb2df9953f98"

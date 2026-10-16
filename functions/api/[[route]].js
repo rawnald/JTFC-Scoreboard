@@ -28,14 +28,15 @@ function agg(rows) {
 }
 
 export async function onRequest({ request, env, params }) {
+  const db = env.DB || env.DB_Scoreboard;
   const route = [].concat(params.route || []);
   const [r0, r1] = route, method = request.method;
   try {
     if (r0 === 'stats' && method === 'GET') {
       const y = n(new URL(request.url).searchParams.get('year')) || new Date().getFullYear();
-      const q = year => env.DB.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?').bind(`${year}-01-01`, `${year}-12-31`).all().then(x => agg(x.results));
+      const q = year => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?').bind(`${year}-01-01`, `${year}-12-31`).all().then(x => agg(x.results));
       const [cur, prev] = await Promise.all([q(y), q(y - 1)]);
-      const t = await env.DB.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
+      const t = await db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
       return json({
         year: y, target: +(t?.value || 0), cur, prev,
         matrix: Object.values(cur.units).sort((a, b) => b.firearms - a.firearms)
@@ -52,24 +53,24 @@ export async function onRequest({ request, env, params }) {
     if (!(await authed(request, env))) return json({ error: 'Unauthorized' }, 401);
 
     if (r0 === 'ops' && method === 'GET') {
-      const x = await env.DB.prepare('SELECT * FROM ops ORDER BY op_date DESC, id DESC LIMIT 50').all();
-      const t = await env.DB.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
+      const x = await db.prepare('SELECT * FROM ops ORDER BY op_date DESC, id DESC LIMIT 50').all();
+      const t = await db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
       return json({ rows: x.results, target: +(t?.value || 0) });
     }
     if (r0 === 'ops' && method === 'POST') {
       const b = await request.json();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) return json({ error: 'Date, unit and threat group are required' }, 400);
-      await env.DB.prepare('INSERT INTO ops (op_date,unit,area,threat_group,surrendered,killed,captured,apprehended,firearms,tolf,kia,wia) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+      await db.prepare('INSERT INTO ops (op_date,unit,area,threat_group,surrendered,killed,captured,apprehended,firearms,tolf,kia,wia) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
         .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.threat_group), n(b.surrendered), n(b.killed), n(b.captured), n(b.apprehended), n(b.firearms), n(b.tolf), n(b.kia), n(b.wia)).run();
       return json({ ok: true });
     }
     if (r0 === 'ops' && method === 'DELETE' && r1) {
-      await env.DB.prepare('DELETE FROM ops WHERE id=?').bind(n(r1)).run();
+      await db.prepare('DELETE FROM ops WHERE id=?').bind(n(r1)).run();
       return json({ ok: true });
     }
     if (r0 === 'target' && method === 'PUT') {
       const { target } = await request.json();
-      await env.DB.prepare("INSERT OR REPLACE INTO settings VALUES ('firearms_target', ?)").bind(String(n(target))).run();
+      await db.prepare("INSERT OR REPLACE INTO settings VALUES ('firearms_target', ?)").bind(String(n(target))).run();
       return json({ ok: true });
     }
     return json({ error: 'Not found' }, 404);
