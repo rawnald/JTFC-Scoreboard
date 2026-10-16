@@ -2,178 +2,245 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>JTFC Admin Portal · Operations & Scoreboard Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>Admin Portal · JTFC Operations Scoreboard</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
   <style>
     body { font-family: Roboto, sans-serif; }
     .ms { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; vertical-align: middle; }
-    .card { background: #fff; border-radius: 18px; box-shadow: 0 2px 8px rgba(11,27,94,.06), 0 1px 3px rgba(11,27,94,.08); }
-    .f { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: .6rem .75rem; outline: none; background: #fff; font-size: .875rem; }
-    .f:focus { border-color: #1d5bff; box-shadow: 0 0 0 3px rgba(29,91,255,.18); }
-    label { font-size: .75rem; color: #475569; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: .25rem; display: block; }
-    .btn { background: #1d5bff; color: #fff; border-radius: 12px; padding: .65rem 1.3rem; font-weight: 500; display: inline-flex; align-items: center; gap: .5rem; transition: all .15s ease; }
-    .btn:hover { background: #1545c9; box-shadow: 0 4px 12px rgba(29,91,255,.3); }
-    .tab-btn { transition: all .2s; border-radius: 12px; }
-    .tab-active { background: #0b1b5e !important; color: #fff !important; font-weight: 600; box-shadow: 0 4px 12px rgba(11,27,94,.25); }
-    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .card { background: #fff; border-radius: 20px; box-shadow: 0 1px 4px rgba(11,27,94,.07), 0 4px 16px rgba(11,27,94,.04); }
+    .f { width: 100%; border: 1px solid #cbd5e1; border-radius: 12px; padding: .65rem .85rem; outline: none; background: #fff; font-size: .875rem; transition: all .15s; }
+    .f:focus { border-color: #1d5bff; box-shadow: 0 0 0 3px rgba(29,91,255,.2); }
+    label { font-size: .75rem; color: #475569; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: .3rem; display: block; }
+    .btn { background: #1d5bff; color: #fff; border-radius: 12px; padding: .65rem 1.35rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; transition: all .15s ease; }
+    .btn:hover { background: #1545c9; box-shadow: 0 4px 14px rgba(29,91,255,.35); }
+    .side-tab { transition: all .2s; border-radius: 14px; }
+    .side-tab:hover { background: rgba(255,255,255,0.08); }
+    .side-tab-active { background: #2563eb !important; color: #fff !important; font-weight: 600; box-shadow: 0 4px 14px rgba(37,99,235,.4); }
+    .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    /* Hide scrollbar for tabs on mobile */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-[#f0f4fd] min-h-screen text-slate-800 antialiased">
+<body class="bg-[#eef3fb] text-slate-800 antialiased min-h-screen">
 
-<!-- LOGIN VIEW -->
-<div id="login" class="min-h-screen grid place-items-center p-4">
-  <form onsubmit="return login(event)" class="card p-8 w-full max-w-sm space-y-5 border border-slate-100">
+<!-- LOGIN VIEW (Centered, Full Page) -->
+<div id="login" class="min-h-screen w-full flex items-center justify-center p-4">
+  <form onsubmit="return login(event)" class="card p-8 sm:p-10 w-full max-w-md space-y-6 border border-slate-200/60 shadow-xl">
     <div class="text-center">
-      <div class="w-16 h-16 bg-blue-50 text-[#0b1b5e] rounded-2xl grid place-items-center mx-auto mb-3 shadow-inner">
-        <span class="ms !text-4xl text-[#0b1b5e]">lock</span>
+      <div class="w-20 h-20 bg-blue-50 text-[#0b1b5e] rounded-3xl grid place-items-center mx-auto mb-4 shadow-inner">
+        <span class="ms !text-5xl text-[#0b1b5e]">lock</span>
       </div>
-      <h1 class="text-2xl font-bold text-[#0b1b5e]">JTFC Admin Portal</h1>
-      <p class="text-xs text-slate-500 mt-1">Authorized personnel data management</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-[#0b1b5e]">Admin Portal</h1>
+      <p class="text-sm text-slate-500 mt-1.5">JTFC Combat & Security Operations Scoreboard</p>
     </div>
     <div>
       <label>Admin Password</label>
-      <input id="pw" type="password" class="f" placeholder="Enter secure password" required autofocus>
+      <input id="pw" type="password" class="f py-3 text-base" placeholder="Enter password" required autofocus>
     </div>
     <p id="lerr" class="text-red-600 text-xs min-h-[1rem] font-medium"></p>
-    <button class="btn w-full justify-center py-3 text-base">
+    <button class="btn w-full py-3.5 text-base shadow-md">
       <span class="ms">login</span> Sign In
     </button>
-    <a href="/" class="block text-center text-xs text-blue-700 hover:underline">← Return to Public Dashboard</a>
+    <a href="/" class="block text-center text-xs text-blue-700 hover:underline pt-2">← Back to Public Dashboard</a>
   </form>
 </div>
 
-<!-- MAIN ADMIN APP -->
-<div id="app" class="max-w-7xl mx-auto p-4 lg:p-6 space-y-6 hidden">
+<!-- FULL-PAGE RESPONSIVE APP LAYOUT -->
+<div id="app" class="hidden min-h-screen w-full lg:flex">
 
-  <!-- TOP BAR -->
-  <header class="flex flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-[#0b1b5e] to-[#152e8d] text-white rounded-2xl p-4 lg:px-6 shadow-md">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-white/10 grid place-items-center">
-        <span class="ms text-2xl text-blue-200">military_tech</span>
-      </div>
-      <div>
-        <h1 class="font-bold text-lg leading-tight">JTFC Operations Command Portal</h1>
-        <p class="text-xs text-blue-200">Joint Task Force Central · Data Entry & Maintenance</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <a href="/" target="_blank" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-medium flex items-center gap-1.5 transition">
-        <span class="ms !text-base">open_in_new</span> Public Dashboard
-      </a>
-      <button onclick="logout()" class="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-200 text-xs font-medium flex items-center gap-1.5 transition">
-        <span class="ms !text-base">logout</span> Logout
-      </button>
-    </div>
-  </header>
-
-  <!-- NAVIGATION TABS -->
-  <nav class="flex flex-wrap gap-2 p-1.5 bg-white/70 backdrop-blur rounded-2xl card border border-slate-200/80">
-    <button onclick="switchTab('ops')" id="tab-ops" class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100">
-      <span class="ms text-blue-600">swords</span> Combat / Military Operation
-    </button>
-    <button onclick="switchTab('sleo')" id="tab-sleo" class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100">
-      <span class="ms text-indigo-600">local_police</span> Support to Law Enforcement (SLEO)
-    </button>
-    <button onclick="switchTab('tolf')" id="tab-tolf" class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100">
-      <span class="ms text-emerald-600">inventory_2</span> Turn-Over of Loose Firearms (TOLF)
-    </button>
-    <button onclick="switchTab('rido')" id="tab-rido" class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100">
-      <span class="ms text-amber-600">handshake</span> Rido Cases
-    </button>
-    <button onclick="switchTab('hadr')" id="tab-hadr" class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100">
-      <span class="ms text-rose-600">health_and_safety</span> HADR Operations
-    </button>
-  </nav>
-
-  <!-- ACTION & STATS HEADER FOR CURRENT TAB -->
-  <section class="card p-5 flex flex-wrap items-center justify-between gap-4 border border-slate-200/80">
+  <!-- SIDEBAR (Fixed on Desktop, hidden/drawer on Mobile) -->
+  <aside id="sidebar" class="lg:w-72 bg-gradient-to-b from-[#0b1b5e] via-[#0b1952] to-[#081138] text-white p-5 lg:fixed lg:inset-y-0 lg:left-0 z-40 flex flex-col justify-between hidden lg:flex shadow-2xl">
     <div>
-      <div class="flex items-center gap-2.5">
-        <h2 id="section-title" class="text-xl font-bold text-[#0b1b5e]">Combat / Military Operations</h2>
-        <span id="record-count" class="badge bg-blue-100 text-blue-800">0 records</span>
-      </div>
-      <p id="section-desc" class="text-xs text-slate-500 mt-0.5">Kinetic encounters, neutralized threat elements, firearms gained, and casualties</p>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3">
-      <div class="relative">
-        <span class="ms absolute left-3 top-2.5 text-slate-400 !text-lg">search</span>
-        <input id="search-box" oninput="renderTable()" placeholder="Search records..." class="f pl-9 pr-3 py-2 w-56 text-sm">
-      </div>
-      <button onclick="openModal('add')" class="btn">
-        <span class="ms">add_circle</span> Add Record
-      </button>
-    </div>
-  </section>
-
-  <!-- DATA TABLE -->
-  <section class="card overflow-hidden border border-slate-200/80">
-    <div class="overflow-x-auto min-h-[300px]">
-      <table class="w-full text-left text-sm">
-        <thead id="tbl-head" class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 uppercase font-semibold"></thead>
-        <tbody id="tbl-body" class="divide-y divide-slate-100"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- GLOBAL SETTINGS (TARGET) -->
-  <section class="card p-5 border border-slate-200/80 flex flex-wrap items-end justify-between gap-4">
-    <div class="max-w-md">
-      <h3 class="font-bold text-slate-800 flex items-center gap-2"><span class="ms text-blue-600">flag</span> Annual Firearms Target</h3>
-      <p class="text-xs text-slate-500 mt-1">Target number of recovered and gained firearms used to calculate overall scoreboard achievement percentages.</p>
-    </div>
-    <div class="flex items-center gap-3">
-      <div>
-        <label>Target (Annual)</label>
-        <input id="tgt" type="number" min="0" class="f w-40 font-bold text-base" placeholder="200">
-      </div>
-      <button onclick="saveTarget()" class="btn self-end">
-        <span class="ms">save</span> Save Target
-      </button>
-    </div>
-  </section>
-
-</div>
-
-<!-- DATA ENTRY / EDIT MODAL -->
-<div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 lg:p-6 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-    
-    <!-- Modal Header -->
-    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <span id="modal-icon" class="ms text-2xl text-blue-600">add_circle</span>
+      <!-- Brand Header -->
+      <div class="flex items-center gap-3.5 pb-6 border-b border-white/10">
+        <div class="w-12 h-12 rounded-2xl bg-blue-600/30 border border-blue-400/20 grid place-items-center shrink-0">
+          <span class="ms text-3xl text-blue-300">military_tech</span>
+        </div>
         <div>
-          <h3 id="modal-title" class="font-bold text-lg text-slate-900">Add Record</h3>
-          <p id="modal-subtitle" class="text-xs text-slate-500">Fill in the operation details below</p>
+          <div class="font-bold text-lg leading-tight text-white tracking-wide">JTFC Operations</div>
+          <div class="text-xs text-blue-200 font-medium">Command & Scoreboard</div>
         </div>
       </div>
-      <button onclick="closeModal()" class="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-500 grid place-items-center transition">
+
+      <!-- Navigation Menu -->
+      <div class="mt-6 mb-2 text-[11px] font-bold uppercase tracking-wider text-blue-300/70 px-3">
+        Operations Menu
+      </div>
+      <nav class="space-y-1.5">
+        <button onclick="switchTab('ops')" id="tab-ops" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-blue-400">swords</span>
+          <span class="truncate">Combat / Military Ops</span>
+        </button>
+        <button onclick="switchTab('sleo')" id="tab-sleo" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-indigo-400">local_police</span>
+          <span class="truncate">Support to Law Enf. (SLEO)</span>
+        </button>
+        <button onclick="switchTab('tolf')" id="tab-tolf" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-emerald-400">inventory_2</span>
+          <span class="truncate">Turn-Over of Loose FAs</span>
+        </button>
+        <button onclick="switchTab('rido')" id="tab-rido" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-amber-400">handshake</span>
+          <span class="truncate">Rido Cases</span>
+        </button>
+        <button onclick="switchTab('hadr')" id="tab-hadr" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-rose-400">health_and_safety</span>
+          <span class="truncate">HADR Operations</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="pt-6 border-t border-white/10 space-y-2">
+      <a href="/" target="_blank" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/10 text-xs text-blue-200 font-medium transition">
+        <span class="ms text-lg">open_in_new</span>
+        <span>View Public Dashboard</span>
+      </a>
+      <button onclick="logout()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-xs text-red-200 font-medium transition">
+        <span class="ms text-lg">logout</span>
+        <span>Sign Out</span>
+      </button>
+      <div class="rounded-xl p-3 bg-white/5 text-[11px] text-blue-200/80 mt-2 text-center">
+        “Operational Readiness, Strategic Success”
+      </div>
+    </div>
+  </aside>
+
+  <!-- MOBILE HEADER & NAVIGATION -->
+  <div class="lg:hidden w-full bg-[#0b1b5e] text-white sticky top-0 z-30 shadow-md">
+    <div class="flex items-center justify-between p-4">
+      <div class="flex items-center gap-2.5">
+        <span class="ms text-2xl text-blue-300">military_tech</span>
+        <div class="font-bold text-base">JTFC Operations Admin</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/" target="_blank" class="p-2 rounded-lg bg-white/10 text-white" title="Dashboard">
+          <span class="ms !text-lg">open_in_new</span>
+        </a>
+        <button onclick="logout()" class="p-2 rounded-lg bg-red-500/20 text-red-200" title="Logout">
+          <span class="ms !text-lg">logout</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Horizontal Swipeable Tabs on Mobile -->
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-3 pb-3 border-t border-white/10 pt-2 text-xs">
+      <button onclick="switchTab('ops')" id="mob-tab-ops" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Combat Ops</button>
+      <button onclick="switchTab('sleo')" id="mob-tab-sleo" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">SLEO</button>
+      <button onclick="switchTab('tolf')" id="mob-tab-tolf" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">TOLF</button>
+      <button onclick="switchTab('rido')" id="mob-tab-rido" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Rido Cases</button>
+      <button onclick="switchTab('hadr')" id="mob-tab-hadr" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">HADR</button>
+    </div>
+  </div>
+
+  <!-- MAIN FULL-WIDTH CONTENT AREA -->
+  <main class="flex-1 lg:ml-72 w-full p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- TOP CATEGORY BANNER / ACTION BAR -->
+    <section class="card p-5 sm:p-6 border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex-1 min-w-[280px]">
+        <div class="flex items-center gap-3">
+          <div id="section-icon-wrap" class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 grid place-items-center shrink-0">
+            <span id="section-icon" class="ms text-2xl">swords</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h2 id="section-title" class="text-xl sm:text-2xl font-bold text-[#0b1b5e]">Combat / Military Operations</h2>
+              <span id="record-count" class="badge bg-blue-100 text-blue-800">0 records</span>
+            </div>
+            <p id="section-desc" class="text-xs sm:text-sm text-slate-500 mt-0.5">Kinetic encounters, neutralized elements, firearms gained, and casualties</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls: Search & Add Button -->
+      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+        <div class="relative flex-1 sm:w-64">
+          <span class="ms absolute left-3 top-3 text-slate-400 !text-lg">search</span>
+          <input id="search-box" oninput="renderTable()" placeholder="Filter records..." class="f pl-9 pr-3 py-2.5 text-sm w-full">
+        </div>
+        <button onclick="openModal('add')" class="btn py-2.5 px-4 shrink-0 shadow-md">
+          <span class="ms">add_circle</span> Add Record
+        </button>
+      </div>
+    </section>
+
+    <!-- FULL RESPONSIVE DATA TABLE CARD -->
+    <section class="card overflow-hidden border border-slate-200/80">
+      <div class="overflow-x-auto min-h-[360px] w-full">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+          <thead id="tbl-head" class="bg-slate-50/80 border-b border-slate-200 text-xs text-slate-600 uppercase font-semibold tracking-wider"></thead>
+          <tbody id="tbl-body" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ANNUAL TARGET SETTINGS (Accessible full-width card) -->
+    <section class="card p-5 sm:p-6 border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
+      <div class="max-w-xl">
+        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+          <span class="ms text-blue-600">flag</span> Scoreboard Annual Firearms Target
+        </h3>
+        <p class="text-xs text-slate-500 mt-1">
+          Set the annual baseline recovery target used to compute total scoreboard achievement gauge percentages.
+        </p>
+      </div>
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <div>
+          <label class="sr-only">Annual Target</label>
+          <input id="tgt" type="number" min="0" class="f w-32 font-bold text-base text-center" placeholder="200">
+        </div>
+        <button onclick="saveTarget()" class="btn py-2.5 px-4 shadow">
+          <span class="ms">save</span> Save Target
+        </button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- FULL RESPONSIVE MODAL (Bottom sheet on mobile, dialog on desktop) -->
+<div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+  <div class="bg-white w-full sm:max-w-3xl sm:rounded-3xl rounded-t-3xl shadow-2xl max-h-[90vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom sm:zoom-in-95 duration-150">
+    
+    <!-- Modal Header -->
+    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-3">
+        <div id="modal-icon-wrap" class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 grid place-items-center">
+          <span id="modal-icon" class="ms text-2xl">add_circle</span>
+        </div>
+        <div>
+          <h3 id="modal-title" class="font-bold text-base sm:text-lg text-slate-900">Add Record</h3>
+          <p id="modal-subtitle" class="text-xs text-slate-500">Enter operation details below</p>
+        </div>
+      </div>
+      <button onclick="closeModal()" class="w-9 h-9 rounded-xl hover:bg-slate-200 text-slate-500 grid place-items-center transition">
         <span class="ms">close</span>
       </button>
     </div>
 
     <!-- Modal Form Body -->
-    <form id="record-form" onsubmit="return handleFormSubmit(event)" class="flex-1 overflow-y-auto p-6 space-y-4">
+    <form id="record-form" onsubmit="return handleFormSubmit(event)" class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
       <input type="hidden" id="edit-id">
-      <div id="dynamic-fields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      <div id="dynamic-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
       
-      <!-- Remarks Field (Common to all) -->
+      <!-- Remarks Field -->
       <div>
-        <label>Remarks / Notes / Summary</label>
-        <textarea id="f_remarks" rows="2" class="f" placeholder="Additional details or operational context..."></textarea>
+        <label>Remarks / Context</label>
+        <textarea id="f_remarks" rows="2" class="f" placeholder="Optional details, notes, or narrative summary..."></textarea>
       </div>
 
       <div id="modal-msg" class="text-xs font-medium min-h-[1.25rem]"></div>
 
       <!-- Modal Footer -->
-      <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
         <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium transition">
           Cancel
         </button>
-        <button type="submit" id="modal-submit-btn" class="btn">
+        <button type="submit" id="modal-submit-btn" class="btn px-6 py-2.5 shadow-md">
           <span class="ms">save</span> Save Record
         </button>
       </div>
@@ -194,27 +261,27 @@ const CATEGORIES = {
     title: 'Combat / Military Operations',
     desc: 'Kinetic encounters, neutralized threat elements, firearms gained, and casualties',
     icon: 'swords',
-    dateField: 'op_date',
+    color: 'blue',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
       { key: 'area', label: 'Area / Location' },
       { key: 'threat_group', label: 'Threat Group' },
-      { key: 'neutralized', label: 'Sur/Kil/Cap/App', render: o => `<span class="badge bg-blue-50 text-blue-700 font-mono">${o.surrendered}/${o.killed}/${o.captured}/${o.apprehended}</span>` },
+      { key: 'neutralized', label: 'Sur/Kil/Cap/App', render: o => `<span class="badge bg-blue-100 text-blue-800 font-mono">${o.surrendered}/${o.killed}/${o.captured}/${o.apprehended}</span>` },
       { key: 'firearms', label: 'FA Gained', render: o => `<span class="font-bold text-green-700">+${o.firearms}</span>` },
       { key: 'tolf', label: 'TOLF' },
-      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium">${o.kia} KIA / ${o.wia} WIA</span>` : '<span class="text-slate-400">0</span>' },
-      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[140px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
+      { key: 'friendly', label: 'Friendly Casualties', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium">${o.kia} KIA / ${o.wia} WIA</span>` : '<span class="text-slate-400">0</span>' },
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[150px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
     fields: [
       { id: 'op_date', label: 'Date of Operation', type: 'date', required: true },
       { id: 'unit', label: 'Unit / Brigade', placeholder: 'e.g. 602nd Bde, 1BCT', required: true },
       { id: 'area', label: 'Area / Municipality', placeholder: 'e.g. Pikit, Cotabato' },
       { id: 'threat_group', label: 'Threat Group', placeholder: 'e.g. BIFF, DI-Hassan, NPA', required: true },
-      { id: 'surrendered', label: 'Surrendered Elements', type: 'number', value: 0 },
+      { id: 'surrendered', label: 'Surrendered', type: 'number', value: 0 },
       { id: 'killed', label: 'Killed in Action (Enemy)', type: 'number', value: 0 },
-      { id: 'captured', label: 'Captured Elements', type: 'number', value: 0 },
-      { id: 'apprehended', label: 'Apprehended Elements', type: 'number', value: 0 },
+      { id: 'captured', label: 'Captured', type: 'number', value: 0 },
+      { id: 'apprehended', label: 'Apprehended', type: 'number', value: 0 },
       { id: 'firearms', label: 'Firearms Gained', type: 'number', value: 0 },
       { id: 'tolf', label: 'Loose Firearms (TOLF)', type: 'number', value: 0 },
       { id: 'kia', label: 'Friendly KIA', type: 'number', value: 0 },
@@ -225,57 +292,57 @@ const CATEGORIES = {
     title: 'Support to Law Enforcement Operations',
     desc: 'Joint operations supporting PNP, PDEA, NBI, anti-illegal drugs, search warrants, and checkpoints',
     icon: 'local_police',
-    dateField: 'op_date',
+    color: 'indigo',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
       { key: 'area', label: 'Area' },
-      { key: 'lead_agency', label: 'Lead Agency', render: o => `<span class="badge bg-indigo-50 text-indigo-700 font-semibold">${esc(o.lead_agency)}</span>` },
-      { key: 'operation_type', label: 'Operation Type' },
-      { key: 'target_group', label: 'Target / Subject' },
+      { key: 'lead_agency', label: 'Agency Supported', render: o => `<span class="badge bg-indigo-100 text-indigo-800 font-bold">${esc(o.lead_agency)}</span>` },
+      { key: 'operation_type', label: 'Op Type' },
+      { key: 'target_group', label: 'Target / Personality' },
       { key: 'arrested', label: 'Arr/Kil/Sur', render: o => `${o.arrested}/${o.killed}/${o.surrendered}` },
       { key: 'firearms_seized', label: 'FA Seized', render: o => `<span class="font-bold text-green-700">${o.firearms_seized}</span>` },
-      { key: 'contraband_details', label: 'Contraband / Seizures', render: o => `<span class="text-xs text-slate-600 truncate max-w-[150px] block" title="${esc(o.contraband_details)}">${esc(o.contraband_details || '—')}</span>` },
-      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[120px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
+      { key: 'contraband_details', label: 'Contraband / Seizures', render: o => `<span class="text-xs text-slate-600 truncate max-w-[160px] block" title="${esc(o.contraband_details)}">${esc(o.contraband_details || '—')}</span>` },
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
     fields: [
       { id: 'op_date', label: 'Operation Date', type: 'date', required: true },
       { id: 'unit', label: 'Military Unit Involved', placeholder: 'e.g. 601st Bde, 40IB', required: true },
-      { id: 'area', label: 'Location / Area', placeholder: 'e.g. Tacurong City, Sultan Kudarat' },
+      { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Tacurong City, Sultan Kudarat' },
       { id: 'lead_agency', label: 'Lead Agency Supported', placeholder: 'e.g. PNP, PDEA, NBI, CIDG', required: true },
       { id: 'operation_type', label: 'Operation Type', placeholder: 'e.g. Anti-Illegal Drugs, Search Warrant, Checkpoint', required: true },
-      { id: 'target_group', label: 'Target / Personality', placeholder: 'e.g. Drug Syndicate, Wanted Person' },
-      { id: 'arrested', label: 'Arrested / Apprehended', type: 'number', value: 0 },
+      { id: 'target_group', label: 'Target / Subject', placeholder: 'e.g. Drug Syndicate, Wanted Person' },
+      { id: 'arrested', label: 'Arrested', type: 'number', value: 0 },
       { id: 'killed', label: 'Killed', type: 'number', value: 0 },
       { id: 'surrendered', label: 'Surrendered', type: 'number', value: 0 },
       { id: 'firearms_seized', label: 'Firearms Seized', type: 'number', value: 0 },
-      { id: 'contraband_details', label: 'Contraband / Drugs Details', placeholder: 'e.g. 50g Shabu (Est. PHP 340,000), cash', colSpan: 2 },
+      { id: 'contraband_details', label: 'Contraband / Drugs Details', placeholder: 'e.g. 50g Shabu (Est. PHP 340,000)', colSpan: 2 },
       { id: 'kia', label: 'Friendly KIA', type: 'number', value: 0 },
       { id: 'wia', label: 'Friendly WIA', type: 'number', value: 0 }
     ]
   },
   tolf: {
     title: 'Turn-Over of Loose Firearms (TOLF)',
-    desc: 'Voluntary turnover and surrender of loose firearms, light weapons, and explosives from communities & LGUs',
+    desc: 'Voluntary turnover of loose firearms, light weapons, and ordnance from communities & LGUs',
     icon: 'inventory_2',
-    dateField: 'op_date',
+    color: 'emerald',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
       { key: 'area', label: 'Area' },
       { key: 'source_group', label: 'Source / Community' },
-      { key: 'firearms_count', label: 'Total FAs', render: o => `<span class="badge bg-emerald-100 text-emerald-800 font-bold text-sm px-2.5 py-0.5">${o.firearms_count}</span>` },
-      { key: 'breakdown', label: 'Small/Light/Crew', render: o => `<span class="text-xs font-mono text-slate-600">${o.small_arms} / ${o.light_weapons} / ${o.crew_served}</span>` },
+      { key: 'firearms_count', label: 'Total FAs', render: o => `<span class="badge bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 text-sm">${o.firearms_count}</span>` },
+      { key: 'breakdown', label: 'Small / Light / Crew', render: o => `<span class="font-mono text-xs text-slate-600">${o.small_arms} / ${o.light_weapons} / ${o.crew_served}</span>` },
       { key: 'explosives_count', label: 'Explosives / IEDs', render: o => o.explosives_count ? `<span class="badge bg-amber-100 text-amber-800">${o.explosives_count}</span>` : '0' },
       { key: 'facilitated_by', label: 'Facilitated By', render: o => `<span class="text-xs text-slate-600">${esc(o.facilitated_by || '—')}</span>` },
-      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[120px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
     fields: [
       { id: 'op_date', label: 'Turn-Over Date', type: 'date', required: true },
       { id: 'unit', label: 'Receiving Unit', placeholder: 'e.g. 602nd Bde, 90IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Carmen, Cotabato' },
-      { id: 'source_group', label: 'Source / Community', placeholder: 'e.g. Local Officials, Former Rebels, Barangays' },
-      { id: 'firearms_count', label: 'Total Firearms Count', type: 'number', value: 0, placeholder: 'Auto-calculated if left 0' },
+      { id: 'source_group', label: 'Source Group / Community', placeholder: 'e.g. Local Officials, Former Rebels, Barangays' },
+      { id: 'firearms_count', label: 'Total Firearms Count', type: 'number', value: 0, placeholder: 'Auto-summed if 0' },
       { id: 'small_arms', label: 'Small Arms (Pistols / Revolvers)', type: 'number', value: 0 },
       { id: 'light_weapons', label: 'Light Weapons (Rifles / Shotguns)', type: 'number', value: 0 },
       { id: 'crew_served', label: 'Crew Served (Machine Guns / Mortars)', type: 'number', value: 0 },
@@ -287,21 +354,21 @@ const CATEGORIES = {
     title: 'Rido Cases (Clan Feud Settlement)',
     desc: 'Monitoring, arbitration, mediation, and peaceful settlement of family and clan feuds',
     icon: 'handshake',
-    dateField: 'case_date',
+    color: 'amber',
     columns: [
       { key: 'case_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
       { key: 'area', label: 'Area' },
-      { key: 'parties_involved', label: 'Parties Involved', render: o => `<span class="font-medium text-slate-900">${esc(o.parties_involved)}</span>` },
+      { key: 'parties_involved', label: 'Parties Involved', render: o => `<span class="font-bold text-slate-900">${esc(o.parties_involved)}</span>` },
       { key: 'status', label: 'Status', render: o => {
         const s = o.status || 'Ongoing Mediation';
-        const color = s.toLowerCase().includes('settled') ? 'bg-green-100 text-green-800' : (s.toLowerCase().includes('ongoing') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800');
-        return `<span class="badge ${color}">${esc(s)}</span>`;
+        const c = s.toLowerCase().includes('settled') ? 'bg-green-100 text-green-800' : (s.toLowerCase().includes('ongoing') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800');
+        return `<span class="badge ${c}">${esc(s)}</span>`;
       }},
       { key: 'casualties', label: 'Casualties (K/W)', render: o => `${o.casualties_killed} K / ${o.casualties_wounded} W` },
-      { key: 'firearms_surrendered', label: 'FAs Turned Over', render: o => `<span class="font-semibold text-emerald-700">${o.firearms_surrendered}</span>` },
-      { key: 'mediators', label: 'Mediators / Leaders', render: o => `<span class="text-xs text-slate-600 truncate max-w-[130px] block" title="${esc(o.mediators)}">${esc(o.mediators || '—')}</span>` },
-      { key: 'agreement_details', label: 'Agreement / Covenant', render: o => `<span class="text-xs text-slate-500 truncate max-w-[140px] block" title="${esc(o.agreement_details)}">${esc(o.agreement_details || '—')}</span>` }
+      { key: 'firearms_surrendered', label: 'FAs Turned Over', render: o => `<span class="font-bold text-emerald-700">${o.firearms_surrendered}</span>` },
+      { key: 'mediators', label: 'Mediators / Leaders', render: o => `<span class="text-xs text-slate-600 truncate max-w-[140px] block" title="${esc(o.mediators)}">${esc(o.mediators || '—')}</span>` },
+      { key: 'agreement_details', label: 'Agreement Covenant', render: o => `<span class="text-xs text-slate-500 truncate max-w-[140px] block" title="${esc(o.agreement_details)}">${esc(o.agreement_details || '—')}</span>` }
     ],
     fields: [
       { id: 'case_date', label: 'Date of Incident / Settlement', type: 'date', required: true },
@@ -318,25 +385,25 @@ const CATEGORIES = {
   },
   hadr: {
     title: 'HADR Operations',
-    desc: 'Humanitarian Assistance and Disaster Relief operations: flood, typhoon, earthquake, and fire response',
+    desc: 'Humanitarian Assistance and Disaster Relief: flood, typhoon, earthquake, and fire response',
     icon: 'health_and_safety',
-    dateField: 'op_date',
+    color: 'rose',
     columns: [
       { key: 'op_date', label: 'Date' },
       { key: 'unit', label: 'Unit' },
       { key: 'area', label: 'Location' },
-      { key: 'disaster_type', label: 'Disaster Type', render: o => `<span class="badge bg-rose-50 text-rose-700 font-semibold">${esc(o.disaster_type)}</span>` },
-      { key: 'families', label: 'Assisted Families', render: o => `<span class="font-bold text-slate-800">${o.assisted_families.toLocaleString()}</span>` },
-      { key: 'rescued', label: 'Rescued Persons', render: o => `<span class="font-semibold text-blue-700">${o.rescued_persons}</span>` },
-      { key: 'relief', label: 'Relief Packs', render: o => o.relief_packs_distributed.toLocaleString() },
+      { key: 'disaster_type', label: 'Disaster Type', render: o => `<span class="badge bg-rose-100 text-rose-800 font-bold">${esc(o.disaster_type)}</span>` },
+      { key: 'families', label: 'Assisted Families', render: o => `<span class="font-bold text-slate-800">${(o.assisted_families || 0).toLocaleString()}</span>` },
+      { key: 'rescued', label: 'Rescued Persons', render: o => `<span class="font-bold text-blue-700">${o.rescued_persons}</span>` },
+      { key: 'relief', label: 'Relief Packs', render: o => (o.relief_packs_distributed || 0).toLocaleString() },
       { key: 'personnel', label: 'Personnel Deployed', render: o => o.personnel_deployed },
-      { key: 'partner_agencies', label: 'Partners', render: o => `<span class="text-xs text-slate-600">${esc(o.partner_agencies || '—')}</span>` },
-      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[120px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
+      { key: 'partner_agencies', label: 'Partner Agencies', render: o => `<span class="text-xs text-slate-600 truncate max-w-[140px] block" title="${esc(o.partner_agencies)}">${esc(o.partner_agencies || '—')}</span>` },
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
     fields: [
       { id: 'op_date', label: 'Operation Date', type: 'date', required: true },
       { id: 'unit', label: 'Responding Unit', placeholder: 'e.g. 6th ID / JTFC, 549ECB', required: true },
-      { id: 'area', label: 'Affected Area / Municipality', placeholder: 'e.g. Sultan Kudarat, Maguindanao del Norte' },
+      { id: 'area', label: 'Affected Location / Municipality', placeholder: 'e.g. Sultan Kudarat, Maguindanao' },
       { id: 'disaster_type', label: 'Disaster Type', placeholder: 'e.g. Flashflood, Typhoon, Earthquake, Fire', required: true },
       { id: 'assisted_families', label: 'Families Assisted', type: 'number', value: 0 },
       { id: 'assisted_individuals', label: 'Individuals Assisted', type: 'number', value: 0 },
@@ -381,7 +448,7 @@ async function login(e) {
     checkAuthAndLoad();
   } else {
     const d = await r.json().catch(() => ({}));
-    $('lerr').textContent = d.error || 'Invalid password or credentials';
+    $('lerr').textContent = d.error || 'Invalid password';
   }
   return false;
 }
@@ -393,25 +460,36 @@ async function logout() {
 
 async function switchTab(tabKey) {
   currentTab = tabKey;
+  
+  // Desktop Sidebar active styling
   Object.keys(CATEGORIES).forEach(k => {
     const btn = $('tab-' + k);
-    if (k === tabKey) {
-      btn.classList.add('tab-active');
-    } else {
-      btn.classList.remove('tab-active');
+    if (btn) {
+      if (k === tabKey) btn.classList.add('side-tab-active');
+      else btn.classList.remove('side-tab-active');
+    }
+    // Mobile pill active styling
+    const mobBtn = $('mob-tab-' + k);
+    if (mobBtn) {
+      if (k === tabKey) {
+        mobBtn.className = 'whitespace-nowrap px-3.5 py-2 rounded-xl bg-blue-500 text-white font-bold shadow';
+      } else {
+        mobBtn.className = 'whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 text-blue-200 font-medium';
+      }
     }
   });
 
   const cat = CATEGORIES[tabKey];
   $('section-title').textContent = cat.title;
   $('section-desc').textContent = cat.desc;
+  $('section-icon').textContent = cat.icon;
 
   // Build table headers
   let thHtml = `<tr class="border-b border-slate-200">`;
   cat.columns.forEach(col => {
-    thHtml += `<th class="px-4 py-3">${col.label}</th>`;
+    thHtml += `<th class="px-5 py-3.5">${col.label}</th>`;
   });
-  thHtml += `<th class="px-4 py-3 text-right">Actions</th></tr>`;
+  thHtml += `<th class="px-5 py-3.5 text-right">Actions</th></tr>`;
   $('tbl-head').innerHTML = thHtml;
 
   // Load latest data for this tab
@@ -419,7 +497,7 @@ async function switchTab(tabKey) {
 }
 
 async function loadTabData(tabKey) {
-  $('tbl-body').innerHTML = `<tr><td colspan="12" class="px-4 py-8 text-center text-slate-400">Loading data...</td></tr>`;
+  $('tbl-body').innerHTML = `<tr><td colspan="12" class="px-5 py-12 text-center text-slate-400">Loading ${CATEGORIES[tabKey].title}...</td></tr>`;
   const r = await api(tabKey);
   if (r.status === 401) { checkAuthAndLoad(); return; }
   const d = await r.json().catch(() => ({ rows: [] }));
@@ -440,9 +518,10 @@ function renderTable() {
   if (!rows.length) {
     $('tbl-body').innerHTML = `
       <tr>
-        <td colspan="12" class="px-4 py-12 text-center text-slate-400">
-          <span class="ms !text-4xl text-slate-300 block mb-2">folder_open</span>
-          No records found. Click <b>"+ Add Record"</b> to enter an operation.
+        <td colspan="12" class="px-5 py-16 text-center text-slate-400">
+          <span class="ms !text-5xl text-slate-300 block mb-2">folder_open</span>
+          <div class="text-base font-medium text-slate-600">No records found</div>
+          <div class="text-xs text-slate-400 mt-1">Click <b>"+ Add Record"</b> above to enter a new operation</div>
         </td>
       </tr>`;
     return;
@@ -450,18 +529,18 @@ function renderTable() {
 
   let html = '';
   rows.forEach(o => {
-    html += `<tr class="hover:bg-blue-50/40 transition-colors">`;
+    html += `<tr class="hover:bg-blue-50/50 transition-colors">`;
     cat.columns.forEach(col => {
       const val = col.render ? col.render(o) : esc(o[col.key] || '—');
-      html += `<td class="px-4 py-3">${val}</td>`;
+      html += `<td class="px-5 py-3.5 text-slate-700">${val}</td>`;
     });
     html += `
-      <td class="px-4 py-3 text-right whitespace-nowrap">
-        <button onclick="openModal('edit', ${o.id})" class="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition" title="Edit">
-          <span class="ms !text-lg">edit</span>
+      <td class="px-5 py-3.5 text-right whitespace-nowrap">
+        <button onclick="openModal('edit', ${o.id})" class="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-100/60 transition" title="Edit Record">
+          <span class="ms !text-xl">edit</span>
         </button>
-        <button onclick="deleteRecord(${o.id})" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition ml-1" title="Delete">
-          <span class="ms !text-lg">delete</span>
+        <button onclick="deleteRecord(${o.id})" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-100/60 transition ml-1" title="Delete Record">
+          <span class="ms !text-xl">delete</span>
         </button>
       </td>
     </tr>`;
@@ -481,14 +560,14 @@ function openModal(mode, id) {
 
   $('modal-icon').textContent = id ? 'edit_note' : 'add_circle';
   $('modal-title').textContent = id ? `Edit ${cat.title}` : `Add New ${cat.title}`;
-  $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the operation details below`;
+  $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the details below`;
   $('modal-submit-btn').innerHTML = `<span class="ms">save</span> ${id ? 'Update Record' : 'Save Record'}`;
 
   // Build dynamic form fields
   let fieldsHtml = '';
   cat.fields.forEach(f => {
     const val = record ? (record[f.id] ?? '') : (f.value !== undefined ? f.value : (f.type === 'date' ? new Date().toISOString().slice(0, 10) : ''));
-    const colClass = f.colSpan === 2 ? 'md:col-span-2' : '';
+    const colClass = f.colSpan === 2 ? 'sm:col-span-2' : '';
 
     if (f.type === 'select') {
       fieldsHtml += `
@@ -534,7 +613,7 @@ async function handleFormSubmit(e) {
     }
   });
 
-  $('modal-msg').textContent = 'Saving...';
+  $('modal-msg').textContent = 'Saving to database...';
   $('modal-msg').className = 'text-xs font-medium text-blue-600';
 
   const r = await api(url, method, payload);
@@ -544,7 +623,7 @@ async function handleFormSubmit(e) {
     setTimeout(() => {
       closeModal();
       loadTabData(currentTab);
-    }, 400);
+    }, 350);
   } else {
     const err = await r.json().catch(() => ({}));
     $('modal-msg').textContent = err.error || 'Failed to save record';
@@ -573,17 +652,20 @@ async function saveTarget() {
   const target = $('tgt').value;
   const r = await api('target', 'PUT', { target });
   if (r.ok) {
-    alert('Annual Firearms target updated successfully!');
+    alert('Annual Firearms Target saved successfully!');
   } else {
-    alert('Failed to update target.');
+    alert('Failed to save target.');
   }
 }
 
-// Close modal on Escape key
+// Close modal on Escape key or outside click
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) {
     closeModal();
   }
+});
+$('modal').addEventListener('click', e => {
+  if (e.target === $('modal')) closeModal();
 });
 
 // Initialize on load
