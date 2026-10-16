@@ -6,3 +6,7 @@ compatibility_date = "2024-11-01"
 binding = "DB"
 database_name = "jtfc-scoreboard"
 database_id = "445957a4-7553-4c81-bbbe-bb2df9953f98"
+
+[vars]
+SESSION_SECRET = "jtfc-combat-secret-key-998877665544332211"
+
