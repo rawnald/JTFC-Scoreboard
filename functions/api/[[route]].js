@@ -1,28 +1,33 @@
 const enc = new TextEncoder();
 const json = (d, s = 200, h = {}) => new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json', ...h } });
 const b64 = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
 async function sign(env, msg) {
   const secret = env.SESSION_SECRET || env.ADMIN_PASSWORD || 'jtfc-session-secret-fallback';
   const k = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return b64(await crypto.subtle.sign('HMAC', k, enc.encode(msg)));
 }
+
 async function authed(req, env) {
   const m = (req.headers.get('Cookie') || '').match(/sb=(\d+)\.([\w-]+)/);
   return !!m && +m[1] > Date.now() && m[2] === await sign(env, m[1]);
 }
+
 const n = v => Math.max(0, parseInt(v) || 0);
-const txt = v => String(v || '').trim().slice(0, 80);
+const txt = (v, max = 120) => String(v || '').trim().slice(0, max);
 
 function agg(rows) {
   const a = { enc: rows.length, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: {}, units: {} };
   for (const r of rows) {
-    a.sur += r.surrendered; a.kil += r.killed; a.cap += r.captured; a.app += r.apprehended;
-    a.fa += r.firearms; a.tolf += r.tolf; a.kia += r.kia; a.wia += r.wia;
-    a.monthly[+r.op_date.slice(5, 7) - 1]++;
-    const nz = r.surrendered + r.killed + r.captured + r.apprehended;
+    a.sur += r.surrendered || 0; a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
+    a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
+    if (r.op_date && r.op_date.length >= 7) {
+      a.monthly[+r.op_date.slice(5, 7) - 1]++;
+    }
+    const nz = (r.surrendered || 0) + (r.killed || 0) + (r.captured || 0) + (r.apprehended || 0);
     a.groups[r.threat_group] = (a.groups[r.threat_group] || 0) + nz;
     const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0 };
-    u.enc++; u.neutralized += nz; u.firearms += r.firearms;
+    u.enc++; u.neutralized += nz; u.firearms += (r.firearms || 0);
   }
   a.neutralized = a.sur + a.kil + a.cap + a.app;
   return a;
@@ -32,7 +37,9 @@ export async function onRequest({ request, env, params }) {
   const db = env.DB || env.DB_Scoreboard;
   const route = [].concat(params.route || []);
   const [r0, r1] = route, method = request.method;
+
   try {
+    // Public scoreboard statistics
     if (r0 === 'stats' && method === 'GET') {
       const y = n(new URL(request.url).searchParams.get('year')) || new Date().getFullYear();
       const q = year => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?').bind(`${year}-01-01`, `${year}-12-31`).all().then(x => agg(x.results));
@@ -43,6 +50,8 @@ export async function onRequest({ request, env, params }) {
         matrix: Object.values(cur.units).sort((a, b) => b.firearms - a.firearms)
       });
     }
+
+    // Authentication endpoints
     if (r0 === 'login' && method === 'POST') {
       const { password } = await request.json();
       const expected = (env.ADMIN_PASSWORD || '').trim();
@@ -51,31 +60,174 @@ export async function onRequest({ request, env, params }) {
       const exp = Date.now() + 12 * 36e5;
       return json({ ok: true }, 200, { 'Set-Cookie': `sb=${exp}.${await sign(env, String(exp))}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200` });
     }
+
     if (r0 === 'logout') return json({ ok: true }, 200, { 'Set-Cookie': 'sb=; Path=/; Max-Age=0' });
 
+    // Protect all remaining admin endpoints
     if (!(await authed(request, env))) return json({ error: 'Unauthorized' }, 401);
 
-    if (r0 === 'ops' && method === 'GET') {
-      const x = await db.prepare('SELECT * FROM ops ORDER BY op_date DESC, id DESC LIMIT 50').all();
-      const t = await db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
-      return json({ rows: x.results, target: +(t?.value || 0) });
-    }
-    if (r0 === 'ops' && method === 'POST') {
-      const b = await request.json();
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) return json({ error: 'Date, unit and threat group are required' }, 400);
-      await db.prepare('INSERT INTO ops (op_date,unit,area,threat_group,surrendered,killed,captured,apprehended,firearms,tolf,kia,wia) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
-        .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.threat_group), n(b.surrendered), n(b.killed), n(b.captured), n(b.apprehended), n(b.firearms), n(b.tolf), n(b.kia), n(b.wia)).run();
-      return json({ ok: true });
-    }
-    if (r0 === 'ops' && method === 'DELETE' && r1) {
-      await db.prepare('DELETE FROM ops WHERE id=?').bind(n(r1)).run();
-      return json({ ok: true });
-    }
+    // Firearms annual target
     if (r0 === 'target' && method === 'PUT') {
       const { target } = await request.json();
       await db.prepare("INSERT OR REPLACE INTO settings VALUES ('firearms_target', ?)").bind(String(n(target))).run();
       return json({ ok: true });
     }
+
+    // 1. Combat / Military Operations (ops)
+    if (r0 === 'ops') {
+      if (method === 'GET') {
+        const x = await db.prepare('SELECT * FROM ops ORDER BY op_date DESC, id DESC LIMIT 100').all();
+        const t = await db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
+        return json({ rows: x.results, target: +(t?.value || 0) });
+      }
+      if (method === 'POST') {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
+          return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
+        }
+        await db.prepare('INSERT INTO ops (op_date,unit,area,threat_group,surrendered,killed,captured,apprehended,firearms,tolf,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.threat_group), n(b.surrendered), n(b.killed), n(b.captured), n(b.apprehended), n(b.firearms), n(b.tolf), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+        return json({ ok: true });
+      }
+      if (method === 'PUT' && r1) {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
+          return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
+        }
+        await db.prepare('UPDATE ops SET op_date=?,unit=?,area=?,threat_group=?,surrendered=?,killed=?,captured=?,apprehended=?,firearms=?,tolf=?,kia=?,wia=?,remarks=? WHERE id=?')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.threat_group), n(b.surrendered), n(b.killed), n(b.captured), n(b.apprehended), n(b.firearms), n(b.tolf), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE' && r1) {
+        await db.prepare('DELETE FROM ops WHERE id=?').bind(n(r1)).run();
+        return json({ ok: true });
+      }
+    }
+
+    // 2. Support to Law Enforcement Operations (sleo)
+    if (r0 === 'sleo') {
+      if (method === 'GET') {
+        const x = await db.prepare('SELECT * FROM sleo ORDER BY op_date DESC, id DESC LIMIT 100').all();
+        return json({ rows: x.results });
+      }
+      if (method === 'POST') {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.lead_agency)) {
+          return json({ error: 'Date, Unit, and Lead Agency are required' }, 400);
+        }
+        await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,surrendered,firearms_seized,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), n(b.arrested), n(b.killed), n(b.surrendered), n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+        return json({ ok: true });
+      }
+      if (method === 'PUT' && r1) {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.lead_agency)) {
+          return json({ error: 'Date, Unit, and Lead Agency are required' }, 400);
+        }
+        await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,surrendered=?,firearms_seized=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), n(b.arrested), n(b.killed), n(b.surrendered), n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE' && r1) {
+        await db.prepare('DELETE FROM sleo WHERE id=?').bind(n(r1)).run();
+        return json({ ok: true });
+      }
+    }
+
+    // 3. Turn-Over of Loose Firearms (tolf)
+    if (r0 === 'tolf') {
+      if (method === 'GET') {
+        const x = await db.prepare('SELECT * FROM tolf ORDER BY op_date DESC, id DESC LIMIT 100').all();
+        return json({ rows: x.results });
+      }
+      if (method === 'POST') {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit)) {
+          return json({ error: 'Date and Unit are required' }, 400);
+        }
+        const totalFA = n(b.firearms_count) || (n(b.small_arms) + n(b.light_weapons) + n(b.crew_served));
+        await db.prepare('INSERT INTO tolf (op_date,unit,area,source_group,firearms_count,small_arms,light_weapons,crew_served,explosives_count,facilitated_by,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.source_group), totalFA, n(b.small_arms), n(b.light_weapons), n(b.crew_served), n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500)).run();
+        return json({ ok: true });
+      }
+      if (method === 'PUT' && r1) {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit)) {
+          return json({ error: 'Date and Unit are required' }, 400);
+        }
+        const totalFA = n(b.firearms_count) || (n(b.small_arms) + n(b.light_weapons) + n(b.crew_served));
+        await db.prepare('UPDATE tolf SET op_date=?,unit=?,area=?,source_group=?,firearms_count=?,small_arms=?,light_weapons=?,crew_served=?,explosives_count=?,facilitated_by=?,remarks=? WHERE id=?')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.source_group), totalFA, n(b.small_arms), n(b.light_weapons), n(b.crew_served), n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500), n(r1)).run();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE' && r1) {
+        await db.prepare('DELETE FROM tolf WHERE id=?').bind(n(r1)).run();
+        return json({ ok: true });
+      }
+    }
+
+    // 4. Rido Cases (rido)
+    if (r0 === 'rido') {
+      if (method === 'GET') {
+        const x = await db.prepare('SELECT * FROM rido ORDER BY case_date DESC, id DESC LIMIT 100').all();
+        return json({ rows: x.results });
+      }
+      if (method === 'POST') {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.case_date) || !txt(b.unit) || !txt(b.parties_involved)) {
+          return json({ error: 'Date, Unit, and Parties Involved are required' }, 400);
+        }
+        await db.prepare('INSERT INTO rido (case_date,unit,area,parties_involved,status,casualties_killed,casualties_wounded,firearms_surrendered,mediators,agreement_details,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+          .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500)).run();
+        return json({ ok: true });
+      }
+      if (method === 'PUT' && r1) {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.case_date) || !txt(b.unit) || !txt(b.parties_involved)) {
+          return json({ error: 'Date, Unit, and Parties Involved are required' }, 400);
+        }
+        await db.prepare('UPDATE rido SET case_date=?,unit=?,area=?,parties_involved=?,status=?,casualties_killed=?,casualties_wounded=?,firearms_surrendered=?,mediators=?,agreement_details=?,remarks=? WHERE id=?')
+          .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500), n(r1)).run();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE' && r1) {
+        await db.prepare('DELETE FROM rido WHERE id=?').bind(n(r1)).run();
+        return json({ ok: true });
+      }
+    }
+
+    // 5. HADR Operations (hadr)
+    if (r0 === 'hadr') {
+      if (method === 'GET') {
+        const x = await db.prepare('SELECT * FROM hadr ORDER BY op_date DESC, id DESC LIMIT 100').all();
+        return json({ rows: x.results });
+      }
+      if (method === 'POST') {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.disaster_type)) {
+          return json({ error: 'Date, Unit, and Disaster Type are required' }, 400);
+        }
+        await db.prepare('INSERT INTO hadr (op_date,unit,area,disaster_type,assisted_families,assisted_individuals,rescued_persons,relief_packs_distributed,personnel_deployed,partner_agencies,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.disaster_type), n(b.assisted_families), n(b.assisted_individuals), n(b.rescued_persons), n(b.relief_packs_distributed), n(b.personnel_deployed), txt(b.partner_agencies), txt(b.remarks, 500)).run();
+        return json({ ok: true });
+      }
+      if (method === 'PUT' && r1) {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.disaster_type)) {
+          return json({ error: 'Date, Unit, and Disaster Type are required' }, 400);
+        }
+        await db.prepare('UPDATE hadr SET op_date=?,unit=?,area=?,disaster_type=?,assisted_families=?,assisted_individuals=?,rescued_persons=?,relief_packs_distributed=?,personnel_deployed=?,partner_agencies=?,remarks=? WHERE id=?')
+          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.disaster_type), n(b.assisted_families), n(b.assisted_individuals), n(b.rescued_persons), n(b.relief_packs_distributed), n(b.personnel_deployed), txt(b.partner_agencies), txt(b.remarks, 500), n(r1)).run();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE' && r1) {
+        await db.prepare('DELETE FROM hadr WHERE id=?').bind(n(r1)).run();
+        return json({ ok: true });
+      }
+    }
+
     return json({ error: 'Not found' }, 404);
-  } catch (e) { return json({ error: e.message || String(e), stack: e.stack }, 500); }
+  } catch (e) {
+    return json({ error: e.message || String(e), stack: e.stack }, 500);
+  }
 }
