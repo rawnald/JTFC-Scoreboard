@@ -2,7 +2,8 @@ const enc = new TextEncoder();
 const json = (d, s = 200, h = {}) => new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json', ...h } });
 const b64 = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 async function sign(env, msg) {
-  const k = await crypto.subtle.importKey('raw', enc.encode(env.SESSION_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const secret = env.SESSION_SECRET || env.ADMIN_PASSWORD || 'jtfc-session-secret-fallback';
+  const k = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return b64(await crypto.subtle.sign('HMAC', k, enc.encode(msg)));
 }
 async function authed(req, env) {
@@ -44,7 +45,9 @@ export async function onRequest({ request, env, params }) {
     }
     if (r0 === 'login' && method === 'POST') {
       const { password } = await request.json();
-      if (!env.ADMIN_PASSWORD || password !== env.ADMIN_PASSWORD) return json({ error: 'Invalid credentials' }, 401);
+      const expected = (env.ADMIN_PASSWORD || '').trim();
+      const actual = (password || '').trim();
+      if (!expected || actual !== expected) return json({ error: 'Invalid credentials' }, 401);
       const exp = Date.now() + 12 * 36e5;
       return json({ ok: true }, 200, { 'Set-Cookie': `sb=${exp}.${await sign(env, String(exp))}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200` });
     }
