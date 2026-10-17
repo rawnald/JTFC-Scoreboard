@@ -280,7 +280,19 @@ const CATEGORIES = {
     icon: 'swords',
     columns: [
       { key: 'op_date', label: 'Date' },
-      { key: 'unit', label: 'Unit' },
+      { key: 'unit', label: 'Unit / Brigade', render: o => {
+        let b = '';
+        let u = o.unit || '—';
+        try {
+          const wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel;
+          if (wm && wm.brigade) b = wm.brigade;
+          if (wm && wm.unit_only) u = wm.unit_only;
+        } catch(e) {}
+        if (b && u && u !== b) {
+          return `<div><span class="font-bold text-slate-800">${esc(u)}</span><div class="text-[11px] text-blue-600 font-semibold tracking-wide">${esc(b)}</div></div>`;
+        }
+        return `<span class="font-bold text-slate-800">${esc(o.unit || '—')}</span>`;
+      }},
       { key: 'location', label: 'Location', render: o => `<span>${esc(o.area || '—')}${o.province ? ', ' + esc(o.province) : ''}</span>` },
       { key: 'threat', label: 'Threat Classification', render: o => {
         let badgeColor = 'bg-red-100 text-red-800';
@@ -730,20 +742,61 @@ function renderCombatModalForm(record) {
     });
   }
 
+  let savedBrigade = '';
+  let savedUnit = '';
+  if (warMat && (warMat.brigade || warMat.unit_only)) {
+    savedBrigade = warMat.brigade || '';
+    savedUnit = warMat.unit_only || '';
+  } else if (record && record.unit) {
+    const m = record.unit.match(/^(.*?)\s*\((.*?)\)$/);
+    if (m) {
+      savedUnit = m[1].trim();
+      savedBrigade = m[2].trim();
+    } else if (record.unit.toLowerCase().includes('bde') || record.unit.toLowerCase().includes('brigade') || record.unit.toLowerCase().includes('1bct')) {
+      savedBrigade = record.unit;
+      savedUnit = '';
+    } else {
+      savedUnit = record.unit;
+      savedBrigade = '';
+    }
+  }
+
   $('modal-form-content').innerHTML = `
     <!-- SECTION 1: Incident & Location Details -->
     <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
       <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
         <span class="ms !text-lg text-blue-600">pin_drop</span> General & Location Information
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
         <div>
           <label>Date of Operation <span class="text-red-500">*</span></label>
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
-          <label>Unit / Brigade <span class="text-red-500">*</span></label>
-          <input id="f_unit" value="${esc(record?.unit || '')}" placeholder="e.g. 602nd Bde, 1BCT" class="f" required>
+          <label>Brigade <span class="text-red-500">*</span></label>
+          <input id="f_brigade" list="brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 602nd Bde" class="f" required>
+          <datalist id="brigade_list">
+            <option value="601st Bde">
+            <option value="602nd Bde">
+            <option value="603rd Bde">
+            <option value="1BCT">
+          </datalist>
+        </div>
+        <div>
+          <label>Unit <span class="text-red-500">*</span></label>
+          <input id="f_unit" list="unit_list" value="${esc(savedUnit)}" placeholder="e.g. 7IB, 90IB" class="f" required>
+          <datalist id="unit_list">
+            <option value="7IB">
+            <option value="38IB">
+            <option value="40IB">
+            <option value="90IB">
+            <option value="37IB">
+            <option value="57IB">
+            <option value="6DRC">
+            <option value="62DRC">
+            <option value="63DRC">
+            <option value="6DMC">
+          </datalist>
         </div>
         <div>
           <label>Area / Municipality</label>
@@ -1254,15 +1307,23 @@ async function handleFormSubmit(e) {
 
     const engTypeStr = activeEngTypes.length > 0 ? activeEngTypes.join(', ') : '—';
 
+    const brigadeVal = $('f_brigade')?.value.trim() || '';
+    const unitVal    = $('f_unit')?.value.trim() || '';
+    const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
+
+    warMat.brigade = brigadeVal;
+    warMat.unit_only = unitVal;
+
     payload = {
       ...payload,
       op_date: $('f_op_date').value,
-      unit: $('f_unit').value,
+      unit: combinedUnit,
+      brigade: brigadeVal,
       area: $('f_area').value,
       province: $('f_province').value,
       threat_category: $('f_threat_category').value,
       threat_group: $('f_threat_group').value,
-      engagement_type: engType,
+      engagement_type: engTypeStr,
       kia: parseInt($('f_kia')?.value || 0, 10) || 0,
       wia: parseInt($('f_wia')?.value || 0, 10) || 0,
       killed: parseInt($('f_killed')?.value || 0, 10) || 0,
