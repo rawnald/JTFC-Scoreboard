@@ -48,7 +48,7 @@
     <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2><div class="h-[360px] flex items-center justify-center"><canvas id="donut"></canvas></div></div>
     <div class="card p-5 overflow-x-auto flex flex-col"><h2 class="font-bold text-lg mb-2">Operational Matrix</h2>
       <div class="flex-1 overflow-y-auto max-h-[360px]">
-        <table class="w-full text-sm"><thead><tr class="text-left border-b sticky top-0 bg-white"><th class="py-2">Unit</th><th>Firearms</th><th>Gov't Encounters</th><th>Area</th></tr></thead><tbody id="matrix"></tbody></table>
+        <table class="w-full text-sm"><thead><tr class="text-left border-b sticky top-0 bg-white"><th class="py-2">Brigade</th><th>Firearms</th><th>Gov't Encounters</th><th>Province</th></tr></thead><tbody id="matrix"></tbody></table>
       </div>
     </div>
   </section>
@@ -164,7 +164,7 @@ async function load(y){
   });
 
   draw('donut',{type:'doughnut',data:{labels:['Surrendered','Killed','Captured','Apprehended'],datasets:[{data:[c.sur,c.kil,c.cap,c.app],backgroundColor:['#2196f3','#0d3b8c','#26b5a8','#f5a623'],borderWidth:2}]},options:{...opt,cutout:'60%',plugins:{legend:{position:'right'}}}});
-  $('matrix').innerHTML=s.matrix.map(u=>`<tr class="border-b"><td class="py-2">${esc(u.unit)}</td><td>${u.firearms}</td><td><span class="bg-green-100 px-2 py-1 rounded">${u.enc}</span></td><td>${esc(u.area)}</td></tr>`).join('')||'<tr><td colspan=4 class="py-4 text-slate-400">No data yet</td></tr>';
+  $('matrix').innerHTML=s.matrix.map(u=>`<tr class="border-b"><td class="py-2 font-medium">${esc(u.brigade||u.unit||'—')}</td><td>${u.firearms}</td><td><span class="bg-green-100 px-2 py-1 rounded font-bold">${u.enc}</span></td><td>${esc(u.province||u.area||'—')}</td></tr>`).join('')||'<tr><td colspan=4 class="py-4 text-slate-400">No data yet</td></tr>';
 }
 const esc=t=>String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 $('year').onchange=e=>load(e.target.value); load();

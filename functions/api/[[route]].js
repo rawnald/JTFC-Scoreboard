@@ -49,10 +49,36 @@ const STANDARD_THREAT_GROUPS = [
   'MILF', 'MNLF'
 ];
 
+function getBrigade(r) {
+  if (typeof r.war_materiel === 'string') {
+    try {
+      const wm = JSON.parse(r.war_materiel);
+      if (wm && wm.brigade) return wm.brigade.trim();
+    } catch(e) {}
+  } else if (typeof r.war_materiel === 'object' && r.war_materiel?.brigade) {
+    return String(r.war_materiel.brigade).trim();
+  }
+  if (r.unit) {
+    const m = r.unit.match(/\((.*?)\)/);
+    if (m) return m[1].trim();
+    return r.unit.trim();
+  }
+  return '—';
+}
+
+function getProvince(r) {
+  if (r.province && r.province.trim()) return r.province.trim();
+  if (r.area && r.area.includes(',')) {
+    const parts = r.area.split(',');
+    return parts[parts.length - 1].trim();
+  }
+  return r.area ? r.area.trim() : '—';
+}
+
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
-  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: initGroups, units: {} };
+  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
   for (const r of rows) {
     a.sur += r.surrendered || 0; a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
     a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
@@ -71,6 +97,15 @@ function agg(rows) {
     if (r.threat_group) {
       a.groups[r.threat_group] = (a.groups[r.threat_group] || 0) + nz;
     }
+
+    const bName = getBrigade(r);
+    const provName = getProvince(r);
+    const b = a.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, _provs: new Set() };
+    b.enc += encCount;
+    b.neutralized += nz;
+    b.firearms += (r.firearms || 0);
+    if (provName && provName !== '—') b._provs.add(provName);
+
     const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0 };
     u.enc += encCount; u.neutralized += nz; u.firearms += (r.firearms || 0);
   }
@@ -90,9 +125,18 @@ export async function onRequest({ request, env, params }) {
       const q = year => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?').bind(`${year}-01-01`, `${year}-12-31`).all().then(x => agg(x.results));
       const [cur, prev] = await Promise.all([q(y), q(y - 1)]);
       const t = await db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
+
+      Object.values(cur.brigades).forEach(b => {
+        if (b._provs && b._provs.size > 0) {
+          b.province = Array.from(b._provs).join(', ');
+          b.area = b.province;
+        }
+        delete b._provs;
+      });
+
       return json({
         year: y, target: +(t?.value || 0), cur, prev,
-        matrix: Object.values(cur.units).sort((a, b) => b.firearms - a.firearms)
+        matrix: Object.values(cur.brigades).sort((a, b) => b.firearms - a.firearms)
       });
     }
 
