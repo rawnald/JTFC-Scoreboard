@@ -44,10 +44,13 @@
       <div id="gstats" class="grid grid-cols-3 text-center mt-5"></div></div>
   </section>
   <section class="grid xl:grid-cols-3 gap-4">
-    <div class="card p-5"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-56"><canvas id="groups"></canvas></div></div>
-    <div class="card p-5"><h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2><div class="h-56"><canvas id="donut"></canvas></div></div>
-    <div class="card p-5 overflow-x-auto"><h2 class="font-bold text-lg mb-2">Operational Matrix</h2>
-      <table class="w-full text-sm"><thead><tr class="text-left border-b"><th class="py-2">Unit</th><th>Firearms</th><th>Gov't Encounters</th><th>Area</th></tr></thead><tbody id="matrix"></tbody></table></div>
+    <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-[480px] w-full"><canvas id="groups"></canvas></div></div>
+    <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2><div class="h-[480px] flex items-center justify-center"><canvas id="donut"></canvas></div></div>
+    <div class="card p-5 overflow-x-auto flex flex-col"><h2 class="font-bold text-lg mb-2">Operational Matrix</h2>
+      <div class="flex-1 overflow-y-auto max-h-[480px]">
+        <table class="w-full text-sm"><thead><tr class="text-left border-b sticky top-0 bg-white"><th class="py-2">Unit</th><th>Firearms</th><th>Gov't Encounters</th><th>Area</th></tr></thead><tbody id="matrix"></tbody></table>
+      </div>
+    </div>
   </section>
 </main>
 <script>
@@ -56,6 +59,42 @@ const delta=(c,p,inv)=>{if(!p)return'<span class="text-slate-400">—</span>';co
 const draw=(id,cfg)=>{charts[id]?.destroy();charts[id]=new Chart($(id),cfg)};
 const opt={responsive:true,maintainAspectRatio:false};
 function kpi(icon,color,label,val,d){return `<div class="card p-4"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}"><span class="ms">${icon}</span></div><div><div class="text-sm font-medium" style="color:${color}">${label}</div><div class="text-2xl font-bold">${val}</div></div></div><div class="flex justify-between text-sm mt-3 text-slate-500">vs Last Year ${d}</div></div>`}
+
+const THREAT_GROUPS = [
+  'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE',
+  'SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO',
+  'MILF', 'MNLF'
+];
+
+const barLabelsPlugin = {
+  id: 'barLabelsPlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    chart.data.datasets.forEach((dataset, i) => {
+      const meta = chart.getDatasetMeta(i);
+      meta.data.forEach((bar, index) => {
+        const val = dataset.data[index];
+        const text = String(val);
+        ctx.save();
+        ctx.font = 'bold 11px Roboto, sans-serif';
+        ctx.textBaseline = 'middle';
+        const textWidth = ctx.measureText(text).width;
+        const fitsOutside = (bar.x + textWidth + 8) <= chart.chartArea.right;
+        if (fitsOutside) {
+          ctx.textAlign = 'left';
+          ctx.fillStyle = val > 0 ? '#1d5bff' : '#94a3b8';
+          ctx.fillText(text, bar.x + 6, bar.y);
+        } else {
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(text, bar.x - 6, bar.y);
+        }
+        ctx.restore();
+      });
+    });
+  }
+};
+
 async function load(y){
   const s=await (await fetch('/api/stats'+(y?'?year='+y:''))).json(), c=s.cur, p=s.prev;
   if(!$('year').options.length){for(let i=s.year;i>=s.year-4;i--)$('year').add(new Option(i,i))}
@@ -72,8 +111,58 @@ async function load(y){
   draw('gauge',{type:'doughnut',data:{datasets:[{data:[Math.min(pct,150),Math.max(150-pct,0)],backgroundColor:['#22a85a','#e5e7eb'],borderWidth:0}]},options:{...opt,circumference:180,rotation:270,cutout:'72%',plugins:{tooltip:{enabled:false}}}});
   $('gpct').textContent=pct.toFixed(1)+'%';
   $('gstats').innerHTML=[[c.fa,'Actual'],[s.target,'Target'],[(c.fa-s.target>=0?'+':'')+(c.fa-s.target),'Variance']].map(([v,l],i)=>`<div><div class="text-2xl font-bold ${i==2?(c.fa>=s.target?'text-green-600':'text-red-600'):''}">${v}</div><div class="text-sm">${l}</div></div>`).join('');
-  const g=Object.entries(c.groups).sort((a,b)=>b[1]-a[1]);
-  draw('groups',{type:'bar',data:{labels:g.map(x=>x[0]),datasets:[{data:g.map(x=>x[1]),backgroundColor:blue,borderRadius:4}]},options:{...opt,indexAxis:'y',plugins:{legend:{display:false}}}});
+
+  const allGroups = [...THREAT_GROUPS];
+  if (c.groups) {
+    Object.keys(c.groups).forEach(k => {
+      if (k && !allGroups.includes(k)) allGroups.push(k);
+    });
+  }
+  const g = allGroups.map(name => [name, (c.groups && c.groups[name]) || 0])
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+  draw('groups', {
+    type: 'bar',
+    data: {
+      labels: g.map(x => x[0]),
+      datasets: [{
+        data: g.map(x => x[1]),
+        backgroundColor: g.map(x => x[1] > 0 ? blue : '#e2e8f0'),
+        borderRadius: 4,
+        barThickness: 14
+      }]
+    },
+    options: {
+      ...opt,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Neutralizations: ${ctx.raw}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0, font: { size: 10 } },
+          grid: { color: '#f1f5f9' }
+        },
+        y: {
+          ticks: {
+            autoSkip: false,
+            font: { size: 11, weight: '500' },
+            color: '#334155'
+          },
+          grid: { display: false }
+        }
+      }
+    },
+    plugins: [barLabelsPlugin]
+  });
+
   draw('donut',{type:'doughnut',data:{labels:['Surrendered','Killed','Captured','Apprehended'],datasets:[{data:[c.sur,c.kil,c.cap,c.app],backgroundColor:['#2196f3','#0d3b8c','#26b5a8','#f5a623'],borderWidth:2}]},options:{...opt,cutout:'60%',plugins:{legend:{position:'right'}}}});
   $('matrix').innerHTML=s.matrix.map(u=>`<tr class="border-b"><td class="py-2">${esc(u.unit)}</td><td>${u.firearms}</td><td><span class="bg-green-100 px-2 py-1 rounded">${u.enc}</span></td><td>${esc(u.area)}</td></tr>`).join('')||'<tr><td colspan=4 class="py-4 text-slate-400">No data yet</td></tr>';
 }

@@ -43,8 +43,16 @@ function getEncounterCount(r) {
   return 1;
 }
 
+const STANDARD_THREAT_GROUPS = [
+  'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE',
+  'SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO',
+  'MILF', 'MNLF'
+];
+
 function agg(rows) {
-  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: {}, units: {} };
+  const initGroups = {};
+  for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
+  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: initGroups, units: {} };
   for (const r of rows) {
     a.sur += r.surrendered || 0; a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
     a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
@@ -60,7 +68,9 @@ function agg(rows) {
     }
 
     const nz = (r.surrendered || 0) + (r.killed || 0) + (r.captured || 0) + (r.apprehended || 0);
-    a.groups[r.threat_group] = (a.groups[r.threat_group] || 0) + nz;
+    if (r.threat_group) {
+      a.groups[r.threat_group] = (a.groups[r.threat_group] || 0) + nz;
+    }
     const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0 };
     u.enc += encCount; u.neutralized += nz; u.firearms += (r.firearms || 0);
   }
