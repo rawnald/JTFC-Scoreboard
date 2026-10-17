@@ -16,18 +16,53 @@ async function authed(req, env) {
 const n = v => Math.max(0, parseInt(v) || 0);
 const txt = (v, max = 120) => String(v || '').trim().slice(0, max);
 
+function getEncounterCount(r) {
+  let wm = null;
+  if (typeof r.war_materiel === 'string') {
+    try { wm = JSON.parse(r.war_materiel); } catch(e){}
+  } else if (typeof r.war_materiel === 'object' && r.war_materiel !== null) {
+    wm = r.war_materiel;
+  }
+
+  // 1. Check structured engagements object in war_materiel
+  if (wm && wm.engagements && wm.engagements.encounter !== undefined) {
+    return Math.max(0, parseInt(wm.engagements.encounter, 10) || 0);
+  }
+
+  // 2. Check engagement_type column
+  if (r.engagement_type) {
+    const et = String(r.engagement_type).toLowerCase();
+    if (et.includes('encounter') || et.includes('government initiated')) {
+      const m = et.match(/encounter\s*\((\d+)\)/);
+      return m ? Math.max(1, parseInt(m[1], 10)) : 1;
+    }
+    return 0;
+  }
+
+  // 3. Fallback for legacy records without engagement_type specified
+  return 1;
+}
+
 function agg(rows) {
-  const a = { enc: rows.length, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: {}, units: {} };
+  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: {}, units: {} };
   for (const r of rows) {
     a.sur += r.surrendered || 0; a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
     a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
+
+    const encCount = getEncounterCount(r);
+    a.enc += encCount;
+
     if (r.op_date && r.op_date.length >= 7) {
-      a.monthly[+r.op_date.slice(5, 7) - 1]++;
+      const mIdx = +r.op_date.slice(5, 7) - 1;
+      if (mIdx >= 0 && mIdx < 12) {
+        a.monthly[mIdx] += encCount;
+      }
     }
+
     const nz = (r.surrendered || 0) + (r.killed || 0) + (r.captured || 0) + (r.apprehended || 0);
     a.groups[r.threat_group] = (a.groups[r.threat_group] || 0) + nz;
     const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0 };
-    u.enc++; u.neutralized += nz; u.firearms += (r.firearms || 0);
+    u.enc += encCount; u.neutralized += nz; u.firearms += (r.firearms || 0);
   }
   a.neutralized = a.sur + a.kil + a.cap + a.app;
   return a;

@@ -32,7 +32,13 @@
   </header>
   <section id="kpis" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"></section>
   <section class="grid xl:grid-cols-3 gap-4">
-    <div class="card p-5 xl:col-span-2"><h2 class="font-bold text-lg mb-2">Monthly Operational Trend</h2><div class="h-64"><canvas id="trend"></canvas></div></div>
+    <div class="card p-5 xl:col-span-2">
+      <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <h2 class="font-bold text-lg">Monthly Operational Trend</h2>
+        <span class="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">Gov't Initiated Engagement (Encounter)</span>
+      </div>
+      <div class="h-64"><canvas id="trend"></canvas></div>
+    </div>
     <div class="card p-5"><h2 class="font-bold text-lg">Firearms Target Achievement</h2>
       <div class="h-40 relative mt-4"><canvas id="gauge"></canvas><div class="absolute inset-x-0 bottom-0 text-center"><div id="gpct" class="text-3xl font-bold text-green-600"></div><div class="text-sm">of Target</div></div></div>
       <div id="gstats" class="grid grid-cols-3 text-center mt-5"></div></div>
@@ -41,7 +47,7 @@
     <div class="card p-5"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-56"><canvas id="groups"></canvas></div></div>
     <div class="card p-5"><h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2><div class="h-56"><canvas id="donut"></canvas></div></div>
     <div class="card p-5 overflow-x-auto"><h2 class="font-bold text-lg mb-2">Operational Matrix</h2>
-      <table class="w-full text-sm"><thead><tr class="text-left border-b"><th class="py-2">Unit</th><th>Firearms</th><th>Encounters</th><th>Area</th></tr></thead><tbody id="matrix"></tbody></table></div>
+      <table class="w-full text-sm"><thead><tr class="text-left border-b"><th class="py-2">Unit</th><th>Firearms</th><th>Gov't Encounters</th><th>Area</th></tr></thead><tbody id="matrix"></tbody></table></div>
   </section>
 </main>
 <script>
@@ -57,11 +63,11 @@ async function load(y){
   $('kpis').innerHTML=kpi('shield','#2563eb','Total Neutralized',c.neutralized,delta(c.neutralized,p.neutralized))+
    kpi('gps_fixed','#16a34a','Firearms Gained',c.fa,delta(c.fa,p.fa))+
    kpi('percent','#7c3aed','Surrender Rate',rate.toFixed(1)+'%',delta(rate,prate))+
-   kpi('groups','#f97316','Total Encounters',c.enc,delta(c.enc,p.enc))+
+   kpi('groups','#f97316','Gov\'t Encounters',c.enc,delta(c.enc,p.enc))+
    kpi('inventory_2','#0891b2','Loose FAs (TOLF)',c.tolf,delta(c.tolf,p.tolf))+
    kpi('healing','#e11d48','Friendly Casualties',`${c.kia} KIA / ${c.wia} WIA`,delta(c.kia+c.wia,p.kia+p.wia,true));
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  draw('trend',{type:'line',data:{labels:M,datasets:[{label:'Encounters (Current Year)',data:c.monthly,borderColor:blue,backgroundColor:'rgba(29,91,255,.15)',fill:true,tension:.3,pointBackgroundColor:blue},{label:'Encounters (Last Year)',data:p.monthly,borderColor:blue,borderDash:[5,5],pointRadius:0,tension:.3}]},options:{...opt,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  draw('trend',{type:'line',data:{labels:M,datasets:[{label:'Gov\'t Initiated Encounters (Current Year)',data:c.monthly,borderColor:blue,backgroundColor:'rgba(29,91,255,.15)',fill:true,tension:.3,pointBackgroundColor:blue},{label:'Gov\'t Initiated Encounters (Last Year)',data:p.monthly,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0,tension:.3}]},options:{...opt,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
   const pct=s.target?c.fa/s.target*100:0;
   draw('gauge',{type:'doughnut',data:{datasets:[{data:[Math.min(pct,150),Math.max(150-pct,0)],backgroundColor:['#22a85a','#e5e7eb'],borderWidth:0}]},options:{...opt,circumference:180,rotation:270,cutout:'72%',plugins:{tooltip:{enabled:false}}}});
   $('gpct').textContent=pct.toFixed(1)+'%';
