@@ -606,7 +606,27 @@ const ENGAGEMENT_OPTIONS = [
   { id: 'shooting', val: 'Shooting', label: 'Enemy Initiated (Shooting)', isGov: false }
 ];
 
-function setEngagementType(type) {
+function onEngagementInput(type, rawVal) {
+  const num = parseInt(rawVal, 10) || 0;
+  if (num > 0) {
+    setEngagementType(type, false);
+    ENGAGEMENT_OPTIONS.forEach(opt => {
+      if (opt.val !== type) {
+        const inp = $('f_eng_' + opt.id);
+        if (inp) inp.value = '0';
+      }
+    });
+  } else {
+    let found = null;
+    ENGAGEMENT_OPTIONS.forEach(opt => {
+      const v = parseInt($('f_eng_' + opt.id)?.value, 10) || 0;
+      if (v > 0) found = opt.val;
+    });
+    setEngagementType(found || 'Encounter', false);
+  }
+}
+
+function setEngagementType(type, updateInputs = true) {
   const hidden = $('f_engagement_type');
   if (hidden) hidden.value = type;
 
@@ -614,23 +634,14 @@ function setEngagementType(type) {
 
   ENGAGEMENT_OPTIONS.forEach(opt => {
     const td = $('td_eng_' + opt.id);
-    const inp = $('inp_eng_' + opt.id);
+    const inp = $('f_eng_' + opt.id);
     const isSelected = opt.val.toLowerCase() === current.val.toLowerCase();
 
     if (td) {
-      if (isSelected) {
-        td.style.backgroundColor = opt.isGov ? '#dcfce7' : '#f3e8ff';
-      } else {
-        td.style.backgroundColor = '#ffffff';
-      }
+      td.style.backgroundColor = isSelected ? (opt.isGov ? '#dcfce7' : '#f3e8ff') : '#ffffff';
     }
-    if (inp) {
-      inp.value = isSelected ? '1' : '';
-      if (isSelected) {
-        inp.className = `w-full text-center font-black text-lg outline-none py-2.5 bg-transparent ${opt.isGov ? 'text-green-900' : 'text-purple-900'}`;
-      } else {
-        inp.className = 'w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300';
-      }
+    if (inp && updateInputs) {
+      inp.value = isSelected ? 1 : 0;
     }
   });
 
@@ -829,31 +840,31 @@ function renderCombatModalForm(record) {
               </tr>
             </thead>
             <tbody>
-              <!-- Data / Selection Row -->
+              <!-- Data / Selection Row with Editable Number Inputs Just Like Other Fields -->
               <tr class="bg-white">
                 <!-- Encounter -->
-                <td onclick="setEngagementType('Encounter')" class="p-0 border border-black cursor-pointer transition hover:bg-green-50" id="td_eng_encounter" title="Click to select Encounter">
-                  <input id="inp_eng_encounter" type="text" readonly value="1" class="w-full text-center font-black text-lg outline-none py-2.5 bg-transparent text-green-900 cursor-pointer select-none">
+                <td onclick="setEngagementType('Encounter')" class="p-0 border border-black cursor-pointer transition" id="td_eng_encounter" title="Government Initiated (Encounter)">
+                  <input id="f_eng_encounter" type="number" min="0" value="${curEngagement === 'Encounter' ? 1 : 0}" oninput="onEngagementInput('Encounter', this.value)" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <!-- Harassment -->
-                <td onclick="setEngagementType('Harassment')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_harassment" title="Click to select Harassment">
-                  <input id="inp_eng_harassment" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                <td onclick="setEngagementType('Harassment')" class="p-0 border border-black cursor-pointer transition" id="td_eng_harassment" title="Enemy Initiated (Harassment)">
+                  <input id="f_eng_harassment" type="number" min="0" value="${curEngagement === 'Harassment' ? 1 : 0}" oninput="onEngagementInput('Harassment', this.value)" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <!-- Grenade Throwing -->
-                <td onclick="setEngagementType('Grenade Throwing')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_grenade" title="Click to select Grenade Throwing">
-                  <input id="inp_eng_grenade" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                <td onclick="setEngagementType('Grenade Throwing')" class="p-0 border border-black cursor-pointer transition" id="td_eng_grenade" title="Enemy Initiated (Grenade Throwing)">
+                  <input id="f_eng_grenade" type="number" min="0" value="${curEngagement === 'Grenade Throwing' ? 1 : 0}" oninput="onEngagementInput('Grenade Throwing', this.value)" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <!-- IED Explosion -->
-                <td onclick="setEngagementType('IED Explosion')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_ied" title="Click to select IED Explosion">
-                  <input id="inp_eng_ied" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                <td onclick="setEngagementType('IED Explosion')" class="p-0 border border-black cursor-pointer transition" id="td_eng_ied" title="Enemy Initiated (IED Explosion)">
+                  <input id="f_eng_ied" type="number" min="0" value="${curEngagement === 'IED Explosion' ? 1 : 0}" oninput="onEngagementInput('IED Explosion', this.value)" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <!-- Ambush -->
-                <td onclick="setEngagementType('Ambush')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_ambush" title="Click to select Ambush">
-                  <input id="inp_eng_ambush" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                <td onclick="setEngagementType('Ambush')" class="p-0 border border-black cursor-pointer transition" id="td_eng_ambush" title="Enemy Initiated (Ambush)">
+                  <input id="f_eng_ambush" type="number" min="0" value="${curEngagement === 'Ambush' ? 1 : 0}" oninput="onEngagementInput('Ambush', this.value)" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <!-- Shooting -->
-                <td onclick="setEngagementType('Shooting')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_shooting" title="Click to select Shooting">
-                  <input id="inp_eng_shooting" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                <td onclick="setEngagementType('Shooting')" class="p-0 border border-black cursor-pointer transition" id="td_eng_shooting" title="Enemy Initiated (Shooting)">
+                  <input id="f_eng_shooting" type="number" min="0" value="${curEngagement === 'Shooting' ? 1 : 0}" oninput="onEngagementInput('Shooting', this.value)" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
               </tr>
             </tbody>
@@ -1253,6 +1264,10 @@ async function handleFormSubmit(e) {
 
     warMat.fa_breakdown = faBreakdown;
 
+    let engType = $('f_engagement_type')?.value || 'Encounter';
+    const activeEng = ENGAGEMENT_OPTIONS.find(opt => (parseInt($('f_eng_' + opt.id)?.value, 10) || 0) > 0);
+    if (activeEng) engType = activeEng.val;
+
     payload = {
       ...payload,
       op_date: $('f_op_date').value,
@@ -1261,7 +1276,7 @@ async function handleFormSubmit(e) {
       province: $('f_province').value,
       threat_category: $('f_threat_category').value,
       threat_group: $('f_threat_group').value,
-      engagement_type: $('f_engagement_type').value,
+      engagement_type: engType,
       kia: parseInt($('f_kia')?.value || 0, 10) || 0,
       wia: parseInt($('f_wia')?.value || 0, 10) || 0,
       killed: parseInt($('f_killed')?.value || 0, 10) || 0,
