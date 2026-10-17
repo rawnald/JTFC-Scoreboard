@@ -22,6 +22,7 @@
     .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    textarea.f { resize: vertical !important; min-height: 85px; max-height: 450px; }
   </style>
 </head>
 <body class="bg-[#eef3fb] text-slate-800 antialiased min-h-screen">
@@ -1172,8 +1173,11 @@ function renderCombatModalForm(record) {
 
     <!-- Remarks Field -->
     <div>
-      <label>Operational Narrative / Remarks</label>
-      <textarea id="f_remarks" rows="2" class="f" placeholder="Narrative summary, intelligence notes, or mission context...">${esc(record?.remarks || '')}</textarea>
+      <div class="flex items-center justify-between mb-1">
+        <label class="!mb-0">Operational Narrative / Remarks</label>
+        <span class="text-[11px] text-slate-400 italic">Drag bottom-right corner to resize</span>
+      </div>
+      <textarea id="f_remarks" rows="3" class="f resize-y min-h-[90px] max-h-[450px]" placeholder="Narrative summary, intelligence notes, or mission context...">${esc(record?.remarks || '')}</textarea>
     </div>
   `;
 
@@ -1209,8 +1213,11 @@ function renderStandardModalForm(cat, record) {
 
   fieldsHtml += `
     <div>
-      <label>Remarks / Context</label>
-      <textarea id="f_remarks" rows="2" class="f" placeholder="Optional details, notes, or narrative summary...">${esc(record?.remarks || '')}</textarea>
+      <div class="flex items-center justify-between mb-1">
+        <label class="!mb-0">Remarks / Context</label>
+        <span class="text-[11px] text-slate-400 italic">Drag bottom-right corner to resize</span>
+      </div>
+      <textarea id="f_remarks" rows="3" class="f resize-y min-h-[90px] max-h-[450px]" placeholder="Optional details, notes, or narrative summary...">${esc(record?.remarks || '')}</textarea>
     </div>`;
 
   $('modal-form-content').innerHTML = fieldsHtml;
