@@ -168,6 +168,23 @@
 
     <!-- RESPONSIVE DATA TABLE CARD -->
     <section class="card overflow-hidden border border-slate-200/80">
+      <!-- MONTH & YEAR FILTER BAR (Combat Operations) -->
+      <div id="ops-filter-bar" class="bg-gradient-to-r from-slate-50 via-blue-50/20 to-slate-50 border-b border-slate-200 px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <!-- Month buttons on the left -->
+        <div class="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full" id="ops-month-buttons">
+          <!-- Populated dynamically: Jan, Feb, March ... Dec -->
+        </div>
+
+        <!-- Dropdown year on the right portion -->
+        <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            <span class="ms text-slate-400 !text-sm">calendar_month</span> Year:
+          </span>
+          <select id="ops-year-select" onchange="onOpsYearChange(this.value)" class="text-xs font-bold text-blue-900 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none shadow-sm hover:border-blue-500 cursor-pointer focus:ring-2 focus:ring-blue-400">
+          </select>
+        </div>
+      </div>
+
       <div class="overflow-x-auto min-h-[360px] w-full">
         <table class="w-full text-left text-xs">
           <thead id="tbl-head" class="bg-slate-50/80 border-b border-slate-200 text-[11px] text-slate-700 uppercase font-bold tracking-wider"></thead>
@@ -485,6 +502,82 @@ const CATEGORIES = {
   }
 };
 
+const OPS_MONTHS = [
+  { m: 'all', label: 'All' },
+  { m: 1, label: 'Jan' },
+  { m: 2, label: 'Feb' },
+  { m: 3, label: 'March' },
+  { m: 4, label: 'Apr' },
+  { m: 5, label: 'May' },
+  { m: 6, label: 'Jun' },
+  { m: 7, label: 'Jul' },
+  { m: 8, label: 'Aug' },
+  { m: 9, label: 'Sep' },
+  { m: 10, label: 'Oct' },
+  { m: 11, label: 'Nov' },
+  { m: 12, label: 'Dec' }
+];
+
+let opsSelectedYear = new Date().getFullYear();
+let opsSelectedMonth = new Date().getMonth() + 1; // 1 to 12, or 'all'
+
+function initOpsYearSelect() {
+  const sel = $('ops-year-select');
+  if (!sel) return;
+  const currentY = new Date().getFullYear();
+  const yearsSet = new Set([currentY + 1, currentY, currentY - 1, currentY - 2, currentY - 3, currentY - 4]);
+  (tabData.ops || []).forEach(o => {
+    if (o.op_date && o.op_date.length >= 4) {
+      const y = parseInt(o.op_date.slice(0, 4), 10);
+      if (!isNaN(y)) yearsSet.add(y);
+    }
+  });
+  const years = Array.from(yearsSet).sort((a, b) => b - a);
+  sel.innerHTML = years.map(y => `<option value="${y}" ${y === opsSelectedYear ? 'selected' : ''}>${y}</option>`).join('');
+}
+
+async function onOpsYearChange(newYear) {
+  opsSelectedYear = parseInt(newYear, 10);
+  await loadTabData('ops');
+}
+
+function setOpsMonth(m) {
+  opsSelectedMonth = m === 'all' ? 'all' : parseInt(m, 10);
+  renderOpsMonthButtons();
+  renderTable();
+}
+
+function renderOpsMonthButtons() {
+  const container = $('ops-month-buttons');
+  if (!container) return;
+
+  const allOps = tabData.ops || [];
+  const selYStr = String(opsSelectedYear);
+  const yearOps = allOps.filter(o => o.op_date && o.op_date.startsWith(selYStr + '-'));
+  const monthCounts = {};
+  yearOps.forEach(o => {
+    const m = parseInt(o.op_date.slice(5, 7), 10);
+    if (!isNaN(m)) monthCounts[m] = (monthCounts[m] || 0) + 1;
+  });
+
+  let html = '';
+  OPS_MONTHS.forEach(({ m, label }) => {
+    const isAct = opsSelectedMonth === m;
+    const cnt = m === 'all' ? yearOps.length : (monthCounts[m] || 0);
+    const countBadge = cnt > 0
+      ? `<span class="ml-1 text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isAct ? 'bg-white/30 text-white' : 'bg-blue-100 text-blue-800'}">${cnt}</span>`
+      : '';
+    const actClass = isAct
+      ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-sm'
+      : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-blue-700 font-medium border-slate-200/90 shadow-2xs';
+
+    html += `<button type="button" onclick="setOpsMonth('${m}')" class="px-2.5 py-1 text-xs rounded-lg border transition-all shrink-0 flex items-center ${actClass}">
+      ${label}${countBadge}
+    </button>`;
+  });
+  container.innerHTML = html;
+}
+
 const api = (path, method = 'GET', body) => fetch('/api/' + path, {
   method,
   headers: { 'Content-Type': 'application/json' },
@@ -492,7 +585,7 @@ const api = (path, method = 'GET', body) => fetch('/api/' + path, {
 });
 
 async function checkAuthAndLoad() {
-  const r = await api('ops');
+  const r = await api('ops?year=' + opsSelectedYear);
   if (r.status === 401) {
     $('login').classList.remove('hidden');
     $('app').classList.add('hidden');
@@ -505,6 +598,8 @@ async function checkAuthAndLoad() {
   if (d.target !== undefined) $('tgt').value = d.target;
   tabData.ops = d.rows || [];
 
+  initOpsYearSelect();
+  renderOpsMonthButtons();
   switchTab(currentTab);
 }
 
@@ -554,6 +649,17 @@ async function switchTab(tabKey) {
   $('section-desc').textContent = cat.desc;
   $('section-icon').textContent = cat.icon;
 
+  // Toggle Combat Ops Month & Year bar
+  if ($('ops-filter-bar')) {
+    if (tabKey === 'ops') {
+      $('ops-filter-bar').classList.remove('hidden');
+      initOpsYearSelect();
+      renderOpsMonthButtons();
+    } else {
+      $('ops-filter-bar').classList.add('hidden');
+    }
+  }
+
   // Build table headers
   let thHtml = `<tr class="border-b border-slate-200">`;
   cat.columns.forEach(col => {
@@ -568,30 +674,63 @@ async function switchTab(tabKey) {
 
 async function loadTabData(tabKey) {
   $('tbl-body').innerHTML = `<tr><td colspan="12" class="p-[2px] py-10 text-center text-slate-400">Loading ${CATEGORIES[tabKey].title}...</td></tr>`;
-  const r = await api(tabKey);
+  const url = tabKey === 'ops' ? `ops?year=${opsSelectedYear}` : tabKey;
+  const r = await api(url);
   if (r.status === 401) { checkAuthAndLoad(); return; }
   const d = await r.json().catch(() => ({ rows: [] }));
   tabData[tabKey] = d.rows || [];
+  if (tabKey === 'ops') {
+    initOpsYearSelect();
+    renderOpsMonthButtons();
+  }
   renderTable();
 }
 
 function renderTable() {
   const cat = CATEGORIES[currentTab];
   const q = ($('search-box').value || '').toLowerCase().trim();
-  const rows = (tabData[currentTab] || []).filter(o => {
-    if (!q) return true;
-    return Object.values(o).some(v => String(v ?? '').toLowerCase().includes(q));
-  });
+  let rows = tabData[currentTab] || [];
 
-  $('record-count').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'}`;
+  if (currentTab === 'ops') {
+    const selYStr = String(opsSelectedYear);
+    rows = rows.filter(o => {
+      if (!o.op_date) return false;
+      if (!o.op_date.startsWith(selYStr + '-')) return false;
+      if (opsSelectedMonth !== 'all') {
+        const mStr = String(opsSelectedMonth).padStart(2, '0');
+        if (!o.op_date.startsWith(`${selYStr}-${mStr}-`)) return false;
+      }
+      return true;
+    });
+  }
+
+  if (q) {
+    rows = rows.filter(o => Object.values(o).some(v => String(v ?? '').toLowerCase().includes(q)));
+  }
+
+  if (currentTab === 'ops') {
+    const mObj = OPS_MONTHS.find(m => m.m === opsSelectedMonth);
+    const mLabel = mObj ? (mObj.m === 'all' ? 'All Months' : mObj.label) : '';
+    $('record-count').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'} (${mLabel} ${opsSelectedYear})`;
+  } else {
+    $('record-count').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'}`;
+  }
 
   if (!rows.length) {
+    let emptyMsg = 'No records found';
+    let emptySub = 'Click <b>"+ Add Record"</b> above to enter a new operation';
+    if (currentTab === 'ops') {
+      const mObj = OPS_MONTHS.find(m => m.m === opsSelectedMonth);
+      const mLabel = mObj ? (mObj.m === 'all' ? 'the year' : mObj.label) : '';
+      emptyMsg = `No operations found for ${mLabel} ${opsSelectedYear}`;
+      emptySub = 'Click <b>"+ Add Record"</b> above to enter a new operation or select another month';
+    }
     $('tbl-body').innerHTML = `
       <tr>
         <td colspan="12" class="p-[2px] py-14 text-center text-slate-400">
           <span class="ms !text-5xl text-slate-300 block mb-2">folder_open</span>
-          <div class="text-base font-medium text-slate-600">No records found</div>
-          <div class="text-xs text-slate-400 mt-1">Click <b>"+ Add Record"</b> above to enter a new operation</div>
+          <div class="text-base font-medium text-slate-600">${emptyMsg}</div>
+          <div class="text-xs text-slate-400 mt-1">${emptySub}</div>
         </td>
       </tr>`;
     return;
@@ -743,7 +882,17 @@ function renderCombatModalForm(record) {
     if (record.fa_recovered) fa.recovered.hp = record.fa_recovered;
   }
 
-  const opDate = record ? record.op_date : new Date().toISOString().slice(0, 10);
+  let defaultOpDate = new Date().toISOString().slice(0, 10);
+  if (opsSelectedMonth !== 'all') {
+    const curY = new Date().getFullYear();
+    const curM = new Date().getMonth() + 1;
+    if (opsSelectedYear === curY && opsSelectedMonth === curM) {
+      defaultOpDate = new Date().toISOString().slice(0, 10);
+    } else {
+      defaultOpDate = `${opsSelectedYear}-${String(opsSelectedMonth).padStart(2, '0')}-01`;
+    }
+  }
+  const opDate = record ? record.op_date : defaultOpDate;
   const selCat = record ? (record.threat_category || 'Local Terrorist Groups (LTG)') : 'Local Terrorist Groups (LTG)';
   const selGroup = record ? record.threat_group : (THREAT_MAPPING[selCat] ? THREAT_MAPPING[selCat][0] : '');
 
@@ -1390,6 +1539,12 @@ async function handleFormSubmit(e) {
   if (r.ok) {
     $('modal-msg').textContent = 'Saved successfully! ✓';
     $('modal-msg').className = 'text-xs font-medium text-green-600';
+    if (currentTab === 'ops' && payload.op_date && payload.op_date.length >= 7) {
+      const savedYear = parseInt(payload.op_date.slice(0, 4), 10);
+      const savedMonth = parseInt(payload.op_date.slice(5, 7), 10);
+      if (!isNaN(savedYear)) opsSelectedYear = savedYear;
+      if (!isNaN(savedMonth) && opsSelectedMonth !== 'all') opsSelectedMonth = savedMonth;
+    }
     setTimeout(() => {
       closeModal();
       loadTabData(currentTab);

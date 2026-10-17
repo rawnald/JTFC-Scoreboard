@@ -111,7 +111,17 @@ export async function onRequest({ request, env, params }) {
     // 1. Combat / Military Operations (ops)
     if (r0 === 'ops') {
       if (method === 'GET') {
-        const x = await db.prepare('SELECT * FROM ops ORDER BY op_date DESC, id DESC LIMIT 100').all();
+        const url = new URL(request.url);
+        const y = url.searchParams.get('year');
+        let sql = 'SELECT * FROM ops';
+        const params = [];
+        if (y) {
+          sql += ' WHERE op_date LIKE ?';
+          params.push(`${y}-%`);
+        }
+        sql += ' ORDER BY op_date DESC, id DESC LIMIT 500';
+        const q = params.length ? db.prepare(sql).bind(...params) : db.prepare(sql);
+        const x = await q.all();
         const t = await db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
         return json({ rows: x.results, target: +(t?.value || 0) });
       }
