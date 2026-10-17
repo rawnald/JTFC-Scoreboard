@@ -169,7 +169,7 @@
     <!-- RESPONSIVE DATA TABLE CARD -->
     <section class="card overflow-hidden border border-slate-200/80">
       <div class="overflow-x-auto min-h-[360px] w-full">
-        <table class="w-full text-left text-xs whitespace-nowrap">
+        <table class="w-full text-left text-xs">
           <thead id="tbl-head" class="bg-slate-50/80 border-b border-slate-200 text-[11px] text-slate-700 uppercase font-bold tracking-wider"></thead>
           <tbody id="tbl-body" class="divide-y divide-slate-100"></tbody>
         </table>
@@ -281,7 +281,7 @@ const CATEGORIES = {
     desc: 'Kinetic encounters, neutralized threat elements, firearms gained, and captured war materiel',
     icon: 'swords',
     columns: [
-      { key: 'op_date', label: 'Date' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '';
         let u = o.unit || '—';
@@ -290,12 +290,16 @@ const CATEGORIES = {
           if (wm && wm.brigade) b = wm.brigade;
           if (wm && wm.unit_only) u = wm.unit_only;
         } catch(e) {}
+        const full = b && u && u !== b ? `${u} (${b})` : (o.unit || '—');
         if (b && u && u !== b) {
-          return `<div><span class="font-bold text-slate-800">${esc(u)}</span><div class="text-[11px] text-blue-600 font-semibold tracking-wide">${esc(b)}</div></div>`;
+          return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] leading-tight" title="${esc(full)}"><div class="font-bold text-slate-800 truncate">${esc(u)}</div><div class="text-[10px] text-blue-600 font-semibold truncate">${esc(b)}</div></div>`;
         }
-        return `<span class="font-bold text-slate-800">${esc(o.unit || '—')}</span>`;
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] font-bold text-slate-800 truncate" title="${esc(full)}">${esc(o.unit || '—')}</div>`;
       }},
-      { key: 'location', label: 'Location', render: o => `<span>${esc(o.area || '—')}${o.province ? ', ' + esc(o.province) : ''}</span>` },
+      { key: 'location', label: 'Location', render: o => {
+        const full = `${o.area || '—'}${o.province ? ', ' + o.province : ''}`;
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[150px] leading-tight" title="${esc(full)}"><div class="text-slate-800 font-medium truncate">${esc(o.area || '—')}</div>${o.province ? `<div class="text-[10px] text-slate-400 truncate">${esc(o.province)}</div>` : ''}</div>`;
+      }},
       { key: 'threat', label: 'Threat Classification', render: o => {
         const tc = o.threat_category || '';
         let acro = '—';
@@ -312,12 +316,17 @@ const CATEGORIES = {
         } else if (tc) {
           acro = tc;
         }
-        return `<div class="flex items-center gap-1"><span class="badge ${badgeColor} text-[10px] font-bold px-1.5 py-0 border" title="${esc(tc)}">${esc(acro)}</span><span class="font-bold text-slate-800">${esc(o.threat_group || '—')}</span></div>`;
+        const grp = o.threat_group || '—';
+        return `<div class="flex items-center gap-1 max-w-[90px] sm:max-w-[125px] xl:max-w-[160px]" title="[${esc(acro)}] ${esc(grp)}${tc ? ' (' + esc(tc) + ')' : ''}"><span class="badge ${badgeColor} text-[10px] font-bold px-1.5 py-0 border shrink-0">${esc(acro)}</span><span class="font-bold text-slate-800 truncate">${esc(grp)}</span></div>`;
       }},
-      { key: 'engagement_type', label: 'Engagement', render: o => `<span class="badge bg-slate-100 text-slate-800 font-medium">${esc(o.engagement_type || '—')}</span>` },
+      { key: 'engagement_type', label: 'Engagement', render: o => {
+        const eng = o.engagement_type || '—';
+        return `<div class="max-w-[80px] sm:max-w-[110px] xl:max-w-[135px]" title="${esc(eng)}"><span class="badge bg-slate-100 text-slate-800 font-medium text-[10px] px-1.5 py-0 truncate block">${esc(eng)}</span></div>`;
+      }},
       { key: 'enemy_casualties', label: 'Enemy Neutralized', render: o => {
         const k = o.killed || 0, w = o.enemy_wounded || 0, s = o.surrendered || 0, c = o.captured || 0, a = o.apprehended || 0;
-        return `<span class="badge bg-blue-50 text-blue-800 font-mono text-xs" title="Killed: ${k}, Wounded: ${w}, Surrendered: ${s}, Captured: ${c}, Apprehended: ${a}">${k}K / ${w}W / ${s}S / ${c}C / ${a}App</span>`;
+        const full = `Killed: ${k}, Wounded: ${w}, Surrendered: ${s}, Captured: ${c}, Apprehended: ${a}`;
+        return `<span class="badge bg-blue-50 text-blue-800 font-mono text-[10.5px] px-1.5 py-0 whitespace-nowrap" title="${full}">${k}K/${w}W/${s}S/${c}C/${a}A</span>`;
       }},
       { key: 'firearms', label: 'Firearms Gained', render: o => {
         const tot = o.firearms || 0;
@@ -331,13 +340,13 @@ const CATEGORIES = {
             details = [fmt('Captured', b.captured), fmt('Confiscated', b.confiscated), fmt('Surrendered', b.surrendered), fmt('Recovered', b.recovered)].filter(Boolean).join('\n');
           }
         } catch(e) {}
-        return `<div title="${esc(details)}"><span class="font-bold text-green-700 text-sm">+${tot}</span> <span class="text-[11px] text-slate-500 font-mono">(${csw} CSW / ${hp} HP / ${lp} LP)</span></div>`;
+        return `<div title="${esc(details)}" class="max-w-[95px] sm:max-w-[125px] whitespace-nowrap"><span class="font-bold text-green-700 text-xs">+${tot}</span> <span class="text-[10px] text-slate-500 font-mono">(${csw}C/${hp}H/${lp}L)</span></div>`;
       }},
-      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium">${o.kia} KIA / ${o.wia} WIA</span>` : '<span class="text-slate-400">0</span>' },
+      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium text-[10px] px-1.5 py-0 whitespace-nowrap">${o.kia}K / ${o.wia}W</span>` : '<span class="text-slate-400 text-[10px]">0</span>' },
       { key: 'war_mat', label: 'War Materiel', render: o => {
         let parsed = null;
         try { parsed = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
-        if (!parsed) return '<span class="text-slate-400">—</span>';
+        if (!parsed) return '<span class="text-slate-400 text-[10px]">—</span>';
         const badges = [];
         if (parsed.enemy_camp) badges.push(`${parsed.enemy_camp} Camp`);
         if (parsed.ied) badges.push(`${parsed.ied} IED`);
@@ -346,9 +355,11 @@ const CATEGORIES = {
         if (parsed.magazine) badges.push(`${parsed.magazine} Mag`);
         if (parsed.radio) badges.push(`${parsed.radio} Radio`);
         if (parsed.vehicle || parsed.motorcycle) badges.push(`${(parsed.vehicle||0)+(parsed.motorcycle||0)} Veh`);
-        return badges.length ? `<span class="badge bg-amber-50 text-amber-900 text-[11px]">${badges.slice(0, 3).join(', ')}${badges.length > 3 ? '...' : ''}</span>` : '<span class="text-slate-400">—</span>';
+        if (!badges.length) return '<span class="text-slate-400 text-[10px]">—</span>';
+        const allText = badges.join(', ');
+        return `<div class="max-w-[80px] sm:max-w-[110px] xl:max-w-[140px] truncate" title="${esc(allText)}"><span class="badge bg-amber-50 text-amber-900 border border-amber-200 text-[10px] px-1.5 py-0 truncate max-w-full inline-block">${esc(badges[0])}${badges.length > 1 ? ` +${badges.length - 1}` : ''}</span></div>`;
       }},
-      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[120px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-[11px] text-slate-500 truncate max-w-[70px] sm:max-w-[105px] xl:max-w-[150px] block" title="${esc(o.remarks || '')}">${esc(o.remarks || '—')}</span>` }
     ]
   },
   sleo: {
@@ -546,9 +557,9 @@ async function switchTab(tabKey) {
   // Build table headers
   let thHtml = `<tr class="border-b border-slate-200">`;
   cat.columns.forEach(col => {
-    thHtml += `<th class="p-[2px] px-1">${col.label}</th>`;
+    thHtml += `<th class="p-[2px] px-1 whitespace-nowrap">${col.label}</th>`;
   });
-  thHtml += `<th class="p-[2px] px-1 text-right">Actions</th></tr>`;
+  thHtml += `<th class="p-[2px] px-1 text-right whitespace-nowrap">Actions</th></tr>`;
   $('tbl-head').innerHTML = thHtml;
 
   // Load latest data for this tab
