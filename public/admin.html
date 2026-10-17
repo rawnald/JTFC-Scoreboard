@@ -23,6 +23,7 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     textarea.f { resize: vertical !important; min-height: 85px; max-height: 450px; }
+    #tbl-head th, #tbl-body td { padding: 2px 4px !important; font-size: 0.75rem; vertical-align: middle; }
   </style>
 </head>
 <body class="bg-[#eef3fb] text-slate-800 antialiased min-h-screen">
@@ -168,8 +169,8 @@
     <!-- RESPONSIVE DATA TABLE CARD -->
     <section class="card overflow-hidden border border-slate-200/80">
       <div class="overflow-x-auto min-h-[360px] w-full">
-        <table class="w-full text-left text-sm whitespace-nowrap">
-          <thead id="tbl-head" class="bg-slate-50/80 border-b border-slate-200 text-xs text-slate-600 uppercase font-semibold tracking-wider"></thead>
+        <table class="w-full text-left text-xs whitespace-nowrap">
+          <thead id="tbl-head" class="bg-slate-50/80 border-b border-slate-200 text-[11px] text-slate-700 uppercase font-bold tracking-wider"></thead>
           <tbody id="tbl-body" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
@@ -296,10 +297,22 @@ const CATEGORIES = {
       }},
       { key: 'location', label: 'Location', render: o => `<span>${esc(o.area || '—')}${o.province ? ', ' + esc(o.province) : ''}</span>` },
       { key: 'threat', label: 'Threat Classification', render: o => {
-        let badgeColor = 'bg-red-100 text-red-800';
-        if (o.threat_category && o.threat_category.includes('CTG')) badgeColor = 'bg-purple-100 text-purple-800';
-        if (o.threat_category && o.threat_category.includes('PIAGs')) badgeColor = 'bg-amber-100 text-amber-800';
-        return `<div><span class="badge ${badgeColor} text-[10px] mr-1">${esc(o.threat_category || 'Threat')}</span><span class="font-bold text-slate-800">${esc(o.threat_group || '—')}</span></div>`;
+        const tc = o.threat_category || '';
+        let acro = '—';
+        let badgeColor = 'bg-red-100 text-red-800 border-red-200';
+        if (tc.includes('LTG') || tc.toLowerCase().includes('local terrorist')) {
+          acro = 'LTG';
+          badgeColor = 'bg-red-100 text-red-800 border-red-200';
+        } else if (tc.includes('CTG') || tc.toLowerCase().includes('communist')) {
+          acro = 'CTG';
+          badgeColor = 'bg-purple-100 text-purple-800 border-purple-200';
+        } else if (tc.includes('PIAGs') || tc.toLowerCase().includes('piag')) {
+          acro = 'PIAGs';
+          badgeColor = 'bg-amber-100 text-amber-800 border-amber-200';
+        } else if (tc) {
+          acro = tc;
+        }
+        return `<div class="flex items-center gap-1"><span class="badge ${badgeColor} text-[10px] font-bold px-1.5 py-0 border" title="${esc(tc)}">${esc(acro)}</span><span class="font-bold text-slate-800">${esc(o.threat_group || '—')}</span></div>`;
       }},
       { key: 'engagement_type', label: 'Engagement', render: o => `<span class="badge bg-slate-100 text-slate-800 font-medium">${esc(o.engagement_type || '—')}</span>` },
       { key: 'enemy_casualties', label: 'Enemy Neutralized', render: o => {
@@ -533,9 +546,9 @@ async function switchTab(tabKey) {
   // Build table headers
   let thHtml = `<tr class="border-b border-slate-200">`;
   cat.columns.forEach(col => {
-    thHtml += `<th class="px-5 py-3.5">${col.label}</th>`;
+    thHtml += `<th class="p-[2px] px-1">${col.label}</th>`;
   });
-  thHtml += `<th class="px-5 py-3.5 text-right">Actions</th></tr>`;
+  thHtml += `<th class="p-[2px] px-1 text-right">Actions</th></tr>`;
   $('tbl-head').innerHTML = thHtml;
 
   // Load latest data for this tab
@@ -543,7 +556,7 @@ async function switchTab(tabKey) {
 }
 
 async function loadTabData(tabKey) {
-  $('tbl-body').innerHTML = `<tr><td colspan="12" class="px-5 py-12 text-center text-slate-400">Loading ${CATEGORIES[tabKey].title}...</td></tr>`;
+  $('tbl-body').innerHTML = `<tr><td colspan="12" class="p-[2px] py-10 text-center text-slate-400">Loading ${CATEGORIES[tabKey].title}...</td></tr>`;
   const r = await api(tabKey);
   if (r.status === 401) { checkAuthAndLoad(); return; }
   const d = await r.json().catch(() => ({ rows: [] }));
@@ -564,7 +577,7 @@ function renderTable() {
   if (!rows.length) {
     $('tbl-body').innerHTML = `
       <tr>
-        <td colspan="12" class="px-5 py-16 text-center text-slate-400">
+        <td colspan="12" class="p-[2px] py-14 text-center text-slate-400">
           <span class="ms !text-5xl text-slate-300 block mb-2">folder_open</span>
           <div class="text-base font-medium text-slate-600">No records found</div>
           <div class="text-xs text-slate-400 mt-1">Click <b>"+ Add Record"</b> above to enter a new operation</div>
@@ -578,15 +591,15 @@ function renderTable() {
     html += `<tr class="hover:bg-blue-50/50 transition-colors">`;
     cat.columns.forEach(col => {
       const val = col.render ? col.render(o) : esc(o[col.key] || '—');
-      html += `<td class="px-5 py-3.5 text-slate-700">${val}</td>`;
+      html += `<td class="p-[2px] px-1 text-slate-700">${val}</td>`;
     });
     html += `
-      <td class="px-5 py-3.5 text-right whitespace-nowrap">
-        <button onclick="openModal('edit', ${o.id})" class="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-100/60 transition" title="Edit Record">
-          <span class="ms !text-xl">edit</span>
+      <td class="p-[2px] px-1 text-right whitespace-nowrap">
+        <button onclick="openModal('edit', ${o.id})" class="text-blue-600 hover:text-blue-800 p-0.5 rounded hover:bg-blue-100/60 transition" title="Edit Record">
+          <span class="ms !text-base">edit</span>
         </button>
-        <button onclick="deleteRecord(${o.id})" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-100/60 transition ml-1" title="Delete Record">
-          <span class="ms !text-xl">delete</span>
+        <button onclick="deleteRecord(${o.id})" class="text-red-500 hover:text-red-700 p-0.5 rounded hover:bg-red-100/60 transition ml-0.5" title="Delete Record">
+          <span class="ms !text-base">delete</span>
         </button>
       </td>
     </tr>`;
