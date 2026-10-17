@@ -596,6 +596,51 @@ function onThreatCategoryChange(selectedCategory, preselectedGroup) {
   }
 }
 
+// Interactive Engagement Type Selection (Matching official template)
+const ENGAGEMENT_OPTIONS = [
+  { id: 'encounter', val: 'Encounter', label: 'Government Initiated (Encounter)', isGov: true },
+  { id: 'harassment', val: 'Harassment', label: 'Enemy Initiated (Harassment)', isGov: false },
+  { id: 'grenade', val: 'Grenade Throwing', label: 'Enemy Initiated (Grenade Throwing)', isGov: false },
+  { id: 'ied', val: 'IED Explosion', label: 'Enemy Initiated (IED Explosion)', isGov: false },
+  { id: 'ambush', val: 'Ambush', label: 'Enemy Initiated (Ambush)', isGov: false },
+  { id: 'shooting', val: 'Shooting', label: 'Enemy Initiated (Shooting)', isGov: false }
+];
+
+function setEngagementType(type) {
+  const hidden = $('f_engagement_type');
+  if (hidden) hidden.value = type;
+
+  const current = ENGAGEMENT_OPTIONS.find(x => x.val.toLowerCase() === (type || '').toLowerCase()) || ENGAGEMENT_OPTIONS[0];
+
+  ENGAGEMENT_OPTIONS.forEach(opt => {
+    const td = $('td_eng_' + opt.id);
+    const inp = $('inp_eng_' + opt.id);
+    const isSelected = opt.val.toLowerCase() === current.val.toLowerCase();
+
+    if (td) {
+      if (isSelected) {
+        td.style.backgroundColor = opt.isGov ? '#dcfce7' : '#f3e8ff';
+      } else {
+        td.style.backgroundColor = '#ffffff';
+      }
+    }
+    if (inp) {
+      inp.value = isSelected ? '1' : '';
+      if (isSelected) {
+        inp.className = `w-full text-center font-black text-lg outline-none py-2.5 bg-transparent ${opt.isGov ? 'text-green-900' : 'text-purple-900'}`;
+      } else {
+        inp.className = 'w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300';
+      }
+    }
+  });
+
+  const badge = $('eng-selected-label');
+  if (badge) {
+    badge.className = `badge ${current.isGov ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'} font-bold text-xs py-0.5 px-2.5`;
+    badge.textContent = `Selected: ${current.label}`;
+  }
+}
+
 // Auto-sum Firearms in Combat Modal (Captured, Confiscated, Surrendered, Recovered each by CSW, HP, LP)
 function calcCombatFirearms() {
   const capCSW = parseInt($('f_cap_csw')?.value || 0, 10) || 0;
@@ -702,6 +747,7 @@ function renderCombatModalForm(record) {
   const opDate = record ? record.op_date : new Date().toISOString().slice(0, 10);
   const selCat = record ? (record.threat_category || 'Local Terrorist Groups (LTG)') : 'Local Terrorist Groups (LTG)';
   const selGroup = record ? record.threat_group : (THREAT_MAPPING[selCat] ? THREAT_MAPPING[selCat][0] : '');
+  const curEngagement = record ? (record.engagement_type || 'Encounter') : 'Encounter';
 
   $('modal-form-content').innerHTML = `
     <!-- SECTION 1: Incident & Location Details -->
@@ -730,11 +776,13 @@ function renderCombatModalForm(record) {
     </div>
 
     <!-- SECTION 2: Threat Classification & Engagement Type -->
-    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-4">
       <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
         <span class="ms !text-lg text-red-600">radar</span> Threat Classification & Engagement Type
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      
+      <!-- Threat Category & Group Dropdowns (2 Columns) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         <div>
           <label>Threat Category <span class="text-red-500">*</span></label>
           <select id="f_threat_category" class="f" onchange="onThreatCategoryChange(this.value, '')">
@@ -747,21 +795,71 @@ function renderCombatModalForm(record) {
           <label>Threat Group <span class="text-red-500">*</span></label>
           <select id="f_threat_group" class="f" required></select>
         </div>
-        <div>
-          <label>Engagement Type <span class="text-red-500">*</span></label>
-          <select id="f_engagement_type" class="f">
-            <optgroup label="Government Initiated">
-              <option value="Encounter" ${record?.engagement_type === 'Encounter' ? 'selected' : ''}>Encounter (Govt Initiated)</option>
-            </optgroup>
-            <optgroup label="Enemy Initiated">
-              <option value="Harassment" ${record?.engagement_type === 'Harassment' ? 'selected' : ''}>Harassment</option>
-              <option value="Grenade Throwing" ${record?.engagement_type === 'Grenade Throwing' ? 'selected' : ''}>Grenade Throwing</option>
-              <option value="IED Explosion" ${record?.engagement_type === 'IED Explosion' ? 'selected' : ''}>IED Explosion</option>
-              <option value="Ambush" ${record?.engagement_type === 'Ambush' ? 'selected' : ''}>Ambush</option>
-              <option value="Shooting" ${record?.engagement_type === 'Shooting' ? 'selected' : ''}>Shooting</option>
-            </optgroup>
-          </select>
+      </div>
+
+      <!-- ENGAGEMENT TYPE SPREADSHEET TABLE (Styled exactly like the official operational template) -->
+      <div class="space-y-1.5 pt-1">
+        <div class="flex items-center justify-between">
+          <label class="!mb-0 text-slate-700 font-bold">Engagement Type <span class="text-red-500">*</span></label>
+          <span id="eng-selected-label" class="badge bg-green-100 text-green-800 font-bold text-xs py-0.5 px-2.5">
+            Selected: Government Initiated (Encounter)
+          </span>
         </div>
+        <input type="hidden" id="f_engagement_type" value="${esc(curEngagement)}">
+
+        <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+          <table class="w-full text-center border-collapse min-w-[620px]">
+            <thead>
+              <!-- Top Header Row -->
+              <tr>
+                <th rowspan="2" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2.5 border border-black tracking-wider text-xs w-[22%] align-middle leading-tight">
+                  GOVERNMENT<br>INITIATED<br>ENGAGEMENT<br>(ENCOUNTER)
+                </th>
+                <th colspan="5" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border border-black tracking-wider text-xs sm:text-sm">
+                  ENEMY-INITIATED ENGAGEMENT
+                </th>
+              </tr>
+              <!-- Subheaders Row: Harassment, Grenade Throwing, IED Explosion, Ambush, Shooting (Purple) -->
+              <tr class="font-extrabold text-black text-[11px] sm:text-xs">
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[15.6%]">HARASSMENT</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[15.6%]">GRENADE<br>THROWING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[15.6%]">IED<br>EXPLOSION</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[15.6%]">AMBUSH</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[15.6%]">SHOOTING</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Data / Selection Row -->
+              <tr class="bg-white">
+                <!-- Encounter -->
+                <td onclick="setEngagementType('Encounter')" class="p-0 border border-black cursor-pointer transition hover:bg-green-50" id="td_eng_encounter" title="Click to select Encounter">
+                  <input id="inp_eng_encounter" type="text" readonly value="1" class="w-full text-center font-black text-lg outline-none py-2.5 bg-transparent text-green-900 cursor-pointer select-none">
+                </td>
+                <!-- Harassment -->
+                <td onclick="setEngagementType('Harassment')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_harassment" title="Click to select Harassment">
+                  <input id="inp_eng_harassment" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                </td>
+                <!-- Grenade Throwing -->
+                <td onclick="setEngagementType('Grenade Throwing')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_grenade" title="Click to select Grenade Throwing">
+                  <input id="inp_eng_grenade" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                </td>
+                <!-- IED Explosion -->
+                <td onclick="setEngagementType('IED Explosion')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_ied" title="Click to select IED Explosion">
+                  <input id="inp_eng_ied" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                </td>
+                <!-- Ambush -->
+                <td onclick="setEngagementType('Ambush')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_ambush" title="Click to select Ambush">
+                  <input id="inp_eng_ambush" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                </td>
+                <!-- Shooting -->
+                <td onclick="setEngagementType('Shooting')" class="p-0 border border-black cursor-pointer transition hover:bg-purple-50" id="td_eng_shooting" title="Click to select Shooting">
+                  <input id="inp_eng_shooting" type="text" readonly value="" class="w-full text-center font-normal text-sm outline-none py-2.5 bg-transparent text-slate-300 cursor-pointer select-none">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-[11px] text-slate-500 italic">Click on any column above to select that engagement type (selected column is marked with 1).</p>
       </div>
     </div>
 
@@ -1052,9 +1150,10 @@ function renderCombatModalForm(record) {
     </div>
   `;
 
-  // Initialize dynamic threat group dropdown
+  // Initialize dynamic threat group dropdown and engagement type
   onThreatCategoryChange(selCat, selGroup);
   calcCombatFirearms();
+  setEngagementType(curEngagement);
 }
 
 function renderStandardModalForm(cat, record) {
