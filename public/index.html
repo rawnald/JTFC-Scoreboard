@@ -154,8 +154,8 @@ async function load(y){
   const rate=c.neutralized?c.sur/c.neutralized*100:0, prate=p.neutralized?p.sur/p.neutralized*100:0;
   $('kpis').innerHTML=kpi('shield','#2563eb','Total Neutralized',c.neutralized,delta(c.neutralized,p.neutralized))+
    kpi('gps_fixed','#16a34a','Firearms Gained',c.fa,delta(c.fa,p.fa))+
-   kpi('percent','#7c3aed','Surrender Rate',rate.toFixed(1)+'%',delta(rate,prate))+
-   kpi('groups','#f97316','Gov\'t Encounters',c.enc,delta(c.enc,p.enc))+
+   kpi('percent','#7c3aed','Total Surrender',rate.toFixed(1)+'%',delta(rate,prate))+
+   kpi('groups','#f97316','Initiated Encounters',c.enc,delta(c.enc,p.enc))+
    kpi('inventory_2','#0891b2','Loose FAs (SALW)',c.tolf,delta(c.tolf,p.tolf))+
    kpi('healing','#e11d48','Government Casualties',`${c.kia} KIA / ${c.wia} WIA`,delta(c.kia+c.wia,p.kia+p.wia,true));
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
