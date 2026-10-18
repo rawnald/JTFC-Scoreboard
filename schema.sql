@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS sleo (
   drugs_grams TEXT,
   drugs_value TEXT,
   contraband_details TEXT,          -- e.g. Shabu, Contraband, Cash
+  war_materiel TEXT,
   kia INTEGER DEFAULT 0,
   wia INTEGER DEFAULT 0,
   remarks TEXT

@@ -407,6 +407,24 @@ const CATEGORIES = {
         }
         return `<span class="font-bold text-green-700">${tot || 0}</span>`;
       }},
+      { key: 'recoveries', label: 'Other Recoveries', render: o => {
+        let parsed = null;
+        try { parsed = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
+        if (!parsed) return '<span class="text-slate-400 text-[10px]">—</span>';
+        const badges = [];
+        if (parsed.paraphernalia) badges.push(`${parsed.paraphernalia} Paraph`);
+        if (parsed.ied) badges.push(`${parsed.ied} IED`);
+        if (parsed.uxo) badges.push(`${parsed.uxo} UXO`);
+        if (parsed.explosives) badges.push(`${parsed.explosives} Expl`);
+        if (parsed.ammo) badges.push(`${parsed.ammo} Ammo`);
+        if (parsed.magazine) badges.push(`${parsed.magazine} Mag`);
+        if (parsed.radio) badges.push(`${parsed.radio} Radio`);
+        if (parsed.vehicle || parsed.motorcycle) badges.push(`${(parsed.vehicle||0)+(parsed.motorcycle||0)} Veh`);
+        if (parsed.other) badges.push(parsed.other);
+        if (!badges.length) return '<span class="text-slate-400 text-[10px]">—</span>';
+        const allText = badges.join(', ');
+        return `<div class="max-w-[80px] sm:max-w-[110px] truncate" title="${esc(allText)}"><span class="badge bg-amber-50 text-amber-900 border border-amber-200 text-[10px] px-1.5 py-0 truncate max-w-full inline-block">${esc(badges[0])}${badges.length > 1 ? ` +${badges.length - 1}` : ''}</span></div>`;
+      }},
       { key: 'contraband_details', label: 'Contraband / Seizures', render: o => `<span class="text-xs text-slate-600 truncate max-w-[160px] block" title="${esc(o.contraband_details)}">${esc(o.contraband_details || '—')}</span>` },
       { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
@@ -1398,6 +1416,28 @@ function renderSleoModalForm(record) {
   let drugsValue = record?.drugs_value || '';
   let contrabandOther = record?.contraband_other || '';
 
+  let rec = {
+    paraphernalia: 0,
+    ied: 0,
+    uxo: 0,
+    explosives: 0,
+    magazine: 0,
+    ammo: 0,
+    radio: 0,
+    vehicle: 0,
+    motorcycle: 0,
+    other: ''
+  };
+
+  if (record && record.war_materiel) {
+    try {
+      const parsed = typeof record.war_materiel === 'string' ? JSON.parse(record.war_materiel) : record.war_materiel;
+      if (parsed) rec = { ...rec, ...parsed };
+    } catch(e) {
+      rec.other = record.war_materiel;
+    }
+  }
+
   if (!drugsGrams && !drugsValue && record?.contraband_details) {
     const raw = String(record.contraband_details);
     const mGrams = raw.match(/(\d+(?:\.\d+)?)\s*(?:g(?:rams)?|g\b)/i);
@@ -1602,10 +1642,71 @@ function renderSleoModalForm(record) {
 
     </div>
 
-    <!-- Optional other contraband note -->
-    <div class="card p-3.5 sm:p-4 border border-slate-200/90 bg-slate-50/50">
-      <label class="text-[11px] text-slate-600 font-bold uppercase mb-1">Other Contraband / Non-Drug Seizures (Optional)</label>
-      <input id="f_contraband_other" value="${esc(contrabandOther)}" placeholder="e.g. Chainsaw, illegal lumber, smuggling contraband, cash, or gambling paraphernalia" class="f">
+    <!-- SECTION 4: OTHER RECOVERIES (EXACTLY MATCHING USER'S ATTACHED SPREADSHEET IMAGE) -->
+    <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm">
+      <div class="flex items-center justify-between mb-1">
+        <label class="!mb-0 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <span class="ms !text-lg text-amber-600">inventory_2</span> Other Recoveries
+        </label>
+      </div>
+
+      <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+        <table class="w-full text-center border-collapse min-w-[760px]">
+          <thead>
+            <tr>
+              <th colspan="10" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                OTHER RECOVERIES
+              </th>
+            </tr>
+            <tr class="font-bold text-black text-[11px] sm:text-xs">
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[10%]">Paraphernalia</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[9%]">IED</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[9%]">UXO</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[10%]">Explosives</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[10%]">Magazine</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[10%]">Ammo</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[10%]">Radio</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[10%]">Vehicle</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-[10%]">Motorcycle</th>
+              <th class="bg-[#84cc58] py-2 px-1 border-b border-black w-[12%]">Other War Materiel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="bg-white">
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_paraphernalia" type="number" min="0" value="${rec.paraphernalia ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_ied" type="number" min="0" value="${rec.ied ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_uxo" type="number" min="0" value="${rec.uxo ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_explosives" type="number" min="0" value="${rec.explosives ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_magazine" type="number" min="0" value="${rec.magazine ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_ammo" type="number" min="0" value="${rec.ammo ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_radio" type="number" min="0" value="${rec.radio ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_vehicle" type="number" min="0" value="${rec.vehicle ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_rec_motorcycle" type="number" min="0" value="${rec.motorcycle ?? 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-black">
+                <input id="f_rec_other" type="text" value="${esc(rec.other || '')}" placeholder="Other notes" class="w-full text-center font-bold text-xs sm:text-sm outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- SECTION 4: Remarks / Narrative -->
@@ -1846,7 +1947,19 @@ async function handleFormSubmit(e) {
 
     const drugsGrams = ($('f_drugs_grams')?.value || '').trim();
     const drugsValue = ($('f_drugs_value')?.value || '').trim();
-    const contrabandOther = ($('f_contraband_other')?.value || '').trim();
+
+    const warMat = {
+      paraphernalia: parseInt($('f_rec_paraphernalia')?.value || 0, 10) || 0,
+      ied: parseInt($('f_rec_ied')?.value || 0, 10) || 0,
+      uxo: parseInt($('f_rec_uxo')?.value || 0, 10) || 0,
+      explosives: parseInt($('f_rec_explosives')?.value || 0, 10) || 0,
+      magazine: parseInt($('f_rec_magazine')?.value || 0, 10) || 0,
+      ammo: parseInt($('f_rec_ammo')?.value || 0, 10) || 0,
+      radio: parseInt($('f_rec_radio')?.value || 0, 10) || 0,
+      vehicle: parseInt($('f_rec_vehicle')?.value || 0, 10) || 0,
+      motorcycle: parseInt($('f_rec_motorcycle')?.value || 0, 10) || 0,
+      other: $('f_rec_other')?.value.trim() || ''
+    };
 
     const parts = [];
     if (drugsGrams) parts.push(drugsGrams.toLowerCase().endsWith('g') ? drugsGrams : `${drugsGrams}g`);
@@ -1854,7 +1967,23 @@ async function handleFormSubmit(e) {
       const cleanVal = drugsValue.replace(/^PHP\s*/i, '');
       parts.push(`Est. Value: PHP ${cleanVal}`);
     }
-    if (contrabandOther) parts.push(contrabandOther);
+
+    const recBadges = [];
+    if (warMat.paraphernalia) recBadges.push(`${warMat.paraphernalia} Paraph`);
+    if (warMat.ied) recBadges.push(`${warMat.ied} IED`);
+    if (warMat.uxo) recBadges.push(`${warMat.uxo} UXO`);
+    if (warMat.explosives) recBadges.push(`${warMat.explosives} Expl`);
+    if (warMat.ammo) recBadges.push(`${warMat.ammo} Ammo`);
+    if (warMat.magazine) recBadges.push(`${warMat.magazine} Mag`);
+    if (warMat.radio) recBadges.push(`${warMat.radio} Radio`);
+    if (warMat.vehicle) recBadges.push(`${warMat.vehicle} Veh`);
+    if (warMat.motorcycle) recBadges.push(`${warMat.motorcycle} MC`);
+    if (warMat.other) recBadges.push(warMat.other);
+
+    if (recBadges.length) {
+      parts.push(`Recoveries: ${recBadges.join(', ')}`);
+    }
+
     const combinedContraband = parts.join(' | ');
 
     payload = {
@@ -1880,7 +2009,7 @@ async function handleFormSubmit(e) {
       firearms_seized: totalFA,
       drugs_grams: drugsGrams,
       drugs_value: drugsValue,
-      contraband_other: contrabandOther,
+      war_materiel: warMat,
       contraband_details: combinedContraband
     };
   } else {
