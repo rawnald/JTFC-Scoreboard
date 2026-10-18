@@ -156,7 +156,7 @@ async function load(y){
    kpi('gps_fixed','#16a34a','Firearms Gained',c.fa,delta(c.fa,p.fa))+
    kpi('percent','#7c3aed','Surrender Rate',rate.toFixed(1)+'%',delta(rate,prate))+
    kpi('groups','#f97316','Gov\'t Encounters',c.enc,delta(c.enc,p.enc))+
-   kpi('inventory_2','#0891b2','Loose FAs (TOLF)',c.tolf,delta(c.tolf,p.tolf))+
+   kpi('inventory_2','#0891b2','Loose FAs (SALW)',c.tolf,delta(c.tolf,p.tolf))+
    kpi('healing','#e11d48','Friendly Casualties',`${c.kia} KIA / ${c.wia} WIA`,delta(c.kia+c.wia,p.kia+p.wia,true));
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   draw('trend',{type:'line',data:{labels:M,datasets:[{label:'Gov\'t Initiated Encounters (Current Year)',data:c.monthly,borderColor:blue,backgroundColor:'rgba(29,91,255,.15)',fill:true,tension:.3,pointBackgroundColor:blue},{label:'Gov\'t Initiated Encounters (Last Year)',data:p.monthly,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0,tension:.3}]},options:{...opt,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
