@@ -47,13 +47,8 @@
     <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-[360px] w-full"><canvas id="groups"></canvas></div></div>
     <div class="card p-5 flex flex-col">
       <h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2>
-      <div class="h-[360px] relative flex items-center justify-center">
+      <div class="h-[360px] flex items-center justify-center">
         <canvas id="donut"></canvas>
-        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-          <div id="donut-val" class="text-3xl sm:text-4xl font-extrabold text-slate-800 leading-none">0</div>
-          <div id="donut-pct" class="text-sm sm:text-base font-bold text-purple-600 mt-1">0.0%</div>
-          <div id="donut-lbl" class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Surrender Rate</div>
-        </div>
       </div>
     </div>
     <div class="card p-5 overflow-x-auto flex flex-col"><h2 class="font-bold text-lg mb-2">Operational Matrix</h2>
@@ -101,6 +96,54 @@ const barLabelsPlugin = {
         }
         ctx.restore();
       });
+    });
+  }
+};
+
+const donutSlicePlugin = {
+  id: 'donutSlicePlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const dataset = chart.data.datasets[0];
+    if (!dataset) return;
+    const meta = chart.getDatasetMeta(0);
+    const total = dataset.data.reduce((a, b) => a + (Number(b) || 0), 0);
+    if (!total) return;
+
+    meta.data.forEach((arc, i) => {
+      const val = dataset.data[i];
+      if (!val || val <= 0) return;
+
+      const angleSpan = arc.endAngle - arc.startAngle;
+      if (angleSpan < 0.2) return;
+
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+      const innerR = arc.innerRadius || 0;
+      const outerR = arc.outerRadius || 0;
+      const radius = innerR + (outerR - innerR) * 0.52;
+      const x = arc.x + Math.cos(angle) * radius;
+      const y = arc.y + Math.sin(angle) * radius;
+
+      const pct = (val / total * 100).toFixed(1) + '%';
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+      ctx.shadowBlur = 3;
+
+      // Number inside the variant slice
+      ctx.font = 'bold 13px Roboto, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(String(val), x, y);
+
+      // Percentage under the number
+      ctx.font = 'bold 10px Roboto, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'top';
+      ctx.fillText(pct, x, y + 2);
+
+      ctx.restore();
     });
   }
 };
@@ -173,18 +216,6 @@ async function load(y){
     plugins: [barLabelsPlugin]
   });
 
-  const defaultNum = c.neutralized || 0;
-  const defaultPct = rate.toFixed(1) + '%';
-  const defaultLbl = 'Surrender Rate';
-
-  const updateDonutCenter = (val, pct, lbl) => {
-    const elVal = $('donut-val'), elPct = $('donut-pct'), elLbl = $('donut-lbl');
-    if (elVal) elVal.textContent = val;
-    if (elPct) elPct.textContent = pct;
-    if (elLbl) elLbl.textContent = lbl;
-  };
-  updateDonutCenter(defaultNum, defaultPct, defaultLbl);
-
   draw('donut', {
     type: 'doughnut',
     data: {
@@ -198,7 +229,7 @@ async function load(y){
     },
     options: {
       ...opt,
-      cutout: '68%',
+      cutout: '45%',
       plugins: {
         legend: {
           position: 'right',
@@ -206,20 +237,20 @@ async function load(y){
             boxWidth: 12,
             font: { size: 11, weight: '500' }
           }
-        }
-      },
-      onHover: (evt, activeEls) => {
-        if (activeEls && activeEls.length > 0) {
-          const idx = activeEls[0].index;
-          const val = [c.sur, c.kil, c.cap, c.app][idx] || 0;
-          const label = ['Surrendered', 'Killed', 'Captured', 'Apprehended'][idx];
-          const pct = c.neutralized ? (val / c.neutralized * 100).toFixed(1) + '%' : '0.0%';
-          updateDonutCenter(val, pct, label);
-        } else {
-          updateDonutCenter(defaultNum, defaultPct, defaultLbl);
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const val = ctx.raw || 0;
+              const total = c.neutralized || 1;
+              const pct = (val / total * 100).toFixed(1);
+              return `${ctx.label}: ${val} (${pct}%)`;
+            }
+          }
         }
       }
-    }
+    },
+    plugins: [donutSlicePlugin]
   });
   $('matrix').innerHTML=s.matrix.map(u=>`<tr class="border-b"><td class="py-2 font-medium">${esc(u.brigade||u.unit||'—')}</td><td>${u.firearms}</td><td><span class="bg-green-100 px-2 py-1 rounded font-bold">${u.enc}</span></td></tr>`).join('')||'<tr><td colspan=3 class="py-4 text-slate-400">No data yet</td></tr>';
 }
