@@ -101,10 +101,29 @@ function getProvince(r) {
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
-  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
+  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
   for (const r of rows) {
     a.sur += r.surrendered || 0; a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
     a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
+
+    let hp = r.fa_high_powered || 0;
+    let lp = r.fa_low_powered || 0;
+    let csw = r.fa_csw || 0;
+    if (!hp && !lp && !csw && r.war_materiel) {
+      try {
+        const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+        if (wm?.fa_breakdown) {
+          const bd = wm.fa_breakdown;
+          const cap = bd.captured || {}, conf = bd.confiscated || {}, sur = bd.surrendered || {}, rec = bd.recovered || {};
+          csw = (+cap.csw || 0) + (+conf.csw || 0) + (+sur.csw || 0) + (+rec.csw || 0);
+          hp = (+cap.hp || 0) + (+conf.hp || 0) + (+sur.hp || 0) + (+rec.hp || 0);
+          lp = (+cap.lp || 0) + (+conf.lp || 0) + (+sur.lp || 0) + (+rec.lp || 0);
+        }
+      } catch(e) {}
+    }
+    a.fa_hp += hp;
+    a.fa_lp += lp;
+    a.fa_csw += csw;
 
     const encCount = getEncounterCount(r);
     a.enc += encCount;
@@ -123,15 +142,19 @@ function agg(rows) {
 
     const bName = getBrigade(r);
     const provName = getProvince(r);
-    const b = a.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
+    const b = a.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
     b.enc += encCount;
     b.neutralized += nz;
     b.firearms += (r.firearms || 0);
+    b.fa_hp += hp;
+    b.fa_lp += lp;
+    b.fa_csw += csw;
     b.sur += (r.surrendered || 0);
     if (provName && provName !== '—') b._provs.add(provName);
 
-    const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0 };
+    const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0 };
     u.enc += encCount; u.neutralized += nz; u.firearms += (r.firearms || 0);
+    u.fa_hp += hp; u.fa_lp += lp; u.fa_csw += csw;
   }
   a.neutralized = a.sur + a.kil + a.cap + a.app;
   return a;
