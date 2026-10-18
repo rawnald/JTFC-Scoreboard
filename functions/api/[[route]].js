@@ -291,7 +291,17 @@ export async function onRequest({ request, env, params }) {
       try { await db.prepare('ALTER TABLE sleo ADD COLUMN province TEXT').run(); } catch(e) {}
 
       if (method === 'GET') {
-        const x = await db.prepare('SELECT * FROM sleo ORDER BY op_date DESC, id DESC LIMIT 100').all();
+        const url = new URL(request.url);
+        const y = url.searchParams.get('year');
+        let sql = 'SELECT * FROM sleo';
+        const params = [];
+        if (y) {
+          sql += ' WHERE op_date LIKE ?';
+          params.push(`${y}-%`);
+        }
+        sql += ' ORDER BY op_date DESC, id DESC LIMIT 500';
+        const q = params.length ? db.prepare(sql).bind(...params) : db.prepare(sql);
+        const x = await q.all();
         return json({ rows: x.results });
       }
       if (method === 'POST') {
