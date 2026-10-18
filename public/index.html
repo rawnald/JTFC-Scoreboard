@@ -45,7 +45,17 @@
   </section>
   <section class="grid xl:grid-cols-3 gap-4">
     <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-[360px] w-full"><canvas id="groups"></canvas></div></div>
-    <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2><div class="h-[360px] flex items-center justify-center"><canvas id="donut"></canvas></div></div>
+    <div class="card p-5 flex flex-col">
+      <h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2>
+      <div class="h-[360px] relative flex items-center justify-center">
+        <canvas id="donut"></canvas>
+        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+          <div id="donut-val" class="text-3xl sm:text-4xl font-extrabold text-slate-800 leading-none">0</div>
+          <div id="donut-pct" class="text-sm sm:text-base font-bold text-purple-600 mt-1">0.0%</div>
+          <div id="donut-lbl" class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Surrender Rate</div>
+        </div>
+      </div>
+    </div>
     <div class="card p-5 overflow-x-auto flex flex-col"><h2 class="font-bold text-lg mb-2">Operational Matrix</h2>
       <div class="flex-1 overflow-y-auto max-h-[360px]">
         <table class="w-full text-sm"><thead><tr class="text-left border-b sticky top-0 bg-white"><th class="py-2">Brigade</th><th>Firearms</th><th>Initiated Opns</th></tr></thead><tbody id="matrix"></tbody></table>
@@ -163,7 +173,54 @@ async function load(y){
     plugins: [barLabelsPlugin]
   });
 
-  draw('donut',{type:'doughnut',data:{labels:['Surrendered','Killed','Captured','Apprehended'],datasets:[{data:[c.sur,c.kil,c.cap,c.app],backgroundColor:['#2196f3','#0d3b8c','#26b5a8','#f5a623'],borderWidth:2}]},options:{...opt,cutout:'60%',plugins:{legend:{position:'right'}}}});
+  const defaultNum = c.neutralized || 0;
+  const defaultPct = rate.toFixed(1) + '%';
+  const defaultLbl = 'Surrender Rate';
+
+  const updateDonutCenter = (val, pct, lbl) => {
+    const elVal = $('donut-val'), elPct = $('donut-pct'), elLbl = $('donut-lbl');
+    if (elVal) elVal.textContent = val;
+    if (elPct) elPct.textContent = pct;
+    if (elLbl) elLbl.textContent = lbl;
+  };
+  updateDonutCenter(defaultNum, defaultPct, defaultLbl);
+
+  draw('donut', {
+    type: 'doughnut',
+    data: {
+      labels: ['Surrendered', 'Killed', 'Captured', 'Apprehended'],
+      datasets: [{
+        data: [c.sur, c.kil, c.cap, c.app],
+        backgroundColor: ['#2196f3', '#0d3b8c', '#26b5a8', '#f5a623'],
+        borderWidth: 2,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      ...opt,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth: 12,
+            font: { size: 11, weight: '500' }
+          }
+        }
+      },
+      onHover: (evt, activeEls) => {
+        if (activeEls && activeEls.length > 0) {
+          const idx = activeEls[0].index;
+          const val = [c.sur, c.kil, c.cap, c.app][idx] || 0;
+          const label = ['Surrendered', 'Killed', 'Captured', 'Apprehended'][idx];
+          const pct = c.neutralized ? (val / c.neutralized * 100).toFixed(1) + '%' : '0.0%';
+          updateDonutCenter(val, pct, label);
+        } else {
+          updateDonutCenter(defaultNum, defaultPct, defaultLbl);
+        }
+      }
+    }
+  });
   $('matrix').innerHTML=s.matrix.map(u=>`<tr class="border-b"><td class="py-2 font-medium">${esc(u.brigade||u.unit||'—')}</td><td>${u.firearms}</td><td><span class="bg-green-100 px-2 py-1 rounded font-bold">${u.enc}</span></td></tr>`).join('')||'<tr><td colspan=3 class="py-4 text-slate-400">No data yet</td></tr>';
 }
 const esc=t=>String(t).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
