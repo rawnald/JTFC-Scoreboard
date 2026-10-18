@@ -83,9 +83,10 @@ CREATE TABLE IF NOT EXISTS rido (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   case_date TEXT NOT NULL,          -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 603rd Bde
-  area TEXT NOT NULL,               -- e.g. Datu Piang, Maguindanao
+  area TEXT NOT NULL,               -- e.g. Datu Piang
+  province TEXT,                    -- e.g. Maguindanao del Sur
   parties_involved TEXT NOT NULL,   -- e.g. Family A vs Family B
-  status TEXT NOT NULL DEFAULT 'Ongoing Mediation', -- Settled, Ongoing Mediation, Monitored
+  status TEXT NOT NULL DEFAULT 'Ongoing Mediation', -- Settled, Ongoing Mediation, Monitored, Arbitrated, Others
   casualties_killed INTEGER DEFAULT 0,
   casualties_wounded INTEGER DEFAULT 0,
   firearms_surrendered INTEGER DEFAULT 0,

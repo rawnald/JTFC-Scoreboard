@@ -550,24 +550,43 @@ const CATEGORIES = {
     icon: 'handshake',
     columns: [
       { key: 'case_date', label: 'Date' },
-      { key: 'unit', label: 'Unit' },
-      { key: 'area', label: 'Area' },
+      { key: 'unit', label: 'Unit / Brigade', render: o => {
+        let b = '', u = o.unit || '';
+        if (o.brigade) b = o.brigade;
+        if (!b && o.unit) {
+          const m = o.unit.match(/^(.*?)\s*\((.*?)\)$/);
+          if (m) { u = m[1].trim(); b = m[2].trim(); }
+        }
+        const full = b && u && u !== b ? `${u} (${b})` : (o.unit || '—');
+        if (b && u && u !== b) {
+          return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] leading-tight" title="${esc(full)}"><div class="font-bold text-slate-800 truncate">${esc(u)}</div><div class="text-[10px] text-blue-600 font-semibold truncate">${esc(b)}</div></div>`;
+        }
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] font-bold text-slate-800 truncate" title="${esc(full)}">${esc(o.unit || '—')}</div>`;
+      }},
+      { key: 'location', label: 'Location', render: o => {
+        const full = `${o.area || '—'}${o.province ? ', ' + o.province : ''}`;
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[150px] leading-tight" title="${esc(full)}"><div class="text-slate-800 font-medium truncate">${esc(o.area || '—')}</div>${o.province ? `<div class="text-[10px] text-slate-400 truncate">${esc(o.province)}</div>` : ''}</div>`;
+      }},
       { key: 'parties_involved', label: 'Parties Involved', render: o => `<span class="font-bold text-slate-900">${esc(o.parties_involved)}</span>` },
       { key: 'status', label: 'Status', render: o => {
         const s = o.status || 'Ongoing Mediation';
-        const c = s.toLowerCase().includes('settled') ? 'bg-green-100 text-green-800' : (s.toLowerCase().includes('ongoing') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800');
+        const sLower = s.toLowerCase();
+        const c = sLower.includes('settled') ? 'bg-green-100 text-green-800' : (sLower.includes('ongoing') ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800');
         return `<span class="badge ${c}">${esc(s)}</span>`;
       }},
-      { key: 'casualties', label: 'Casualties (K/W)', render: o => `${o.casualties_killed} K / ${o.casualties_wounded} W` },
-      { key: 'firearms_surrendered', label: 'FAs Turned Over', render: o => `<span class="font-bold text-emerald-700">${o.firearms_surrendered}</span>` },
+      { key: 'casualties', label: 'Casualties (K/W)', render: o => `${o.casualties_killed || 0} K / ${o.casualties_wounded || 0} W` },
+      { key: 'firearms_surrendered', label: 'FAs Turned Over', render: o => `<span class="font-bold text-emerald-700">${o.firearms_surrendered || 0}</span>` },
       { key: 'mediators', label: 'Mediators / Leaders', render: o => `<span class="text-xs text-slate-600 truncate max-w-[140px] block" title="${esc(o.mediators)}">${esc(o.mediators || '—')}</span>` },
-      { key: 'agreement_details', label: 'Agreement Covenant', render: o => `<span class="text-xs text-slate-500 truncate max-w-[140px] block" title="${esc(o.agreement_details)}">${esc(o.agreement_details || '—')}</span>` }
+      { key: 'agreement_details', label: 'Agreement Covenant', render: o => `<span class="text-xs text-slate-500 truncate max-w-[140px] block" title="${esc(o.agreement_details)}">${esc(o.agreement_details || '—')}</span>` },
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
     fields: [
       { id: 'case_date', label: 'Date of Incident / Settlement', type: 'date', required: true },
-      { id: 'unit', label: 'Facilitating Unit', placeholder: 'e.g. 603rd Bde, 37IB', required: true },
-      { id: 'area', label: 'Municipality / Province', placeholder: 'e.g. Datu Piang, Maguindanao del Sur' },
-      { id: 'status', label: 'Status', type: 'select', options: ['Ongoing Mediation', 'Settled', 'Monitored', 'Arbitrated'], value: 'Ongoing Mediation' },
+      { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 603rd Bde', required: true },
+      { id: 'unit', label: 'Unit', placeholder: 'e.g. 37IB, 57IB', required: true },
+      { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Datu Piang, Pikit', required: true },
+      { id: 'province', label: 'Province', placeholder: 'e.g. Maguindanao del Sur, Cotabato' },
+      { id: 'status', label: 'Status', type: 'select_with_other', options: ['Ongoing Mediation', 'Settled', 'Monitored', 'Arbitrated', 'Others'], placeholder: 'Specify status...', value: 'Ongoing Mediation' },
       { id: 'parties_involved', label: 'Parties / Families Involved', placeholder: 'e.g. Clan A vs Clan B', colSpan: 2, required: true },
       { id: 'casualties_killed', label: 'Casualties (Killed)', type: 'number', value: 0 },
       { id: 'casualties_wounded', label: 'Casualties (Wounded)', type: 'number', value: 0 },
@@ -982,13 +1001,15 @@ function openModal(mode, id) {
   $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the operation details below`;
   $('modal-submit-btn').innerHTML = `<span class="ms">save</span> ${id ? 'Update Record' : 'Save Record'}`;
 
-  // Specially customized form for Combat / Military Operations, SLEO & TOLF
+  // Specially customized form for Combat / Military Operations, SLEO, TOLF & Rido Cases
   if (currentTab === 'ops') {
     renderCombatModalForm(record);
   } else if (currentTab === 'sleo') {
     renderSleoModalForm(record);
   } else if (currentTab === 'tolf') {
     renderTolfModalForm(record);
+  } else if (currentTab === 'rido') {
+    renderRidoModalForm(record);
   } else {
     renderStandardModalForm(cat, record);
   }
@@ -2231,6 +2252,160 @@ function calcTolfFirearms() {
   calcTolfTotals();
 }
 
+function renderRidoModalForm(record) {
+  const caseDate = record ? (record.case_date || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
+
+  let savedBrigade = record?.brigade || '';
+  let savedUnit = record?.unit_only || '';
+  if (!savedBrigade && record && record.unit) {
+    const m = record.unit.match(/^(.*?)\s*\((.*?)\)$/);
+    if (m) {
+      savedUnit = m[1].trim();
+      savedBrigade = m[2].trim();
+    } else if (record.unit.toLowerCase().includes('bde') || record.unit.toLowerCase().includes('brigade') || record.unit.toLowerCase().includes('1bct')) {
+      savedBrigade = record.unit;
+      savedUnit = '';
+    } else {
+      savedUnit = record.unit;
+      savedBrigade = '';
+    }
+  }
+
+  let savedArea = record?.area || '';
+  let savedProvince = record?.province || '';
+  if (!savedProvince && savedArea && savedArea.includes(',')) {
+    const parts = savedArea.split(',');
+    savedProvince = parts.pop().trim();
+    savedArea = parts.join(',').trim();
+  }
+
+  const rawStatus = record ? (record.status || 'Ongoing Mediation') : 'Ongoing Mediation';
+  const standardStatuses = ['Ongoing Mediation', 'Settled', 'Monitored', 'Arbitrated'];
+  const isOtherStatus = rawStatus && !standardStatuses.includes(rawStatus);
+  const selectedStatus = isOtherStatus ? 'Others' : rawStatus;
+  const otherStatusVal = isOtherStatus ? rawStatus : '';
+
+  const parties = record?.parties_involved || '';
+  const killed = record?.casualties_killed ?? 0;
+  const wounded = record?.casualties_wounded ?? 0;
+  const faSurrendered = record?.firearms_surrendered ?? 0;
+  const mediators = record?.mediators || '';
+  const agreement = record?.agreement_details || '';
+  const remarks = record?.remarks || '';
+
+  $('modal-form-content').innerHTML = `
+    <!-- SECTION 1: Incident & Unit Information -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
+        <span class="ms !text-lg text-indigo-600">handshake</span> Incident & Unit Information
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div>
+          <label>Date of Incident / Settlement <span class="text-red-500">*</span></label>
+          <input id="f_case_date" type="date" value="${esc(caseDate)}" class="f" required>
+        </div>
+        <div>
+          <label>Brigade <span class="text-red-500">*</span></label>
+          <input id="f_brigade" list="rido_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 603rd Bde" class="f" required>
+          <datalist id="rido_brigade_list">
+            <option value="601st Bde">
+            <option value="602nd Bde">
+            <option value="603rd Bde">
+            <option value="1BCT">
+          </datalist>
+        </div>
+        <div>
+          <label>Unit <span class="text-red-500">*</span></label>
+          <input id="f_unit" list="rido_unit_list" value="${esc(savedUnit)}" placeholder="e.g. 37IB, 57IB" class="f" required>
+          <datalist id="rido_unit_list">
+            <option value="7IB">
+            <option value="38IB">
+            <option value="40IB">
+            <option value="90IB">
+            <option value="37IB">
+            <option value="57IB">
+            <option value="6DRC">
+            <option value="62DRC">
+            <option value="63DRC">
+            <option value="6DMC">
+          </datalist>
+        </div>
+        <div>
+          <label>Location / Municipality <span class="text-red-500">*</span></label>
+          <input id="f_area" value="${esc(savedArea)}" placeholder="e.g. Datu Piang, Pikit, Pagalungan" class="f" required>
+        </div>
+        <div>
+          <label>Province</label>
+          <input id="f_province" list="rido_province_list" value="${esc(savedProvince)}" placeholder="e.g. Maguindanao del Sur, Cotabato" class="f">
+          <datalist id="rido_province_list">
+            <option value="Maguindanao del Sur">
+            <option value="Maguindanao del Norte">
+            <option value="Cotabato">
+            <option value="Sultan Kudarat">
+            <option value="South Cotabato">
+            <option value="Sarangani">
+          </datalist>
+        </div>
+        <div>
+          <label>Status <span class="text-red-500">*</span></label>
+          <select id="f_status" class="f" onchange="onSelectWithOtherChange(this, 'f_status_other_wrap', 'f_status_other')">
+            <option value="Ongoing Mediation" ${selectedStatus === 'Ongoing Mediation' ? 'selected' : ''}>Ongoing Mediation</option>
+            <option value="Settled" ${selectedStatus === 'Settled' ? 'selected' : ''}>Settled</option>
+            <option value="Monitored" ${selectedStatus === 'Monitored' ? 'selected' : ''}>Monitored</option>
+            <option value="Arbitrated" ${selectedStatus === 'Arbitrated' ? 'selected' : ''}>Arbitrated</option>
+            <option value="Others" ${selectedStatus === 'Others' ? 'selected' : ''}>Others</option>
+          </select>
+          <div id="f_status_other_wrap" class="${selectedStatus === 'Others' ? '' : 'hidden'} mt-2">
+            <input id="f_status_other" type="text" value="${esc(otherStatusVal)}" placeholder="Specify other status..." class="f" ${selectedStatus === 'Others' ? 'required' : ''}>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Conflict Parties, Casualties & Recoveries -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
+        <span class="ms !text-lg text-emerald-600">groups</span> Parties, Casualties & Recoveries
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div class="sm:col-span-2 lg:col-span-4">
+          <label>Parties / Families Involved <span class="text-red-500">*</span></label>
+          <input id="f_parties_involved" value="${esc(parties)}" placeholder="e.g. Clan A vs Clan B, Family X vs Family Y" class="f" required>
+        </div>
+        <div>
+          <label>Casualties (Killed)</label>
+          <input id="f_casualties_killed" type="number" min="0" value="${killed}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="f font-bold text-center">
+        </div>
+        <div>
+          <label>Casualties (Wounded)</label>
+          <input id="f_casualties_wounded" type="number" min="0" value="${wounded}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="f font-bold text-center">
+        </div>
+        <div class="sm:col-span-2">
+          <label>Firearms Turned Over / Surrendered</label>
+          <input id="f_firearms_surrendered" type="number" min="0" value="${faSurrendered}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="f font-bold text-center text-emerald-700">
+        </div>
+        <div class="sm:col-span-2 lg:col-span-4">
+          <label>Key Mediators & Stakeholders</label>
+          <input id="f_mediators" value="${esc(mediators)}" placeholder="e.g. JTFC, 603Bde, LGU Mayor, MILF CCCH, Council of Elders" class="f">
+        </div>
+        <div class="sm:col-span-2 lg:col-span-4">
+          <label>Agreement Details / Covenant Signed</label>
+          <input id="f_agreement_details" value="${esc(agreement)}" placeholder="e.g. Peace covenant signed at Municipal Hall with settlement conditions" class="f">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Remarks / Narrative -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="!mb-0">Remarks / Narrative</label>
+        <span class="text-[11px] text-slate-400 italic">Drag bottom-right corner to resize</span>
+      </div>
+      <textarea id="f_remarks" rows="3" class="f resize-y min-h-[90px] max-h-[450px]" placeholder="Additional context, ongoing monitoring notes, or resolution background...">${esc(remarks)}</textarea>
+    </div>
+  `;
+}
+
 function onSelectWithOtherChange(sel, wrapId, inputId) {
   const wrap = $(wrapId);
   const input = $(inputId);
@@ -2574,6 +2749,30 @@ async function handleFormSubmit(e) {
       firearms_count: totalFA,
       explosives_count: explosivesCount,
       war_materiel: warMat
+    };
+  } else if (currentTab === 'rido') {
+    const brigadeVal = ($('f_brigade')?.value || '').trim();
+    const unitVal    = ($('f_unit')?.value || '').trim();
+    const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
+
+    const statusSel = $('f_status')?.value || 'Ongoing Mediation';
+    const statusOther = ($('f_status_other')?.value || '').trim();
+    const finalStatus = statusSel === 'Others' ? (statusOther || 'Others') : statusSel;
+
+    payload = {
+      ...payload,
+      case_date: $('f_case_date').value,
+      unit: combinedUnit,
+      brigade: brigadeVal,
+      area: ($('f_area')?.value || '').trim(),
+      province: ($('f_province')?.value || '').trim(),
+      parties_involved: ($('f_parties_involved')?.value || '').trim(),
+      status: finalStatus,
+      casualties_killed: parseInt($('f_casualties_killed')?.value || 0, 10) || 0,
+      casualties_wounded: parseInt($('f_casualties_wounded')?.value || 0, 10) || 0,
+      firearms_surrendered: parseInt($('f_firearms_surrendered')?.value || 0, 10) || 0,
+      mediators: ($('f_mediators')?.value || '').trim(),
+      agreement_details: ($('f_agreement_details')?.value || '').trim()
     };
   } else {
     const cat = CATEGORIES[currentTab];

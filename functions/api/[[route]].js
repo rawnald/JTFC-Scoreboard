@@ -477,8 +477,10 @@ export async function onRequest({ request, env, params }) {
 
     // 4. Rido Cases (rido)
     if (r0 === 'rido') {
+      try { await db.prepare('ALTER TABLE rido ADD COLUMN province TEXT').run(); } catch(e) {}
+
       if (method === 'GET') {
-        const x = await db.prepare('SELECT * FROM rido ORDER BY case_date DESC, id DESC LIMIT 100').all();
+        const x = await db.prepare('SELECT * FROM rido ORDER BY case_date DESC, id DESC LIMIT 500').all();
         return json({ rows: x.results });
       }
       if (method === 'POST') {
@@ -486,8 +488,13 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.case_date) || !txt(b.unit) || !txt(b.parties_involved)) {
           return json({ error: 'Date, Unit, and Parties Involved are required' }, 400);
         }
-        await db.prepare('INSERT INTO rido (case_date,unit,area,parties_involved,status,casualties_killed,casualties_wounded,firearms_surrendered,mediators,agreement_details,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
-          .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500)).run();
+        try {
+          await db.prepare('INSERT INTO rido (case_date,unit,area,province,parties_involved,status,casualties_killed,casualties_wounded,firearms_surrendered,mediators,agreement_details,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+            .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500)).run();
+        } catch(err) {
+          await db.prepare('INSERT INTO rido (case_date,unit,area,parties_involved,status,casualties_killed,casualties_wounded,firearms_surrendered,mediators,agreement_details,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+            .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500)).run();
+        }
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -495,8 +502,13 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.case_date) || !txt(b.unit) || !txt(b.parties_involved)) {
           return json({ error: 'Date, Unit, and Parties Involved are required' }, 400);
         }
-        await db.prepare('UPDATE rido SET case_date=?,unit=?,area=?,parties_involved=?,status=?,casualties_killed=?,casualties_wounded=?,firearms_surrendered=?,mediators=?,agreement_details=?,remarks=? WHERE id=?')
-          .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500), n(r1)).run();
+        try {
+          await db.prepare('UPDATE rido SET case_date=?,unit=?,area=?,province=?,parties_involved=?,status=?,casualties_killed=?,casualties_wounded=?,firearms_surrendered=?,mediators=?,agreement_details=?,remarks=? WHERE id=?')
+            .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500), n(r1)).run();
+        } catch(err) {
+          await db.prepare('UPDATE rido SET case_date=?,unit=?,area=?,parties_involved=?,status=?,casualties_killed=?,casualties_wounded=?,firearms_surrendered=?,mediators=?,agreement_details=?,remarks=? WHERE id=?')
+            .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500), n(r1)).run();
+        }
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
