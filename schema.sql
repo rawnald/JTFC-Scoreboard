@@ -43,6 +43,11 @@ CREATE TABLE IF NOT EXISTS sleo (
   captured INTEGER DEFAULT 0,
   apprehended INTEGER DEFAULT 0,
   firearms_seized INTEGER DEFAULT 0,
+  fa_csw INTEGER DEFAULT 0,
+  fa_high_powered INTEGER DEFAULT 0,
+  fa_low_powered INTEGER DEFAULT 0,
+  drugs_grams TEXT,
+  drugs_value TEXT,
   contraband_details TEXT,          -- e.g. Shabu, Contraband, Cash
   kia INTEGER DEFAULT 0,
   wia INTEGER DEFAULT 0,

@@ -399,8 +399,14 @@ const CATEGORIES = {
         const full = `Killed: ${k}, Wounded: ${w}, Surrendered: ${s}, Captured: ${c}, Apprehended: ${a}`;
         return `<span class="badge bg-blue-50 text-blue-800 font-mono text-[10.5px] px-1.5 py-0 whitespace-nowrap" title="${full}">${k}K/${w}W/${s}S/${c}C/${a}A</span>`;
       }},
-      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium text-[10px] px-1.5 py-0 whitespace-nowrap">${o.kia}K / ${o.wia}W</span>` : '<span class="text-slate-400 text-[10px]">0</span>' },
-      { key: 'firearms_seized', label: 'FA Seized', render: o => `<span class="font-bold text-green-700">${o.firearms_seized || 0}</span>` },
+      { key: 'firearms_seized', label: 'FA Seized', render: o => {
+        const tot = o.firearms_seized || (o.fa_csw || 0) + (o.fa_high_powered || 0) + (o.fa_low_powered || 0);
+        const csw = o.fa_csw || 0, hp = o.fa_high_powered || 0, lp = o.fa_low_powered || 0;
+        if (csw || hp || lp) {
+          return `<div class="whitespace-nowrap" title="CSW: ${csw}, HP: ${hp}, LP: ${lp}"><span class="font-bold text-green-700">+${tot}</span> <span class="text-[10px] text-slate-500 font-mono">(${csw}C/${hp}H/${lp}L)</span></div>`;
+        }
+        return `<span class="font-bold text-green-700">${tot || 0}</span>`;
+      }},
       { key: 'contraband_details', label: 'Contraband / Seizures', render: o => `<span class="text-xs text-slate-600 truncate max-w-[160px] block" title="${esc(o.contraband_details)}">${esc(o.contraband_details || '—')}</span>` },
       { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
@@ -1381,6 +1387,26 @@ function renderSleoModalForm(record) {
   const captured = record?.captured ?? 0;
   const apprehended = record?.apprehended ?? record?.arrested ?? 0;
 
+  const csw = record?.fa_csw ?? 0;
+  const hp  = record?.fa_high_powered ?? 0;
+  const lp  = record?.fa_low_powered ?? 0;
+  const totalFa = (record?.firearms_seized !== undefined && record?.firearms_seized !== null)
+    ? record.firearms_seized
+    : (csw + hp + lp);
+
+  let drugsGrams = record?.drugs_grams || '';
+  let drugsValue = record?.drugs_value || '';
+  let contrabandOther = record?.contraband_other || '';
+
+  if (!drugsGrams && !drugsValue && record?.contraband_details) {
+    const raw = String(record.contraband_details);
+    const mGrams = raw.match(/(\d+(?:\.\d+)?)\s*(?:g(?:rams)?|g\b)/i);
+    if (mGrams) drugsGrams = mGrams[1];
+    const mVal = raw.match(/(?:PHP|Php|₱|Value:?)\s*([\d,]+(?:\.\d+)?)/i);
+    if (mVal) drugsValue = mVal[1];
+    contrabandOther = raw.replace(/(\d+(?:\.\d+)?)\s*(?:g(?:rams)?|g\b)[^|,]*/i, '').replace(/(?:PHP|Php|₱|Value:?|Est\.?)\s*([\d,]+(?:\.\d+)?)[^|,]*/i, '').replace(/^[|\s,]+|[|\s,]+$/g, '');
+  }
+
   $('modal-form-content').innerHTML = `
     <!-- SECTION 1: General & Agency Information -->
     <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
@@ -1484,21 +1510,102 @@ function renderSleoModalForm(record) {
       </div>
     </div>
 
-    <!-- SECTION 3: Firearms & Contraband Seizures -->
-    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
-      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
-        <span class="ms !text-lg text-emerald-600">inventory_2</span> Firearms & Contraband Seizures
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div>
-          <label>Firearms Seized</label>
-          <input id="f_firearms_seized" type="number" min="0" value="${record?.firearms_seized ?? 0}" class="f">
+    <!-- SECTION 3: FIREARMS GAINED & CONFISCATED DRUGS (MATCHING USER'S ATTACHED SPREADSHEET IMAGES) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <!-- Table 1: FAs GAINED (CSW, HP, LP) -->
+      <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-1">
+          <label class="!mb-0 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms !text-lg text-emerald-600">grid_on</span> Firearms Gained Breakdown
+          </label>
+          <span id="sleo_fa_total_badge" class="badge bg-green-100 text-green-800 font-bold text-xs py-0.5 px-2.5">
+            Total FAs: ${totalFa}
+          </span>
         </div>
-        <div class="sm:col-span-2">
-          <label>Contraband / Drugs Details</label>
-          <input id="f_contraband_details" value="${esc(record?.contraband_details || '')}" placeholder="e.g. 50g Shabu (Est. PHP 340,000)" class="f">
+
+        <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  FAs GAINED
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs sm:text-sm">
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/3">CSW</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/3">HP</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-b border-black w-1/3">LP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-black">
+                  <input id="f_fa_csw" type="number" min="0" value="${csw}" oninput="calcSleoFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-black">
+                  <input id="f_fa_hp" type="number" min="0" value="${hp}" oninput="calcSleoFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-black">
+                  <input id="f_fa_lp" type="number" min="0" value="${lp}" oninput="calcSleoFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+              </tr>
+              <tr class="bg-[#cbe5f8] font-bold text-xs text-black">
+                <td colspan="3" class="py-1.5 px-2 text-center border-t border-black">
+                  Total Firearms Gained: <span id="sleo_fa_sum" class="font-extrabold text-blue-950 ml-1">${totalFa}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
+
+      <!-- Table 2: CONFISCATED DRUGS (GRAMS, Market Value (Drugs)) -->
+      <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-1">
+          <label class="!mb-0 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms !text-lg text-indigo-600">medication</span> Dangerous Drugs Confiscated
+          </label>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="2" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  CONFISCATED DRUGS
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs sm:text-sm">
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/2">GRAMS</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-b border-black w-1/2">Market Value (Drugs)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-black">
+                  <input id="f_drugs_grams" type="text" value="${esc(drugsGrams)}" placeholder="e.g. 50g" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-black">
+                  <input id="f_drugs_value" type="text" value="${esc(drugsValue)}" placeholder="e.g. 340,000" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+              </tr>
+              <tr class="bg-slate-100 font-medium text-xs text-slate-600">
+                <td colspan="2" class="py-1.5 px-2 text-center border-t border-black">
+                  Anti-Illegal Drug Seizures
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Optional other contraband note -->
+    <div class="card p-3.5 sm:p-4 border border-slate-200/90 bg-slate-50/50">
+      <label class="text-[11px] text-slate-600 font-bold uppercase mb-1">Other Contraband / Non-Drug Seizures (Optional)</label>
+      <input id="f_contraband_other" value="${esc(contrabandOther)}" placeholder="e.g. Chainsaw, illegal lumber, smuggling contraband, cash, or gambling paraphernalia" class="f">
     </div>
 
     <!-- SECTION 4: Remarks / Narrative -->
@@ -1510,6 +1617,17 @@ function renderSleoModalForm(record) {
       <textarea id="f_remarks" rows="3" class="f resize-y min-h-[90px] max-h-[450px]" placeholder="Optional details, notes, or narrative summary...">${esc(record?.remarks || '')}</textarea>
     </div>
   `;
+
+  calcSleoFirearms();
+}
+
+function calcSleoFirearms() {
+  const csw = parseInt($('f_fa_csw')?.value || 0, 10) || 0;
+  const hp  = parseInt($('f_fa_hp')?.value || 0, 10) || 0;
+  const lp  = parseInt($('f_fa_lp')?.value || 0, 10) || 0;
+  const total = csw + hp + lp;
+  if ($('sleo_fa_total_badge')) $('sleo_fa_total_badge').textContent = `Total FAs: ${total}`;
+  if ($('sleo_fa_sum')) $('sleo_fa_sum').textContent = `${total}`;
 }
 
 function onSelectWithOtherChange(sel, wrapId, inputId) {
@@ -1721,6 +1839,24 @@ async function handleFormSubmit(e) {
     const kia = parseInt($('f_kia')?.value || 0, 10) || 0;
     const wia = parseInt($('f_wia')?.value || 0, 10) || 0;
 
+    const csw = parseInt($('f_fa_csw')?.value || 0, 10) || 0;
+    const hp  = parseInt($('f_fa_hp')?.value || 0, 10) || 0;
+    const lp  = parseInt($('f_fa_lp')?.value || 0, 10) || 0;
+    const totalFA = csw + hp + lp;
+
+    const drugsGrams = ($('f_drugs_grams')?.value || '').trim();
+    const drugsValue = ($('f_drugs_value')?.value || '').trim();
+    const contrabandOther = ($('f_contraband_other')?.value || '').trim();
+
+    const parts = [];
+    if (drugsGrams) parts.push(drugsGrams.toLowerCase().endsWith('g') ? drugsGrams : `${drugsGrams}g`);
+    if (drugsValue) {
+      const cleanVal = drugsValue.replace(/^PHP\s*/i, '');
+      parts.push(`Est. Value: PHP ${cleanVal}`);
+    }
+    if (contrabandOther) parts.push(contrabandOther);
+    const combinedContraband = parts.join(' | ');
+
     payload = {
       ...payload,
       op_date: $('f_op_date').value,
@@ -1738,8 +1874,14 @@ async function handleFormSubmit(e) {
       captured,
       apprehended,
       arrested: apprehended,
-      firearms_seized: parseInt($('f_firearms_seized')?.value || 0, 10) || 0,
-      contraband_details: $('f_contraband_details')?.value.trim()
+      fa_csw: csw,
+      fa_high_powered: hp,
+      fa_low_powered: lp,
+      firearms_seized: totalFA,
+      drugs_grams: drugsGrams,
+      drugs_value: drugsValue,
+      contraband_other: contrabandOther,
+      contraband_details: combinedContraband
     };
   } else {
     const cat = CATEGORIES[currentTab];
