@@ -648,27 +648,41 @@ let sleoSelectedYear = new Date().getFullYear();
 let sleoSelectedMonth = new Date().getMonth() + 1;
 let tolfSelectedYear = new Date().getFullYear();
 let tolfSelectedMonth = new Date().getMonth() + 1;
+let ridoSelectedYear = new Date().getFullYear();
+let ridoSelectedMonth = new Date().getMonth() + 1;
+let hadrSelectedYear = new Date().getFullYear();
+let hadrSelectedMonth = new Date().getMonth() + 1;
 
 function getSelectedYear() {
   if (currentTab === 'sleo') return sleoSelectedYear;
   if (currentTab === 'tolf') return tolfSelectedYear;
+  if (currentTab === 'rido') return ridoSelectedYear;
+  if (currentTab === 'hadr') return hadrSelectedYear;
   return opsSelectedYear;
 }
 function setSelectedYear(y) {
   if (currentTab === 'sleo') sleoSelectedYear = y;
   else if (currentTab === 'tolf') tolfSelectedYear = y;
+  else if (currentTab === 'rido') ridoSelectedYear = y;
+  else if (currentTab === 'hadr') hadrSelectedYear = y;
   else opsSelectedYear = y;
 }
 function getSelectedMonth() {
   if (currentTab === 'sleo') return sleoSelectedMonth;
   if (currentTab === 'tolf') return tolfSelectedMonth;
+  if (currentTab === 'rido') return ridoSelectedMonth;
+  if (currentTab === 'hadr') return hadrSelectedMonth;
   return opsSelectedMonth;
 }
 function setSelectedMonth(m) {
   if (currentTab === 'sleo') sleoSelectedMonth = m;
   else if (currentTab === 'tolf') tolfSelectedMonth = m;
+  else if (currentTab === 'rido') ridoSelectedMonth = m;
+  else if (currentTab === 'hadr') hadrSelectedMonth = m;
   else opsSelectedMonth = m;
 }
+
+const getRecordDate = o => o ? (o.case_date || o.op_date || '') : '';
 
 function initOpsYearSelect() {
   const sel = $('ops-year-select');
@@ -677,8 +691,9 @@ function initOpsYearSelect() {
   const yearsSet = new Set([currentY + 1, currentY, currentY - 1, currentY - 2, currentY - 3, currentY - 4]);
   const records = tabData[currentTab] || [];
   records.forEach(o => {
-    if (o.op_date && o.op_date.length >= 4) {
-      const y = parseInt(o.op_date.slice(0, 4), 10);
+    const dStr = getRecordDate(o);
+    if (dStr && dStr.length >= 4) {
+      const y = parseInt(dStr.slice(0, 4), 10);
       if (!isNaN(y)) yearsSet.add(y);
     }
   });
@@ -706,10 +721,14 @@ function renderOpsMonthButtons() {
   const selY = getSelectedYear();
   const selM = getSelectedMonth();
   const selYStr = String(selY);
-  const yearRecords = allRecords.filter(o => o.op_date && o.op_date.startsWith(selYStr + '-'));
+  const yearRecords = allRecords.filter(o => {
+    const dStr = getRecordDate(o);
+    return dStr && dStr.startsWith(selYStr + '-');
+  });
   const monthCounts = {};
   yearRecords.forEach(o => {
-    const m = parseInt(o.op_date.slice(5, 7), 10);
+    const dStr = getRecordDate(o);
+    const m = parseInt(dStr.slice(5, 7), 10);
     if (!isNaN(m)) monthCounts[m] = (monthCounts[m] || 0) + 1;
   });
 
@@ -802,15 +821,11 @@ async function switchTab(tabKey) {
   $('section-desc').textContent = cat.desc;
   $('section-icon').textContent = cat.icon;
 
-  // Toggle Month & Year bar (for Combat Ops, SLEO & TOLF)
+  // Show Month & Year bar for operations tabs
   if ($('ops-filter-bar')) {
-    if (tabKey === 'ops' || tabKey === 'sleo' || tabKey === 'tolf') {
-      $('ops-filter-bar').classList.remove('hidden');
-      initOpsYearSelect();
-      renderOpsMonthButtons();
-    } else {
-      $('ops-filter-bar').classList.add('hidden');
-    }
+    $('ops-filter-bar').classList.remove('hidden');
+    initOpsYearSelect();
+    renderOpsMonthButtons();
   }
 
   // Build table headers
@@ -827,16 +842,14 @@ async function switchTab(tabKey) {
 
 async function loadTabData(tabKey) {
   $('tbl-body').innerHTML = `<tr><td colspan="12" class="p-[2px] py-10 text-center text-slate-400">Loading ${CATEGORIES[tabKey].title}...</td></tr>`;
-  const yr = (tabKey === 'ops' || tabKey === 'sleo' || tabKey === 'tolf') ? getSelectedYear() : null;
+  const yr = getSelectedYear();
   const url = yr ? `${tabKey}?year=${yr}` : tabKey;
   const r = await api(url);
   if (r.status === 401) { checkAuthAndLoad(); return; }
   const d = await r.json().catch(() => ({ rows: [] }));
   tabData[tabKey] = d.rows || [];
-  if (tabKey === 'ops' || tabKey === 'sleo' || tabKey === 'tolf') {
-    initOpsYearSelect();
-    renderOpsMonthButtons();
-  }
+  initOpsYearSelect();
+  renderOpsMonthButtons();
   renderTable();
 }
 
@@ -845,47 +858,40 @@ function renderTable() {
   const q = ($('search-box').value || '').toLowerCase().trim();
   let rows = tabData[currentTab] || [];
 
-  if (currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') {
-    const selY = getSelectedYear();
-    const selM = getSelectedMonth();
-    const selYStr = String(selY);
-    rows = rows.filter(o => {
-      if (!o.op_date) return false;
-      if (!o.op_date.startsWith(selYStr + '-')) return false;
-      if (selM !== 'all') {
-        const mStr = String(selM).padStart(2, '0');
-        if (!o.op_date.startsWith(`${selYStr}-${mStr}-`)) return false;
-      }
-      return true;
-    });
-  }
+  const selY = getSelectedYear();
+  const selM = getSelectedMonth();
+  const selYStr = String(selY);
+  rows = rows.filter(o => {
+    const dStr = getRecordDate(o);
+    if (!dStr) return false;
+    if (!dStr.startsWith(selYStr + '-')) return false;
+    if (selM !== 'all') {
+      const mStr = String(selM).padStart(2, '0');
+      if (!dStr.startsWith(`${selYStr}-${mStr}-`)) return false;
+    }
+    return true;
+  });
 
   if (q) {
     rows = rows.filter(o => Object.values(o).some(v => String(v ?? '').toLowerCase().includes(q)));
   }
 
-  if (currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') {
-    const selY = getSelectedYear();
-    const selM = getSelectedMonth();
-    const mObj = OPS_MONTHS.find(m => m.m === selM);
-    const mLabel = mObj ? (mObj.m === 'all' ? 'All Months' : mObj.label) : '';
-    $('record-count').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'} (${mLabel} ${selY})`;
-  } else {
-    $('record-count').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'}`;
-  }
+  const mObj = OPS_MONTHS.find(m => m.m === selM);
+  const mLabel = mObj ? (mObj.m === 'all' ? 'All Months' : mObj.label) : '';
+  $('record-count').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'} (${mLabel} ${selY})`;
 
   if (!rows.length) {
-    let emptyMsg = 'No records found';
-    let emptySub = 'Click <b>"+ Add Record"</b> above to enter a new record';
-    if (currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') {
-      const selY = getSelectedYear();
-      const selM = getSelectedMonth();
-      const mObj = OPS_MONTHS.find(m => m.m === selM);
-      const mLabel = mObj ? (mObj.m === 'all' ? 'the year' : mObj.label) : '';
-      const entity = currentTab === 'ops' ? 'operations' : (currentTab === 'sleo' ? 'SLEO records' : 'TOLF records');
-      emptyMsg = `No ${entity} found for ${mLabel} ${selY}`;
-      emptySub = `Click <b>"+ Add Record"</b> above to enter a new ${currentTab === 'ops' ? 'operation' : (currentTab === 'sleo' ? 'SLEO record' : 'TOLF record')} or select another month`;
-    }
+    const entities = {
+      ops: 'operations',
+      sleo: 'SLEO records',
+      tolf: 'TOLF records',
+      rido: 'Rido cases',
+      hadr: 'HADR operations'
+    };
+    const entity = entities[currentTab] || 'records';
+    const singularEntity = entity.replace(/s$/, '');
+    const emptyMsg = `No ${entity} found for ${mLabel} ${selY}`;
+    const emptySub = `Click <b>"+ Add Record"</b> above to enter a new ${singularEntity} or select another month`;
     $('tbl-body').innerHTML = `
       <tr>
         <td colspan="12" class="p-[2px] py-14 text-center text-slate-400">
@@ -2253,7 +2259,19 @@ function calcTolfFirearms() {
 }
 
 function renderRidoModalForm(record) {
-  const caseDate = record ? (record.case_date || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
+  let defaultCaseDate = new Date().toISOString().slice(0, 10);
+  const curSelM = getSelectedMonth();
+  const curSelY = getSelectedYear();
+  if (curSelM !== 'all') {
+    const curY = new Date().getFullYear();
+    const curM = new Date().getMonth() + 1;
+    if (curSelY === curY && curSelM === curM) {
+      defaultCaseDate = new Date().toISOString().slice(0, 10);
+    } else {
+      defaultCaseDate = `${curSelY}-${String(curSelM).padStart(2, '0')}-01`;
+    }
+  }
+  const caseDate = record ? (record.case_date || defaultCaseDate) : defaultCaseDate;
 
   let savedBrigade = record?.brigade || '';
   let savedUnit = record?.unit_only || '';
@@ -2422,8 +2440,21 @@ function onSelectWithOtherChange(sel, wrapId, inputId) {
 
 function renderStandardModalForm(cat, record) {
   let fieldsHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
+  let defaultDate = new Date().toISOString().slice(0, 10);
+  const curSelM = getSelectedMonth();
+  const curSelY = getSelectedYear();
+  if (curSelM !== 'all') {
+    const curY = new Date().getFullYear();
+    const curM = new Date().getMonth() + 1;
+    if (curSelY === curY && curSelM === curM) {
+      defaultDate = new Date().toISOString().slice(0, 10);
+    } else {
+      defaultDate = `${curSelY}-${String(curSelM).padStart(2, '0')}-01`;
+    }
+  }
+
   cat.fields.forEach(f => {
-    const val = record ? (record[f.id] ?? '') : (f.value !== undefined ? f.value : (f.type === 'date' ? new Date().toISOString().slice(0, 10) : ''));
+    const val = record ? (record[f.id] ?? '') : (f.value !== undefined ? f.value : (f.type === 'date' ? defaultDate : ''));
     const colClass = f.colSpan === 2 ? 'sm:col-span-2' : '';
 
     if (f.type === 'select') {
@@ -2800,9 +2831,10 @@ async function handleFormSubmit(e) {
   if (r.ok) {
     $('modal-msg').textContent = 'Saved successfully! ✓';
     $('modal-msg').className = 'text-xs font-medium text-green-600';
-    if ((currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') && payload.op_date && payload.op_date.length >= 7) {
-      const savedYear = parseInt(payload.op_date.slice(0, 4), 10);
-      const savedMonth = parseInt(payload.op_date.slice(5, 7), 10);
+    const recDate = payload.op_date || payload.case_date;
+    if (recDate && recDate.length >= 7) {
+      const savedYear = parseInt(recDate.slice(0, 4), 10);
+      const savedMonth = parseInt(recDate.slice(5, 7), 10);
       if (!isNaN(savedYear)) setSelectedYear(savedYear);
       if (!isNaN(savedMonth) && getSelectedMonth() !== 'all') setSelectedMonth(savedMonth);
     }
