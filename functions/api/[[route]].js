@@ -49,6 +49,10 @@ const STANDARD_THREAT_GROUPS = [
   'MILF', 'MNLF'
 ];
 
+const STANDARD_BRIGADES = [
+  '601st Bde', '602nd Bde', '603rd Bde', '1Mech BDE', '1Mar BDE'
+];
+
 function getBrigade(r) {
   if (typeof r.war_materiel === 'string') {
     try {
@@ -126,6 +130,7 @@ export async function onRequest({ request, env, params }) {
       const startDate = url.searchParams.get('start_date') || (reqYear ? `${reqYear}-01-01` : `${new Date().getFullYear()}-01-01`);
       const endDate = url.searchParams.get('end_date') || (reqYear ? `${reqYear}-12-31` : `${new Date().getFullYear()}-12-31`);
       const threatGroup = (url.searchParams.get('threat_group') || '').trim();
+      const brigade = (url.searchParams.get('brigade') || '').trim();
       const province = (url.searchParams.get('province') || '').trim();
 
       const y = reqYear || parseInt(startDate.slice(0, 4), 10) || new Date().getFullYear();
@@ -139,9 +144,15 @@ export async function onRequest({ request, env, params }) {
       }
 
       function filterRows(rows) {
-        if (!threatGroup && !province) return rows;
+        if (!threatGroup && !brigade && !province) return rows;
         return rows.filter(r => {
           if (threatGroup && r.threat_group !== threatGroup) return false;
+          if (brigade) {
+            const b = getBrigade(r).toLowerCase();
+            const tb = brigade.toLowerCase();
+            const u = (r.unit || '').toLowerCase();
+            if (b !== tb && !b.includes(tb) && !u.includes(tb)) return false;
+          }
           if (province) {
             const p = getProvince(r).toLowerCase();
             const tp = province.toLowerCase();
@@ -157,12 +168,13 @@ export async function onRequest({ request, env, params }) {
         .bind(sDate, eDate).all()
         .then(x => agg(filterRows(x.results || [])));
 
-      const [cur, prev, t, tgRows, provRows, yrRows] = await Promise.all([
+      const [cur, prev, t, tgRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
         q(prevStartDate, prevEndDate),
         db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
         db.prepare("SELECT DISTINCT threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
       ]);
 
@@ -177,6 +189,12 @@ export async function onRequest({ request, env, params }) {
       const tgSet = new Set(STANDARD_THREAT_GROUPS);
       (tgRows.results || []).forEach(r => { if (r.threat_group && r.threat_group.trim()) tgSet.add(r.threat_group.trim()); });
 
+      const bdeSet = new Set(STANDARD_BRIGADES);
+      (bdeRows.results || []).forEach(r => {
+        const b = getBrigade(r);
+        if (b && b !== '—') bdeSet.add(b);
+      });
+
       const provSet = new Set(['Maguindanao del Sur', 'Maguindanao del Norte', 'Cotabato', 'Sultan Kudarat', 'South Cotabato', 'Sarangani', 'SGA-BARMM']);
       (provRows.results || []).forEach(r => { if (r.province && r.province.trim()) provSet.add(r.province.trim()); });
 
@@ -187,12 +205,14 @@ export async function onRequest({ request, env, params }) {
         start_date: startDate,
         end_date: endDate,
         threat_group: threatGroup,
+        brigade: brigade,
         province: province,
         target: +(t?.value || 0),
         cur,
         prev,
         matrix: Object.values(cur.brigades).sort((a, b) => b.firearms - a.firearms),
         available_threat_groups: Array.from(tgSet).filter(Boolean).sort(),
+        available_brigades: Array.from(bdeSet).filter(Boolean).sort(),
         available_provinces: Array.from(provSet).filter(Boolean).sort(),
         available_years: availableYears
       });
