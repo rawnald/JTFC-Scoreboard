@@ -189,6 +189,42 @@ export async function onRequest({ request, env, params }) {
         });
       }
 
+      function filterSleoRows(rows) {
+        if (!threatGroup && !brigade && !province) return rows;
+        return rows.filter(r => {
+          if (threatGroup) {
+            const tg = (r.threat_group || r.target_group || '').toLowerCase();
+            const target = threatGroup.toLowerCase();
+            if (!tg.includes(target)) return false;
+          }
+          if (brigade) {
+            const b = getBrigade(r).toLowerCase();
+            const tb = brigade.toLowerCase();
+            const u = (r.unit || '').toLowerCase();
+            if (b !== tb && !b.includes(tb) && !u.includes(tb)) return false;
+          }
+          if (province) {
+            const p = getProvince(r).toLowerCase();
+            const tp = province.toLowerCase();
+            const rp = (r.province || '').toLowerCase();
+            const ra = (r.area || '').toLowerCase();
+            if (p !== tp && !rp.includes(tp) && !ra.includes(tp)) return false;
+          }
+          return true;
+        });
+      }
+
+      function getMonthlyCounts(rows) {
+        const m = Array(12).fill(0);
+        for (const r of rows) {
+          if (r.op_date && r.op_date.length >= 7) {
+            const idx = +r.op_date.slice(5, 7) - 1;
+            if (idx >= 0 && idx < 12) m[idx]++;
+          }
+        }
+        return m;
+      }
+
       const q = (sDate, eDate) => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
         .then(x => agg(filterRows(x.results || [])));
@@ -197,15 +233,30 @@ export async function onRequest({ request, env, params }) {
         .bind(sDate, eDate).all()
         .then(x => {
           const filtered = filterTolfRows(x.results || []);
-          return filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0);
+          return {
+            firearms: filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0),
+            monthly: getMonthlyCounts(filtered)
+          };
         })
-        .catch(() => 0);
+        .catch(() => ({ firearms: 0, monthly: Array(12).fill(0) }));
 
-      const [cur, prev, curTolf, prevTolf, t, tgRows, provRows, bdeRows, yrRows] = await Promise.all([
+      const qSleo = (sDate, eDate) => db.prepare('SELECT * FROM sleo WHERE op_date BETWEEN ? AND ?')
+        .bind(sDate, eDate).all()
+        .then(x => {
+          const filtered = filterSleoRows(x.results || []);
+          return {
+            monthly: getMonthlyCounts(filtered)
+          };
+        })
+        .catch(() => ({ monthly: Array(12).fill(0) }));
+
+      const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, tgRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
         q(prevStartDate, prevEndDate),
         qTolf(startDate, endDate),
         qTolf(prevStartDate, prevEndDate),
+        qSleo(startDate, endDate),
+        qSleo(prevStartDate, prevEndDate),
         db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
         db.prepare("SELECT DISTINCT threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
@@ -213,8 +264,13 @@ export async function onRequest({ request, env, params }) {
         db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM tolf WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
       ]);
 
-      cur.tolf = curTolf || cur.tolf || 0;
-      prev.tolf = prevTolf || prev.tolf || 0;
+      cur.tolf = curTolf.firearms || cur.tolf || 0;
+      prev.tolf = prevTolf.firearms || prev.tolf || 0;
+      cur.tolf_monthly = curTolf.monthly || Array(12).fill(0);
+      prev.tolf_monthly = prevTolf.monthly || Array(12).fill(0);
+
+      cur.sleo_monthly = curSleo.monthly || Array(12).fill(0);
+      prev.sleo_monthly = prevSleo.monthly || Array(12).fill(0);
 
       Object.values(cur.brigades).forEach(b => {
         if (b._provs && b._provs.size > 0) {

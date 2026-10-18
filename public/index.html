@@ -125,12 +125,29 @@
     </div>
   </header>
   <section id="kpis" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"></section>
-  <section class="w-full">
-    <div class="card p-5">
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Trend 1: Monthly Operational Trend (Combat) -->
+    <div class="card p-5 flex flex-col">
       <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-        <h2 class="font-bold text-lg">Monthly Operational Trend</h2>
+        <h2 class="font-bold text-base sm:text-lg text-slate-800">Monthly Operational Trend</h2>
       </div>
-      <div class="h-72"><canvas id="trend"></canvas></div>
+      <div class="h-64 sm:h-72 w-full"><canvas id="trend"></canvas></div>
+    </div>
+
+    <!-- Trend 2: Support to Law Enforcement Operations (SLEO) -->
+    <div class="card p-5 flex flex-col">
+      <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <h2 class="font-bold text-base sm:text-lg text-slate-800">Support to Law Enforcement Operations (SLEO)</h2>
+      </div>
+      <div class="h-64 sm:h-72 w-full"><canvas id="trend-sleo"></canvas></div>
+    </div>
+
+    <!-- Trend 3: Turn-Over of Loose FAs (SALW) -->
+    <div class="card p-5 flex flex-col">
+      <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <h2 class="font-bold text-base sm:text-lg text-slate-800">Turn-Over of Loose FAs (SALW)</h2>
+      </div>
+      <div class="h-64 sm:h-72 w-full"><canvas id="trend-tolf"></canvas></div>
     </div>
   </section>
   <section class="grid xl:grid-cols-3 gap-4">
@@ -206,7 +223,7 @@ const lineLabelsPlugin = {
         ctx.font = 'bold 11px Roboto, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillStyle = val > 0 ? '#1d5bff' : '#94a3b8';
+        ctx.fillStyle = val > 0 ? (chart.data.datasets[0].borderColor || '#1d5bff') : '#94a3b8';
         ctx.fillText(String(val), point.x, Math.max(point.y - 7, 12));
         ctx.restore();
       });
@@ -393,6 +410,90 @@ async function load() {
         {
           label: `Initiated Encounters (${currentYear - 1})`,
           data: p.monthly || Array(12).fill(0),
+          borderColor: '#94a3b8',
+          borderDash: [5, 5],
+          tension: 0,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#94a3b8'
+        }
+      ]
+    },
+    options: {
+      ...opt,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0 }
+        }
+      }
+    },
+    plugins: [lineLabelsPlugin]
+  });
+
+  // Support to Law Enforcement Operations (SLEO) Trend
+  draw('trend-sleo', {
+    type: 'line',
+    data: {
+      labels: M,
+      datasets: [
+        {
+          label: `SLEO Operations (${currentYear})`,
+          data: c.sleo_monthly || Array(12).fill(0),
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99,102,241,.15)',
+          fill: true,
+          tension: 0,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#6366f1'
+        },
+        {
+          label: `SLEO Operations (${currentYear - 1})`,
+          data: p.sleo_monthly || Array(12).fill(0),
+          borderColor: '#94a3b8',
+          borderDash: [5, 5],
+          tension: 0,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#94a3b8'
+        }
+      ]
+    },
+    options: {
+      ...opt,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0 }
+        }
+      }
+    },
+    plugins: [lineLabelsPlugin]
+  });
+
+  // Turn-Over of Loose FAs (SALW) Trend
+  draw('trend-tolf', {
+    type: 'line',
+    data: {
+      labels: M,
+      datasets: [
+        {
+          label: `Turn-Over Operations (${currentYear})`,
+          data: c.tolf_monthly || Array(12).fill(0),
+          borderColor: '#0891b2',
+          backgroundColor: 'rgba(8,145,178,.15)',
+          fill: true,
+          tension: 0,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#0891b2'
+        },
+        {
+          label: `Turn-Over Operations (${currentYear - 1})`,
+          data: p.tolf_monthly || Array(12).fill(0),
           borderColor: '#94a3b8',
           borderDash: [5, 5],
           tension: 0,
