@@ -121,10 +121,50 @@ export async function onRequest({ request, env, params }) {
   try {
     // Public scoreboard statistics
     if (r0 === 'stats' && method === 'GET') {
-      const y = n(new URL(request.url).searchParams.get('year')) || new Date().getFullYear();
-      const q = year => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?').bind(`${year}-01-01`, `${year}-12-31`).all().then(x => agg(x.results));
-      const [cur, prev] = await Promise.all([q(y), q(y - 1)]);
-      const t = await db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first();
+      const url = new URL(request.url);
+      const reqYear = n(url.searchParams.get('year'));
+      const startDate = url.searchParams.get('start_date') || (reqYear ? `${reqYear}-01-01` : `${new Date().getFullYear()}-01-01`);
+      const endDate = url.searchParams.get('end_date') || (reqYear ? `${reqYear}-12-31` : `${new Date().getFullYear()}-12-31`);
+      const threatGroup = (url.searchParams.get('threat_group') || '').trim();
+      const province = (url.searchParams.get('province') || '').trim();
+
+      const y = reqYear || parseInt(startDate.slice(0, 4), 10) || new Date().getFullYear();
+
+      // Determine previous year's equivalent date range for comparison
+      let prevStartDate = `${y - 1}-01-01`;
+      let prevEndDate = `${y - 1}-12-31`;
+      if (startDate.startsWith(String(y)) && endDate.startsWith(String(y))) {
+        prevStartDate = `${y - 1}${startDate.slice(4)}`;
+        prevEndDate = `${y - 1}${endDate.slice(4)}`;
+      }
+
+      function filterRows(rows) {
+        if (!threatGroup && !province) return rows;
+        return rows.filter(r => {
+          if (threatGroup && r.threat_group !== threatGroup) return false;
+          if (province) {
+            const p = getProvince(r).toLowerCase();
+            const tp = province.toLowerCase();
+            const rp = (r.province || '').toLowerCase();
+            const ra = (r.area || '').toLowerCase();
+            if (p !== tp && !rp.includes(tp) && !ra.includes(tp)) return false;
+          }
+          return true;
+        });
+      }
+
+      const q = (sDate, eDate) => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?')
+        .bind(sDate, eDate).all()
+        .then(x => agg(filterRows(x.results || [])));
+
+      const [cur, prev, t, tgRows, provRows, yrRows] = await Promise.all([
+        q(startDate, endDate),
+        q(prevStartDate, prevEndDate),
+        db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
+        db.prepare("SELECT DISTINCT threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
+      ]);
 
       Object.values(cur.brigades).forEach(b => {
         if (b._provs && b._provs.size > 0) {
@@ -134,9 +174,27 @@ export async function onRequest({ request, env, params }) {
         delete b._provs;
       });
 
+      const tgSet = new Set(STANDARD_THREAT_GROUPS);
+      (tgRows.results || []).forEach(r => { if (r.threat_group && r.threat_group.trim()) tgSet.add(r.threat_group.trim()); });
+
+      const provSet = new Set(['Maguindanao del Sur', 'Maguindanao del Norte', 'Cotabato', 'Sultan Kudarat', 'South Cotabato', 'Sarangani', 'SGA-BARMM']);
+      (provRows.results || []).forEach(r => { if (r.province && r.province.trim()) provSet.add(r.province.trim()); });
+
+      const availableYears = Array.from(new Set([y, new Date().getFullYear(), ...(yrRows.results || []).map(r => +r.yr).filter(Boolean)])).sort((a, b) => b - a);
+
       return json({
-        year: y, target: +(t?.value || 0), cur, prev,
-        matrix: Object.values(cur.brigades).sort((a, b) => b.firearms - a.firearms)
+        year: y,
+        start_date: startDate,
+        end_date: endDate,
+        threat_group: threatGroup,
+        province: province,
+        target: +(t?.value || 0),
+        cur,
+        prev,
+        matrix: Object.values(cur.brigades).sort((a, b) => b.firearms - a.firearms),
+        available_threat_groups: Array.from(tgSet).filter(Boolean).sort(),
+        available_provinces: Array.from(provSet).filter(Boolean).sort(),
+        available_years: availableYears
       });
     }
 
