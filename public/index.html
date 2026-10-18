@@ -159,7 +159,7 @@ async function load(y){
    kpi('inventory_2','#0891b2','Loose FAs (SALW)',c.tolf,delta(c.tolf,p.tolf))+
    kpi('healing','#e11d48','Government Casualties',`${c.kia} KIA / ${c.wia} WIA`,delta(c.kia+c.wia,p.kia+p.wia,true));
   const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  draw('trend',{type:'line',data:{labels:M,datasets:[{label:'Gov\'t Initiated Encounters (Current Year)',data:c.monthly,borderColor:blue,backgroundColor:'rgba(29,91,255,.15)',fill:true,tension:.3,pointBackgroundColor:blue},{label:'Gov\'t Initiated Encounters (Last Year)',data:p.monthly,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0,tension:.3}]},options:{...opt,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  draw('trend',{type:'line',data:{labels:M,datasets:[{label:'Initiated Encounters (Current Year)',data:c.monthly,borderColor:blue,backgroundColor:'rgba(29,91,255,.15)',fill:true,tension:.3,pointBackgroundColor:blue},{label:'Initiated Encounters (Last Year)',data:p.monthly,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0,tension:.3}]},options:{...opt,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
   const pct=s.target?c.fa/s.target*100:0;
   draw('gauge',{type:'doughnut',data:{datasets:[{data:[Math.min(pct,150),Math.max(150-pct,0)],backgroundColor:['#22a85a','#e5e7eb'],borderWidth:0}]},options:{...opt,circumference:180,rotation:270,cutout:'72%',plugins:{tooltip:{enabled:false}}}});
   $('gpct').textContent=pct.toFixed(1)+'%';
