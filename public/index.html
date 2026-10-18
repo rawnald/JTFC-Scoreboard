@@ -151,7 +151,7 @@
     </div>
   </section>
   <section class="grid xl:grid-cols-3 gap-4">
-    <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-[360px] w-full"><canvas id="groups"></canvas></div></div>
+    <div class="card p-5 flex flex-col"><h2 id="groups-chart-title" class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-[360px] w-full"><canvas id="groups"></canvas></div></div>
     <div class="card p-5 flex flex-col">
       <h2 class="font-bold text-lg mb-2">Neutralization Breakdown</h2>
       <div class="h-[360px] flex items-center justify-center">
@@ -171,6 +171,18 @@ const delta=(c,p,inv)=>{if(!p)return'<span class="text-slate-400">—</span>';co
 const draw=(id,cfg)=>{charts[id]?.destroy();charts[id]=new Chart($(id),cfg)};
 const opt={responsive:true,maintainAspectRatio:false};
 function kpi(icon,color,label,val,d){return `<div class="card p-4"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}"><span class="ms">${icon}</span></div><div><div class="text-sm font-medium" style="color:${color}">${label}</div><div class="text-2xl font-bold">${val}</div></div></div><div class="flex justify-between text-sm mt-3 text-slate-500">vs Last Year ${d}</div></div>`}
+
+const THREAT_MAPPING = {
+  'Local Terrorist Groups (LTG)': [
+    'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE'
+  ],
+  'Communist Terrorist Group (CTG)': [
+    'SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO'
+  ],
+  'PIAGs': [
+    'MILF', 'MNLF', 'PIAGs'
+  ]
+};
 
 const THREAT_GROUPS = [
   'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE',
@@ -520,20 +532,49 @@ async function load() {
     plugins: [lineLabelsPlugin]
   });
 
-  const allGroups = [...THREAT_GROUPS];
-  if (c.groups) {
-    Object.keys(c.groups).forEach(k => {
-      if (k && !allGroups.includes(k)) allGroups.push(k);
-    });
+  if ($('groups-chart-title')) {
+    $('groups-chart-title').textContent = currentThreatGroup
+      ? `Neutralizations by Threat Group (${currentThreatGroup})`
+      : 'Neutralizations by Threat Group';
   }
 
-  let g = allGroups.map(name => [name, (c.groups && c.groups[name]) || 0]);
+  const categoryMap = s.threat_category_map || THREAT_MAPPING || {};
+  let groupsToShow = [];
+
   if (currentThreatGroup) {
-    g = g.filter(x => x[0] === currentThreatGroup);
-    if (!g.length) g = [[currentThreatGroup, (c.groups && c.groups[currentThreatGroup]) || 0]];
+    const selCatLower = currentThreatGroup.toLowerCase();
+    const matchedKey = Object.keys(categoryMap).find(k => {
+      const kl = k.toLowerCase();
+      return kl === selCatLower || kl.includes(selCatLower) || selCatLower.includes(kl);
+    });
+
+    if (matchedKey && Array.isArray(categoryMap[matchedKey])) {
+      groupsToShow = [...categoryMap[matchedKey]];
+    }
+
+    if (c.groups) {
+      Object.keys(c.groups).forEach(k => {
+        if (k && c.groups[k] > 0 && !groupsToShow.includes(k)) {
+          groupsToShow.push(k);
+        }
+      });
+    }
+
+    if (!groupsToShow.length) {
+      groupsToShow = [currentThreatGroup];
+    }
   } else {
-    g.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    const allGroups = [...THREAT_GROUPS];
+    if (c.groups) {
+      Object.keys(c.groups).forEach(k => {
+        if (k && !allGroups.includes(k)) allGroups.push(k);
+      });
+    }
+    groupsToShow = allGroups;
   }
+
+  let g = groupsToShow.map(name => [name, (c.groups && c.groups[name]) || 0]);
+  g.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
   draw('groups', {
     type: 'bar',
@@ -543,7 +584,7 @@ async function load() {
         data: g.map(x => x[1]),
         backgroundColor: g.map(x => x[1] > 0 ? blue : '#e2e8f0'),
         borderRadius: 3,
-        barThickness: currentThreatGroup ? 20 : 11
+        barThickness: g.length <= 8 ? 16 : 11
       }]
     },
     options: {

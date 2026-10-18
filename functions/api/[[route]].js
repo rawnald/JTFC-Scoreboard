@@ -294,7 +294,7 @@ export async function onRequest({ request, env, params }) {
         })
         .catch(() => ({ monthly: Array(12).fill(0) }));
 
-      const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, catRows, provRows, bdeRows, yrRows] = await Promise.all([
+      const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, catRows, catGroupRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
         q(prevStartDate, prevEndDate),
         qTolf(startDate, endDate),
@@ -303,6 +303,7 @@ export async function onRequest({ request, env, params }) {
         qSleo(prevStartDate, prevEndDate),
         db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
         db.prepare("SELECT DISTINCT threat_category FROM ops WHERE threat_category IS NOT NULL AND threat_category != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT threat_category, threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != '' UNION SELECT DISTINCT unit, war_materiel FROM tolf WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM tolf WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
@@ -326,6 +327,29 @@ export async function onRequest({ request, env, params }) {
 
       const catSet = new Set(STANDARD_THREAT_CATEGORIES);
       (catRows.results || []).forEach(r => { if (r.threat_category && r.threat_category.trim()) catSet.add(r.threat_category.trim()); });
+
+      const threatCategoryMap = {
+        'Local Terrorist Groups (LTG)': ['BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE'],
+        'Communist Terrorist Group (CTG)': ['SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO'],
+        'PIAGs': ['MILF', 'MNLF', 'PIAGs']
+      };
+
+      (catGroupRows.results || []).forEach(r => {
+        const cat = (r.threat_category || '').trim();
+        const grp = (r.threat_group || '').trim();
+        if (cat && grp) {
+          threatCategoryMap[cat] ||= [];
+          if (!threatCategoryMap[cat].includes(grp)) threatCategoryMap[cat].push(grp);
+        } else if (grp) {
+          if (matchThreatCategory(grp, 'ltg')) {
+            if (!threatCategoryMap['Local Terrorist Groups (LTG)'].includes(grp)) threatCategoryMap['Local Terrorist Groups (LTG)'].push(grp);
+          } else if (matchThreatCategory(grp, 'ctg')) {
+            if (!threatCategoryMap['Communist Terrorist Group (CTG)'].includes(grp)) threatCategoryMap['Communist Terrorist Group (CTG)'].push(grp);
+          } else if (matchThreatCategory(grp, 'piag')) {
+            if (!threatCategoryMap['PIAGs'].includes(grp)) threatCategoryMap['PIAGs'].push(grp);
+          }
+        }
+      });
 
       const bdeSet = new Set(STANDARD_BRIGADES);
       (bdeRows.results || []).forEach(r => {
@@ -354,6 +378,7 @@ export async function onRequest({ request, env, params }) {
         matrix: Object.values(cur.brigades).sort((a, b) => b.firearms - a.firearms),
         available_threat_categories: availCategories,
         available_threat_groups: availCategories,
+        threat_category_map: threatCategoryMap,
         available_brigades: Array.from(bdeSet).filter(Boolean).sort(),
         available_provinces: Array.from(provSet).filter(Boolean).sort(),
         available_years: availableYears
