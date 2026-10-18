@@ -43,6 +43,12 @@ function getEncounterCount(r) {
   return 1;
 }
 
+const STANDARD_THREAT_CATEGORIES = [
+  'Local Terrorist Groups (LTG)',
+  'Communist Terrorist Group (CTG)',
+  'PIAGs'
+];
+
 const STANDARD_THREAT_GROUPS = [
   'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE',
   'SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO',
@@ -129,7 +135,7 @@ export async function onRequest({ request, env, params }) {
       const reqYear = n(url.searchParams.get('year'));
       const startDate = url.searchParams.get('start_date') || (reqYear ? `${reqYear}-01-01` : `${new Date().getFullYear()}-01-01`);
       const endDate = url.searchParams.get('end_date') || (reqYear ? `${reqYear}-12-31` : `${new Date().getFullYear()}-12-31`);
-      const threatGroup = (url.searchParams.get('threat_group') || '').trim();
+      const threatCategory = (url.searchParams.get('threat_category') || url.searchParams.get('threat_group') || '').trim();
       const brigade = (url.searchParams.get('brigade') || '').trim();
       const province = (url.searchParams.get('province') || '').trim();
 
@@ -143,10 +149,38 @@ export async function onRequest({ request, env, params }) {
         prevEndDate = `${y - 1}${endDate.slice(4)}`;
       }
 
+      function matchThreatCategory(catOrGroup, target) {
+        if (!target) return true;
+        const t = target.toLowerCase();
+        const cg = (catOrGroup || '').toLowerCase();
+        if (cg === t || cg.includes(t)) return true;
+
+        const isLTG = t.includes('ltg') || t.includes('local terrorist');
+        const isCTG = t.includes('ctg') || t.includes('communist');
+        const isPIAG = t.includes('piag');
+
+        if (isLTG) {
+          const ltgTokens = ['biff', 'ditg', 'alg', 'lle', 'psrl', 'npsrl', 'ltg', 'local terrorist'];
+          if (ltgTokens.some(tok => cg.includes(tok))) return true;
+        }
+        if (isCTG) {
+          const ctgTokens = ['daguma', 'musa', 'sroc', 'roc', 'fsmr', 'gf 73', 'gf73', 'milisyang', 'cnt', 'ctg', 'communist', 'npa', 'cpp'];
+          if (ctgTokens.some(tok => cg.includes(tok))) return true;
+        }
+        if (isPIAG) {
+          if (cg.includes('piag') || cg.includes('private armed')) return true;
+        }
+        return false;
+      }
+
       function filterRows(rows) {
-        if (!threatGroup && !brigade && !province) return rows;
+        if (!threatCategory && !brigade && !province) return rows;
         return rows.filter(r => {
-          if (threatGroup && r.threat_group !== threatGroup) return false;
+          if (threatCategory) {
+            const hasCatMatch = r.threat_category && matchThreatCategory(r.threat_category, threatCategory);
+            const hasGroupMatch = r.threat_group && matchThreatCategory(r.threat_group, threatCategory);
+            if (!hasCatMatch && !hasGroupMatch) return false;
+          }
           if (brigade) {
             const b = getBrigade(r).toLowerCase();
             const tb = brigade.toLowerCase();
@@ -165,12 +199,11 @@ export async function onRequest({ request, env, params }) {
       }
 
       function filterTolfRows(rows) {
-        if (!threatGroup && !brigade && !province) return rows;
+        if (!threatCategory && !brigade && !province) return rows;
         return rows.filter(r => {
-          if (threatGroup) {
+          if (threatCategory) {
             const sg = (r.source_group || '').toLowerCase();
-            const tg = threatGroup.toLowerCase();
-            if (!sg.includes(tg)) return false;
+            if (!matchThreatCategory(sg, threatCategory)) return false;
           }
           if (brigade) {
             const b = getBrigade(r).toLowerCase();
@@ -190,12 +223,12 @@ export async function onRequest({ request, env, params }) {
       }
 
       function filterSleoRows(rows) {
-        if (!threatGroup && !brigade && !province) return rows;
+        if (!threatCategory && !brigade && !province) return rows;
         return rows.filter(r => {
-          if (threatGroup) {
-            const tg = (r.threat_group || r.target_group || '').toLowerCase();
-            const target = threatGroup.toLowerCase();
-            if (!tg.includes(target)) return false;
+          if (threatCategory) {
+            const tg = (r.threat_group || '').toLowerCase();
+            const targ = (r.target_group || '').toLowerCase();
+            if (!matchThreatCategory(tg, threatCategory) && !matchThreatCategory(targ, threatCategory)) return false;
           }
           if (brigade) {
             const b = getBrigade(r).toLowerCase();
@@ -261,7 +294,7 @@ export async function onRequest({ request, env, params }) {
         })
         .catch(() => ({ monthly: Array(12).fill(0) }));
 
-      const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, tgRows, provRows, bdeRows, yrRows] = await Promise.all([
+      const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, catRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
         q(prevStartDate, prevEndDate),
         qTolf(startDate, endDate),
@@ -269,7 +302,7 @@ export async function onRequest({ request, env, params }) {
         qSleo(startDate, endDate),
         qSleo(prevStartDate, prevEndDate),
         db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
-        db.prepare("SELECT DISTINCT threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT threat_category FROM ops WHERE threat_category IS NOT NULL AND threat_category != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != '' UNION SELECT DISTINCT unit, war_materiel FROM tolf WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM tolf WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
@@ -291,8 +324,8 @@ export async function onRequest({ request, env, params }) {
         delete b._provs;
       });
 
-      const tgSet = new Set(STANDARD_THREAT_GROUPS);
-      (tgRows.results || []).forEach(r => { if (r.threat_group && r.threat_group.trim()) tgSet.add(r.threat_group.trim()); });
+      const catSet = new Set(STANDARD_THREAT_CATEGORIES);
+      (catRows.results || []).forEach(r => { if (r.threat_category && r.threat_category.trim()) catSet.add(r.threat_category.trim()); });
 
       const bdeSet = new Set(STANDARD_BRIGADES);
       (bdeRows.results || []).forEach(r => {
@@ -305,18 +338,22 @@ export async function onRequest({ request, env, params }) {
 
       const availableYears = Array.from(new Set([y, new Date().getFullYear(), ...(yrRows.results || []).map(r => +r.yr).filter(Boolean)])).sort((a, b) => b - a);
 
+      const availCategories = Array.from(catSet).filter(Boolean).sort();
+
       return json({
         year: y,
         start_date: startDate,
         end_date: endDate,
-        threat_group: threatGroup,
+        threat_category: threatCategory,
+        threat_group: threatCategory,
         brigade: brigade,
         province: province,
         target: +(t?.value || 0),
         cur,
         prev,
         matrix: Object.values(cur.brigades).sort((a, b) => b.firearms - a.firearms),
-        available_threat_groups: Array.from(tgSet).filter(Boolean).sort(),
+        available_threat_categories: availCategories,
+        available_threat_groups: availCategories,
         available_brigades: Array.from(bdeSet).filter(Boolean).sort(),
         available_provinces: Array.from(provSet).filter(Boolean).sort(),
         available_years: availableYears
