@@ -478,26 +478,48 @@ const CATEGORIES = {
     icon: 'inventory_2',
     columns: [
       { key: 'op_date', label: 'Date' },
-      { key: 'unit', label: 'Unit' },
-      { key: 'area', label: 'Area' },
+      { key: 'unit', label: 'Unit / Brigade', render: o => {
+        let b = '', u = o.unit || '';
+        let wm = null;
+        try { wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
+        if (wm && wm.brigade) b = wm.brigade;
+        if (wm && wm.unit_only) u = wm.unit_only;
+        if (!b && o.unit) {
+          const m = o.unit.match(/^(.*?)\s*\((.*?)\)$/);
+          if (m) { u = m[1].trim(); b = m[2].trim(); }
+        }
+        const full = b && u && u !== b ? `${u} (${b})` : (o.unit || '—');
+        if (b && u && u !== b) {
+          return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] leading-tight" title="${esc(full)}"><div class="font-bold text-slate-800 truncate">${esc(u)}</div><div class="text-[10px] text-blue-600 font-semibold truncate">${esc(b)}</div></div>`;
+        }
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] font-bold text-slate-800 truncate" title="${esc(full)}">${esc(o.unit || '—')}</div>`;
+      }},
+      { key: 'location', label: 'Location', render: o => {
+        const full = `${o.area || '—'}${o.province ? ', ' + o.province : ''}`;
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[150px] leading-tight" title="${esc(full)}"><div class="text-slate-800 font-medium truncate">${esc(o.area || '—')}</div>${o.province ? `<div class="text-[10px] text-slate-400 truncate">${esc(o.province)}</div>` : ''}</div>`;
+      }},
       { key: 'source_group', label: 'Source / Community' },
-      { key: 'firearms_count', label: 'Total FAs', render: o => `<span class="badge bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 text-sm">${o.firearms_count}</span>` },
-      { key: 'breakdown', label: 'Small / Light / Crew', render: o => `<span class="font-mono text-xs text-slate-600">${o.small_arms} / ${o.light_weapons} / ${o.crew_served}</span>` },
-      { key: 'explosives_count', label: 'Explosives / IEDs', render: o => o.explosives_count ? `<span class="badge bg-amber-100 text-amber-800">${o.explosives_count}</span>` : '0' },
-      { key: 'facilitated_by', label: 'Facilitated By', render: o => `<span class="text-xs text-slate-600">${esc(o.facilitated_by || '—')}</span>` },
+      { key: 'firearms_count', label: 'FAs Gained', render: o => {
+        const csw = o.fa_csw ?? o.crew_served ?? 0;
+        const hp  = o.fa_high_powered ?? o.light_weapons ?? 0;
+        const lp  = o.fa_low_powered ?? o.small_arms ?? 0;
+        const tot = o.firearms_count || (csw + hp + lp);
+        return `<div class="whitespace-nowrap" title="CSW: ${csw}, HP: ${hp}, LP: ${lp}"><span class="badge bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 text-xs">+${tot}</span> <span class="text-[10px] text-slate-500 font-mono">(${csw}C/${hp}H/${lp}L)</span></div>`;
+      }},
+      { key: 'explosives_count', label: 'Explosives / IEDs', render: o => o.explosives_count ? `<span class="badge bg-amber-100 text-amber-800 font-bold">${o.explosives_count}</span>` : '<span class="text-slate-400 text-[10px]">—</span>' },
       { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
     fields: [
       { id: 'op_date', label: 'Turn-Over Date', type: 'date', required: true },
-      { id: 'unit', label: 'Receiving Unit', placeholder: 'e.g. 602nd Bde, 90IB', required: true },
-      { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Carmen, Cotabato' },
+      { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 602nd Bde', required: true },
+      { id: 'unit', label: 'Unit', placeholder: 'e.g. 7IB, 90IB', required: true },
+      { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Carmen, Pikit' },
+      { id: 'province', label: 'Province', placeholder: 'e.g. Cotabato, Maguindanao del Sur' },
       { id: 'source_group', label: 'Source Group / Community', placeholder: 'e.g. Local Officials, Former Rebels, Barangays' },
-      { id: 'firearms_count', label: 'Total Firearms Count', type: 'number', value: 0, placeholder: 'Auto-summed if 0' },
-      { id: 'small_arms', label: 'Small Arms (Pistols / Revolvers)', type: 'number', value: 0 },
-      { id: 'light_weapons', label: 'Light Weapons (Rifles / Shotguns)', type: 'number', value: 0 },
-      { id: 'crew_served', label: 'Crew Served (Machine Guns / Mortars)', type: 'number', value: 0 },
-      { id: 'explosives_count', label: 'Explosives / Ordnance / IEDs', type: 'number', value: 0 },
-      { id: 'facilitated_by', label: 'Facilitated By / Key Stakeholders', placeholder: 'e.g. Municipal Mayor, Barangay Captains, DILG', colSpan: 2 }
+      { id: 'fa_csw', label: 'CSW', type: 'number', value: 0 },
+      { id: 'fa_high_powered', label: 'High Powered (HP)', type: 'number', value: 0 },
+      { id: 'fa_low_powered', label: 'Low Powered (LP)', type: 'number', value: 0 },
+      { id: 'explosives_count', label: 'Explosives / Ordnance / IEDs', type: 'number', value: 0 }
     ]
   },
   rido: {
@@ -583,19 +605,27 @@ let opsSelectedYear = new Date().getFullYear();
 let opsSelectedMonth = new Date().getMonth() + 1; // 1 to 12, or 'all'
 let sleoSelectedYear = new Date().getFullYear();
 let sleoSelectedMonth = new Date().getMonth() + 1;
+let tolfSelectedYear = new Date().getFullYear();
+let tolfSelectedMonth = new Date().getMonth() + 1;
 
 function getSelectedYear() {
-  return currentTab === 'sleo' ? sleoSelectedYear : opsSelectedYear;
+  if (currentTab === 'sleo') return sleoSelectedYear;
+  if (currentTab === 'tolf') return tolfSelectedYear;
+  return opsSelectedYear;
 }
 function setSelectedYear(y) {
   if (currentTab === 'sleo') sleoSelectedYear = y;
+  else if (currentTab === 'tolf') tolfSelectedYear = y;
   else opsSelectedYear = y;
 }
 function getSelectedMonth() {
-  return currentTab === 'sleo' ? sleoSelectedMonth : opsSelectedMonth;
+  if (currentTab === 'sleo') return sleoSelectedMonth;
+  if (currentTab === 'tolf') return tolfSelectedMonth;
+  return opsSelectedMonth;
 }
 function setSelectedMonth(m) {
   if (currentTab === 'sleo') sleoSelectedMonth = m;
+  else if (currentTab === 'tolf') tolfSelectedMonth = m;
   else opsSelectedMonth = m;
 }
 
@@ -731,9 +761,9 @@ async function switchTab(tabKey) {
   $('section-desc').textContent = cat.desc;
   $('section-icon').textContent = cat.icon;
 
-  // Toggle Month & Year bar (for Combat Ops & SLEO)
+  // Toggle Month & Year bar (for Combat Ops, SLEO & TOLF)
   if ($('ops-filter-bar')) {
-    if (tabKey === 'ops' || tabKey === 'sleo') {
+    if (tabKey === 'ops' || tabKey === 'sleo' || tabKey === 'tolf') {
       $('ops-filter-bar').classList.remove('hidden');
       initOpsYearSelect();
       renderOpsMonthButtons();
@@ -756,13 +786,13 @@ async function switchTab(tabKey) {
 
 async function loadTabData(tabKey) {
   $('tbl-body').innerHTML = `<tr><td colspan="12" class="p-[2px] py-10 text-center text-slate-400">Loading ${CATEGORIES[tabKey].title}...</td></tr>`;
-  const yr = (tabKey === 'ops' || tabKey === 'sleo') ? getSelectedYear() : null;
+  const yr = (tabKey === 'ops' || tabKey === 'sleo' || tabKey === 'tolf') ? getSelectedYear() : null;
   const url = yr ? `${tabKey}?year=${yr}` : tabKey;
   const r = await api(url);
   if (r.status === 401) { checkAuthAndLoad(); return; }
   const d = await r.json().catch(() => ({ rows: [] }));
   tabData[tabKey] = d.rows || [];
-  if (tabKey === 'ops' || tabKey === 'sleo') {
+  if (tabKey === 'ops' || tabKey === 'sleo' || tabKey === 'tolf') {
     initOpsYearSelect();
     renderOpsMonthButtons();
   }
@@ -774,7 +804,7 @@ function renderTable() {
   const q = ($('search-box').value || '').toLowerCase().trim();
   let rows = tabData[currentTab] || [];
 
-  if (currentTab === 'ops' || currentTab === 'sleo') {
+  if (currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') {
     const selY = getSelectedYear();
     const selM = getSelectedMonth();
     const selYStr = String(selY);
@@ -793,7 +823,7 @@ function renderTable() {
     rows = rows.filter(o => Object.values(o).some(v => String(v ?? '').toLowerCase().includes(q)));
   }
 
-  if (currentTab === 'ops' || currentTab === 'sleo') {
+  if (currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') {
     const selY = getSelectedYear();
     const selM = getSelectedMonth();
     const mObj = OPS_MONTHS.find(m => m.m === selM);
@@ -806,14 +836,14 @@ function renderTable() {
   if (!rows.length) {
     let emptyMsg = 'No records found';
     let emptySub = 'Click <b>"+ Add Record"</b> above to enter a new record';
-    if (currentTab === 'ops' || currentTab === 'sleo') {
+    if (currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') {
       const selY = getSelectedYear();
       const selM = getSelectedMonth();
       const mObj = OPS_MONTHS.find(m => m.m === selM);
       const mLabel = mObj ? (mObj.m === 'all' ? 'the year' : mObj.label) : '';
-      const entity = currentTab === 'ops' ? 'operations' : 'SLEO records';
+      const entity = currentTab === 'ops' ? 'operations' : (currentTab === 'sleo' ? 'SLEO records' : 'TOLF records');
       emptyMsg = `No ${entity} found for ${mLabel} ${selY}`;
-      emptySub = `Click <b>"+ Add Record"</b> above to enter a new ${currentTab === 'ops' ? 'operation' : 'SLEO record'} or select another month`;
+      emptySub = `Click <b>"+ Add Record"</b> above to enter a new ${currentTab === 'ops' ? 'operation' : (currentTab === 'sleo' ? 'SLEO record' : 'TOLF record')} or select another month`;
     }
     $('tbl-body').innerHTML = `
       <tr>
@@ -930,11 +960,13 @@ function openModal(mode, id) {
   $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the operation details below`;
   $('modal-submit-btn').innerHTML = `<span class="ms">save</span> ${id ? 'Update Record' : 'Save Record'}`;
 
-  // Specially customized form for Combat / Military Operations & SLEO
+  // Specially customized form for Combat / Military Operations, SLEO & TOLF
   if (currentTab === 'ops') {
     renderCombatModalForm(record);
   } else if (currentTab === 'sleo') {
     renderSleoModalForm(record);
+  } else if (currentTab === 'tolf') {
+    renderTolfModalForm(record);
   } else {
     renderStandardModalForm(cat, record);
   }
@@ -1904,6 +1936,211 @@ function calcSleoFirearms() {
   if ($('sleo_fa_sum')) $('sleo_fa_sum').textContent = `${total}`;
 }
 
+function renderTolfModalForm(record) {
+  let defaultOpDate = new Date().toISOString().slice(0, 10);
+  const curSelM = getSelectedMonth();
+  const curSelY = getSelectedYear();
+  if (curSelM !== 'all') {
+    const curY = new Date().getFullYear();
+    const curM = new Date().getMonth() + 1;
+    if (curSelY === curY && curSelM === curM) {
+      defaultOpDate = new Date().toISOString().slice(0, 10);
+    } else {
+      defaultOpDate = `${curSelY}-${String(curSelM).padStart(2, '0')}-01`;
+    }
+  }
+  const opDate = record ? (record.op_date || defaultOpDate) : defaultOpDate;
+
+  let savedBrigade = '';
+  let savedUnit = '';
+  if (record && record.war_materiel) {
+    try {
+      const wm = typeof record.war_materiel === 'string' ? JSON.parse(record.war_materiel) : record.war_materiel;
+      if (wm && wm.brigade) savedBrigade = wm.brigade;
+      if (wm && wm.unit_only) savedUnit = wm.unit_only;
+    } catch(e){}
+  }
+  if (!savedBrigade && record && record.unit) {
+    const m = record.unit.match(/^(.*?)\s*\((.*?)\)$/);
+    if (m) {
+      savedUnit = m[1].trim();
+      savedBrigade = m[2].trim();
+    } else if (record.unit.toLowerCase().includes('bde') || record.unit.toLowerCase().includes('brigade') || record.unit.toLowerCase().includes('1bct')) {
+      savedBrigade = record.unit;
+      savedUnit = '';
+    } else {
+      savedUnit = record.unit;
+      savedBrigade = '';
+    }
+  }
+
+  let savedArea = record?.area || '';
+  let savedProvince = record?.province || '';
+  if (!savedProvince && savedArea && savedArea.includes(',')) {
+    const parts = savedArea.split(',');
+    savedProvince = parts.pop().trim();
+    savedArea = parts.join(',').trim();
+  }
+
+  const csw = record?.fa_csw ?? record?.crew_served ?? 0;
+  const hp  = record?.fa_high_powered ?? record?.light_weapons ?? 0;
+  const lp  = record?.fa_low_powered ?? record?.small_arms ?? 0;
+  const totalFa = (record?.firearms_count !== undefined && record?.firearms_count !== null)
+    ? record.firearms_count
+    : (csw + hp + lp);
+  const explosives = record?.explosives_count ?? 0;
+  const sourceGroup = record?.source_group || '';
+  const remarks = record?.remarks || '';
+
+  $('modal-form-content').innerHTML = `
+    <!-- SECTION 1: General & Location Information -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
+        <span class="ms !text-lg text-emerald-600">inventory_2</span> General & Location Information
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div>
+          <label>Turn-Over Date <span class="text-red-500">*</span></label>
+          <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
+        </div>
+        <div>
+          <label>Brigade <span class="text-red-500">*</span></label>
+          <input id="f_brigade" list="tolf_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 601st Bde" class="f" required>
+          <datalist id="tolf_brigade_list">
+            <option value="601st Bde">
+            <option value="602nd Bde">
+            <option value="603rd Bde">
+            <option value="1BCT">
+          </datalist>
+        </div>
+        <div>
+          <label>Unit <span class="text-red-500">*</span></label>
+          <input id="f_unit" list="tolf_unit_list" value="${esc(savedUnit)}" placeholder="e.g. 7IB, 40IB" class="f" required>
+          <datalist id="tolf_unit_list">
+            <option value="7IB">
+            <option value="38IB">
+            <option value="40IB">
+            <option value="90IB">
+            <option value="37IB">
+            <option value="57IB">
+            <option value="6DRC">
+            <option value="62DRC">
+            <option value="63DRC">
+            <option value="6DMC">
+          </datalist>
+        </div>
+        <div>
+          <label>Location / Municipality</label>
+          <input id="f_area" value="${esc(savedArea)}" placeholder="e.g. Carmen, Pikit, Isulan" class="f">
+        </div>
+        <div>
+          <label>Province</label>
+          <input id="f_province" list="tolf_province_list" value="${esc(savedProvince)}" placeholder="e.g. Cotabato, Maguindanao del Sur" class="f">
+          <datalist id="tolf_province_list">
+            <option value="Maguindanao del Sur">
+            <option value="Maguindanao del Norte">
+            <option value="Cotabato">
+            <option value="Sultan Kudarat">
+            <option value="South Cotabato">
+            <option value="Sarangani">
+          </datalist>
+        </div>
+        <div>
+          <label>Source Group / Community</label>
+          <input id="f_source_group" value="${esc(sourceGroup)}" placeholder="e.g. Local Officials, Former Rebels, Barangays" class="f">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: FIREARMS GAINED & EXPLOSIVES (MATCHING OFFICIAL SPREADSHEET TEMPLATE) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Firearms Breakdown Table (CSW, HP, LP) -->
+      <div class="lg:col-span-2 card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-1">
+          <label class="!mb-0 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms !text-lg text-emerald-600">grid_on</span> Firearms Gained Breakdown
+          </label>
+          <span id="tolf_fa_badge" class="badge bg-green-100 text-green-800 font-bold text-xs py-0.5 px-2.5">
+            Total FAs: ${totalFa}
+          </span>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  FAs GAINED
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs sm:text-sm">
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/3">CSW</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/3">HP</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-b border-black w-1/3">LP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-black">
+                  <input id="f_fa_csw" type="number" min="0" value="${csw}" oninput="calcTolfFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-black">
+                  <input id="f_fa_hp" type="number" min="0" value="${hp}" oninput="calcTolfFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-black">
+                  <input id="f_fa_lp" type="number" min="0" value="${lp}" oninput="calcTolfFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+              </tr>
+              <tr class="bg-[#cbe5f8] font-bold text-xs sm:text-sm text-black">
+                <td colspan="3" class="py-2 px-2 text-center border-t border-black">
+                  Total Firearms Gained: <span id="tolf_fa_total" class="font-extrabold text-blue-950 ml-1">${totalFa}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Explosives / Ordnance Card -->
+      <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-3 shadow-sm flex flex-col justify-between">
+        <div>
+          <label class="!mb-1 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms !text-lg text-amber-600">warning</span> Explosives & Ordnance
+          </label>
+          <p class="text-[11px] text-slate-500">IEDs, mortar rounds, RPG rounds, or unexploded ordnance turned over.</p>
+        </div>
+        <div class="py-2">
+          <label class="font-medium text-xs text-slate-700">Explosives / IEDs Count</label>
+          <input id="f_explosives_count" type="number" min="0" value="${explosives}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="f font-bold text-center text-lg mt-1">
+        </div>
+        <div class="text-[11px] text-slate-400 italic">
+          Leave 0 if none turned over
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Remarks / Narrative -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="!mb-0">Remarks / Narrative</label>
+        <span class="text-[11px] text-slate-400 italic">Drag bottom-right corner to resize</span>
+      </div>
+      <textarea id="f_remarks" rows="3" class="f resize-y min-h-[90px] max-h-[450px]" placeholder="Key leaders, turnover ceremony details, or notes...">${esc(remarks)}</textarea>
+    </div>
+  `;
+
+  calcTolfFirearms();
+}
+
+function calcTolfFirearms() {
+  const csw = parseInt($('f_fa_csw')?.value || 0, 10) || 0;
+  const hp  = parseInt($('f_fa_hp')?.value || 0, 10) || 0;
+  const lp  = parseInt($('f_fa_lp')?.value || 0, 10) || 0;
+  const total = csw + hp + lp;
+  if ($('tolf_fa_badge')) $('tolf_fa_badge').textContent = `Total FAs: ${total}`;
+  if ($('tolf_fa_total')) $('tolf_fa_total').textContent = `${total}`;
+}
+
 function onSelectWithOtherChange(sel, wrapId, inputId) {
   const wrap = $(wrapId);
   const input = $(inputId);
@@ -2200,6 +2437,43 @@ async function handleFormSubmit(e) {
       war_materiel: warMat,
       contraband_details: combinedContraband
     };
+  } else if (currentTab === 'tolf') {
+    const brigadeVal = ($('f_brigade')?.value || '').trim();
+    const unitVal    = ($('f_unit')?.value || '').trim();
+    const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
+
+    const csw = parseInt($('f_fa_csw')?.value || 0, 10) || 0;
+    const hp  = parseInt($('f_fa_hp')?.value || 0, 10) || 0;
+    const lp  = parseInt($('f_fa_lp')?.value || 0, 10) || 0;
+    const totalFA = csw + hp + lp;
+    const explosives = parseInt($('f_explosives_count')?.value || 0, 10) || 0;
+
+    const warMat = {
+      brigade: brigadeVal,
+      unit_only: unitVal,
+      fa_csw: csw,
+      fa_hp: hp,
+      fa_lp: lp
+    };
+
+    payload = {
+      ...payload,
+      op_date: $('f_op_date').value,
+      unit: combinedUnit,
+      brigade: brigadeVal,
+      area: ($('f_area')?.value || '').trim(),
+      province: ($('f_province')?.value || '').trim(),
+      source_group: ($('f_source_group')?.value || '').trim(),
+      fa_csw: csw,
+      fa_high_powered: hp,
+      fa_low_powered: lp,
+      crew_served: csw,
+      light_weapons: hp,
+      small_arms: lp,
+      firearms_count: totalFA,
+      explosives_count: explosives,
+      war_materiel: warMat
+    };
   } else {
     const cat = CATEGORIES[currentTab];
     cat.fields.forEach(f => {
@@ -2226,7 +2500,7 @@ async function handleFormSubmit(e) {
   if (r.ok) {
     $('modal-msg').textContent = 'Saved successfully! ✓';
     $('modal-msg').className = 'text-xs font-medium text-green-600';
-    if ((currentTab === 'ops' || currentTab === 'sleo') && payload.op_date && payload.op_date.length >= 7) {
+    if ((currentTab === 'ops' || currentTab === 'sleo' || currentTab === 'tolf') && payload.op_date && payload.op_date.length >= 7) {
       const savedYear = parseInt(payload.op_date.slice(0, 4), 10);
       const savedMonth = parseInt(payload.op_date.slice(5, 7), 10);
       if (!isNaN(savedYear)) setSelectedYear(savedYear);

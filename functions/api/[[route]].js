@@ -399,8 +399,24 @@ export async function onRequest({ request, env, params }) {
 
     // 3. Turn-Over of Loose Firearms (tolf)
     if (r0 === 'tolf') {
+      try { await db.prepare('ALTER TABLE tolf ADD COLUMN province TEXT').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE tolf ADD COLUMN fa_csw INTEGER DEFAULT 0').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE tolf ADD COLUMN fa_high_powered INTEGER DEFAULT 0').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE tolf ADD COLUMN fa_low_powered INTEGER DEFAULT 0').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE tolf ADD COLUMN war_materiel TEXT').run(); } catch(e) {}
+
       if (method === 'GET') {
-        const x = await db.prepare('SELECT * FROM tolf ORDER BY op_date DESC, id DESC LIMIT 100').all();
+        const url = new URL(request.url);
+        const y = url.searchParams.get('year');
+        let sql = 'SELECT * FROM tolf';
+        const params = [];
+        if (y) {
+          sql += ' WHERE op_date LIKE ?';
+          params.push(`${y}-%`);
+        }
+        sql += ' ORDER BY op_date DESC, id DESC LIMIT 500';
+        const q = params.length ? db.prepare(sql).bind(...params) : db.prepare(sql);
+        const x = await q.all();
         return json({ rows: x.results });
       }
       if (method === 'POST') {
@@ -408,9 +424,24 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit)) {
           return json({ error: 'Date and Unit are required' }, 400);
         }
-        const totalFA = n(b.firearms_count) || (n(b.small_arms) + n(b.light_weapons) + n(b.crew_served));
-        await db.prepare('INSERT INTO tolf (op_date,unit,area,source_group,firearms_count,small_arms,light_weapons,crew_served,explosives_count,facilitated_by,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
-          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.source_group), totalFA, n(b.small_arms), n(b.light_weapons), n(b.crew_served), n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500)).run();
+        const csw = n(b.fa_csw) || n(b.crew_served);
+        const hp  = n(b.fa_high_powered) || n(b.light_weapons);
+        const lp  = n(b.fa_low_powered) || n(b.small_arms);
+        const totalFA = n(b.firearms_count) || (csw + hp + lp);
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
+
+        try {
+          await db.prepare('INSERT INTO tolf (op_date,unit,area,province,source_group,firearms_count,small_arms,light_weapons,crew_served,fa_csw,fa_high_powered,fa_low_powered,explosives_count,war_materiel,facilitated_by,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.source_group), totalFA, lp, hp, csw, csw, hp, lp, n(b.explosives_count), warMat, txt(b.facilitated_by), txt(b.remarks, 500)).run();
+        } catch(err) {
+          try {
+            await db.prepare('INSERT INTO tolf (op_date,unit,area,province,source_group,firearms_count,small_arms,light_weapons,crew_served,explosives_count,facilitated_by,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.source_group), totalFA, lp, hp, csw, n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500)).run();
+          } catch(err2) {
+            await db.prepare('INSERT INTO tolf (op_date,unit,area,source_group,firearms_count,small_arms,light_weapons,crew_served,explosives_count,facilitated_by,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.source_group), totalFA, lp, hp, csw, n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500)).run();
+          }
+        }
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -418,9 +449,24 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit)) {
           return json({ error: 'Date and Unit are required' }, 400);
         }
-        const totalFA = n(b.firearms_count) || (n(b.small_arms) + n(b.light_weapons) + n(b.crew_served));
-        await db.prepare('UPDATE tolf SET op_date=?,unit=?,area=?,source_group=?,firearms_count=?,small_arms=?,light_weapons=?,crew_served=?,explosives_count=?,facilitated_by=?,remarks=? WHERE id=?')
-          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.source_group), totalFA, n(b.small_arms), n(b.light_weapons), n(b.crew_served), n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500), n(r1)).run();
+        const csw = n(b.fa_csw) || n(b.crew_served);
+        const hp  = n(b.fa_high_powered) || n(b.light_weapons);
+        const lp  = n(b.fa_low_powered) || n(b.small_arms);
+        const totalFA = n(b.firearms_count) || (csw + hp + lp);
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
+
+        try {
+          await db.prepare('UPDATE tolf SET op_date=?,unit=?,area=?,province=?,source_group=?,firearms_count=?,small_arms=?,light_weapons=?,crew_served=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,explosives_count=?,war_materiel=?,facilitated_by=?,remarks=? WHERE id=?')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.source_group), totalFA, lp, hp, csw, csw, hp, lp, n(b.explosives_count), warMat, txt(b.facilitated_by), txt(b.remarks, 500), n(r1)).run();
+        } catch(err) {
+          try {
+            await db.prepare('UPDATE tolf SET op_date=?,unit=?,area=?,province=?,source_group=?,firearms_count=?,small_arms=?,light_weapons=?,crew_served=?,explosives_count=?,facilitated_by=?,remarks=? WHERE id=?')
+              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.source_group), totalFA, lp, hp, csw, n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500), n(r1)).run();
+          } catch(err2) {
+            await db.prepare('UPDATE tolf SET op_date=?,unit=?,area=?,source_group=?,firearms_count=?,small_arms=?,light_weapons=?,crew_served=?,explosives_count=?,facilitated_by=?,remarks=? WHERE id=?')
+              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.source_group), totalFA, lp, hp, csw, n(b.explosives_count), txt(b.facilitated_by), txt(b.remarks, 500), n(r1)).run();
+          }
+        }
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {

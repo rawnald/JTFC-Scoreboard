@@ -62,14 +62,19 @@ CREATE TABLE IF NOT EXISTS tolf (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 602nd Bde
-  area TEXT NOT NULL,               -- e.g. Carmen, Cotabato
+  area TEXT NOT NULL,               -- e.g. Carmen
+  province TEXT,                    -- e.g. Cotabato
   source_group TEXT,                -- e.g. Community, Former Combatants, LGU
   firearms_count INTEGER DEFAULT 0, -- Total firearms turned over
-  small_arms INTEGER DEFAULT 0,     -- Pistols, revolvers
-  light_weapons INTEGER DEFAULT 0,  -- Rifles, shotguns
-  crew_served INTEGER DEFAULT 0,    -- Machine guns, mortars
+  small_arms INTEGER DEFAULT 0,     -- Pistols, revolvers (LP)
+  light_weapons INTEGER DEFAULT 0,  -- Rifles, shotguns (HP)
+  crew_served INTEGER DEFAULT 0,    -- Machine guns, mortars (CSW)
+  fa_csw INTEGER DEFAULT 0,
+  fa_high_powered INTEGER DEFAULT 0,
+  fa_low_powered INTEGER DEFAULT 0,
   explosives_count INTEGER DEFAULT 0, -- Grenades, IEDs, mortar rounds
-  facilitated_by TEXT,              -- e.g. Municipal Mayor, Barangay Chairman
+  war_materiel TEXT,
+  facilitated_by TEXT,              -- Legacy
   remarks TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tolf_date ON tolf(op_date);
