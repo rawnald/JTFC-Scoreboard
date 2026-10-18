@@ -384,13 +384,18 @@ export async function onRequest({ request, env, params }) {
         .bind(sDate, eDate).all()
         .then(x => {
           const filtered = filterSleoRows(x.results || []);
+          let neutralized = 0;
+          for (const r of filtered) {
+            neutralized += (r.killed || 0) + (r.surrendered || 0) + (r.captured || 0) + (r.apprehended || r.arrested || 0);
+          }
           return {
             total: filtered.length,
+            neutralized,
             monthly: getMonthlyCounts(filtered),
             rows: filtered
           };
         })
-        .catch(() => ({ total: 0, monthly: Array(12).fill(0), rows: [] }));
+        .catch(() => ({ total: 0, neutralized: 0, monthly: Array(12).fill(0), rows: [] }));
 
       const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, catRows, catGroupRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
@@ -425,14 +430,30 @@ export async function onRequest({ request, env, params }) {
       cur.sleo_monthly = curSleo.monthly || Array(12).fill(0);
       prev.sleo_monthly = prevSleo.monthly || Array(12).fill(0);
 
+      cur.cmo_neutralized = cur.neutralized || 0;
+      cur.sleo_neutralized = curSleo.neutralized || 0;
+      cur.total_neutralized = cur.cmo_neutralized + cur.sleo_neutralized;
+      cur.neutralized = cur.total_neutralized;
+
+      prev.cmo_neutralized = prev.neutralized || 0;
+      prev.sleo_neutralized = prevSleo.neutralized || 0;
+      prev.total_neutralized = prev.cmo_neutralized + prev.sleo_neutralized;
+      prev.neutralized = prev.total_neutralized;
+
       (curSleo.rows || []).forEach(r => {
         const bName = getBrigade(r);
+        const sleoNz = (r.killed || 0) + (r.surrendered || 0) + (r.captured || 0) + (r.apprehended || r.arrested || 0);
         if (bName && bName !== '—') {
           const provName = getProvince(r);
           const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, sur: 0, sleo: 0, salw: 0, salw_hp: 0, salw_lp: 0, salw_csw: 0, _provs: new Set() };
           b.sleo = (b.sleo || 0) + 1;
+          b.neutralized = (b.neutralized || 0) + sleoNz;
           b.sur = (b.sur || 0) + (r.surrendered || 0);
           if (provName && provName !== '—') b._provs.add(provName);
+        }
+        const tg = r.threat_group || r.target_group;
+        if (sleoNz && tg) {
+          cur.groups[tg] = (cur.groups[tg] || 0) + sleoNz;
         }
       });
 
