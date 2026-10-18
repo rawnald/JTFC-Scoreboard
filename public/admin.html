@@ -385,8 +385,26 @@ const CATEGORIES = {
     icon: 'local_police',
     columns: [
       { key: 'op_date', label: 'Date' },
-      { key: 'unit', label: 'Unit' },
-      { key: 'area', label: 'Area' },
+      { key: 'unit', label: 'Unit / Brigade', render: o => {
+        let b = '', u = o.unit || '';
+        let wm = null;
+        try { wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
+        if (wm && wm.brigade) b = wm.brigade;
+        if (wm && wm.unit_only) u = wm.unit_only;
+        if (!b && o.unit) {
+          const m = o.unit.match(/^(.*?)\s*\((.*?)\)$/);
+          if (m) { u = m[1].trim(); b = m[2].trim(); }
+        }
+        const full = b && u && u !== b ? `${u} (${b})` : (o.unit || '—');
+        if (b && u && u !== b) {
+          return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] leading-tight" title="${esc(full)}"><div class="font-bold text-slate-800 truncate">${esc(u)}</div><div class="text-[10px] text-blue-600 font-semibold truncate">${esc(b)}</div></div>`;
+        }
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] font-bold text-slate-800 truncate" title="${esc(full)}">${esc(o.unit || '—')}</div>`;
+      }},
+      { key: 'location', label: 'Location', render: o => {
+        const full = `${o.area || '—'}${o.province ? ', ' + o.province : ''}`;
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[150px] leading-tight" title="${esc(full)}"><div class="text-slate-800 font-medium truncate">${esc(o.area || '—')}</div>${o.province ? `<div class="text-[10px] text-slate-400 truncate">${esc(o.province)}</div>` : ''}</div>`;
+      }},
       { key: 'lead_agency', label: 'Agency Supported', render: o => `<span class="badge bg-indigo-100 text-indigo-800 font-bold">${esc(o.lead_agency)}</span>` },
       { key: 'operation_type', label: 'Op Type' },
       { key: 'target_group', label: 'Target / Personality' },
@@ -430,8 +448,10 @@ const CATEGORIES = {
     ],
     fields: [
       { id: 'op_date', label: 'Operation Date', type: 'date', required: true },
-      { id: 'unit', label: 'Military Unit Involved', placeholder: 'e.g. 601st Bde, 40IB', required: true },
-      { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Tacurong City, Sultan Kudarat' },
+      { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 601st Bde', required: true },
+      { id: 'unit', label: 'Unit', placeholder: 'e.g. 7IB, 40IB', required: true },
+      { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Tacurong City, Isulan' },
+      { id: 'province', label: 'Province', placeholder: 'e.g. Sultan Kudarat, Cotabato' },
       { id: 'lead_agency', label: 'Lead Agency Supported', placeholder: 'e.g. PNP, PDEA, NBI, CIDG', required: true },
       { id: 'operation_type', label: 'Operation Type', type: 'select_with_other', options: ['Anti-Drug Operations', 'Anti-Criminalities', 'Anti-Illegal Logging', 'Others'], placeholder: 'Specify operation type...', required: true },
       { id: 'target_group', label: 'Target / Subject', placeholder: 'e.g. Drug Syndicate, Wanted Person' },
@@ -1447,28 +1467,89 @@ function renderSleoModalForm(record) {
     contrabandOther = raw.replace(/(\d+(?:\.\d+)?)\s*(?:g(?:rams)?|g\b)[^|,]*/i, '').replace(/(?:PHP|Php|₱|Value:?|Est\.?)\s*([\d,]+(?:\.\d+)?)[^|,]*/i, '').replace(/^[|\s,]+|[|\s,]+$/g, '');
   }
 
+  let savedBrigade = '';
+  let savedUnit = '';
+  if (rec && (rec.brigade || rec.unit_only)) {
+    savedBrigade = rec.brigade || '';
+    savedUnit = rec.unit_only || '';
+  } else if (record && record.unit) {
+    const m = record.unit.match(/^(.*?)\s*\((.*?)\)$/);
+    if (m) {
+      savedUnit = m[1].trim();
+      savedBrigade = m[2].trim();
+    } else if (record.unit.toLowerCase().includes('bde') || record.unit.toLowerCase().includes('brigade') || record.unit.toLowerCase().includes('1bct')) {
+      savedBrigade = record.unit;
+      savedUnit = '';
+    } else {
+      savedUnit = record.unit;
+      savedBrigade = '';
+    }
+  }
+
+  let savedArea = record?.area || '';
+  let savedProvince = record?.province || '';
+  if (!savedProvince && savedArea && savedArea.includes(',')) {
+    const parts = savedArea.split(',');
+    savedProvince = parts.pop().trim();
+    savedArea = parts.join(',').trim();
+  }
+
   $('modal-form-content').innerHTML = `
     <!-- SECTION 1: General & Agency Information -->
     <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
       <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
         <span class="ms !text-lg text-blue-600">local_police</span> General & Agency Information
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div>
           <label>Date of Operation <span class="text-red-500">*</span></label>
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
-          <label>Military Unit Involved <span class="text-red-500">*</span></label>
-          <input id="f_unit" list="unit_list" value="${esc(record?.unit || '')}" placeholder="e.g. 601st Bde, 40IB" class="f" required>
+          <label>Brigade <span class="text-red-500">*</span></label>
+          <input id="f_brigade" list="sleo_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 601st Bde" class="f" required>
+          <datalist id="sleo_brigade_list">
+            <option value="601st Bde">
+            <option value="602nd Bde">
+            <option value="603rd Bde">
+            <option value="1BCT">
+          </datalist>
         </div>
         <div>
-          <label>Location / Municipality</label>
-          <input id="f_area" value="${esc(record?.area || '')}" placeholder="e.g. Tacurong City, Sultan Kudarat" class="f">
+          <label>Unit <span class="text-red-500">*</span></label>
+          <input id="f_unit" list="sleo_unit_list" value="${esc(savedUnit)}" placeholder="e.g. 7IB, 40IB" class="f" required>
+          <datalist id="sleo_unit_list">
+            <option value="7IB">
+            <option value="38IB">
+            <option value="40IB">
+            <option value="90IB">
+            <option value="37IB">
+            <option value="57IB">
+            <option value="6DRC">
+            <option value="62DRC">
+            <option value="63DRC">
+            <option value="6DMC">
+          </datalist>
         </div>
         <div>
           <label>Lead Agency Supported <span class="text-red-500">*</span></label>
           <input id="f_lead_agency" value="${esc(record?.lead_agency || '')}" placeholder="e.g. PNP, PDEA, NBI, CIDG" class="f" required>
+        </div>
+        <div>
+          <label>Location / Municipality</label>
+          <input id="f_area" value="${esc(savedArea)}" placeholder="e.g. Tacurong City, Isulan" class="f">
+        </div>
+        <div>
+          <label>Province</label>
+          <input id="f_province" list="sleo_province_list" value="${esc(savedProvince)}" placeholder="e.g. Sultan Kudarat, Cotabato" class="f">
+          <datalist id="sleo_province_list">
+            <option value="Maguindanao del Sur">
+            <option value="Maguindanao del Norte">
+            <option value="Cotabato">
+            <option value="Sultan Kudarat">
+            <option value="South Cotabato">
+            <option value="Sarangani">
+          </datalist>
         </div>
         <div>
           <label>Operation Type <span class="text-red-500">*</span></label>
@@ -1948,7 +2029,13 @@ async function handleFormSubmit(e) {
     const drugsGrams = ($('f_drugs_grams')?.value || '').trim();
     const drugsValue = ($('f_drugs_value')?.value || '').trim();
 
+    const brigadeVal = $('f_brigade')?.value.trim() || '';
+    const unitVal    = $('f_unit')?.value.trim() || '';
+    const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
+
     const warMat = {
+      brigade: brigadeVal,
+      unit_only: unitVal,
       paraphernalia: parseInt($('f_rec_paraphernalia')?.value || 0, 10) || 0,
       ied: parseInt($('f_rec_ied')?.value || 0, 10) || 0,
       uxo: parseInt($('f_rec_uxo')?.value || 0, 10) || 0,
@@ -1989,8 +2076,10 @@ async function handleFormSubmit(e) {
     payload = {
       ...payload,
       op_date: $('f_op_date').value,
-      unit: $('f_unit').value.trim(),
-      area: $('f_area').value.trim(),
+      unit: combinedUnit,
+      brigade: brigadeVal,
+      area: ($('f_area')?.value || '').trim(),
+      province: ($('f_province')?.value || '').trim(),
       lead_agency: $('f_lead_agency').value.trim(),
       operation_type: finalOpType,
       target_group: $('f_target_group').value.trim(),

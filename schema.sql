@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS sleo (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 601st Bde
-  area TEXT NOT NULL,               -- e.g. Isulan, Sultan Kudarat
+  area TEXT NOT NULL,               -- e.g. Isulan
+  province TEXT,                    -- e.g. Sultan Kudarat, Cotabato
   lead_agency TEXT NOT NULL,        -- e.g. PNP, PDEA, NBI, CIDG
   operation_type TEXT NOT NULL,     -- e.g. Anti-Illegal Drugs, Search Warrant
   target_group TEXT,                -- e.g. Drug Syndicate, Lawless Group

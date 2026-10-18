@@ -288,6 +288,7 @@ export async function onRequest({ request, env, params }) {
       try { await db.prepare('ALTER TABLE sleo ADD COLUMN drugs_grams TEXT').run(); } catch(e) {}
       try { await db.prepare('ALTER TABLE sleo ADD COLUMN drugs_value TEXT').run(); } catch(e) {}
       try { await db.prepare('ALTER TABLE sleo ADD COLUMN war_materiel TEXT').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE sleo ADD COLUMN province TEXT').run(); } catch(e) {}
 
       if (method === 'GET') {
         const x = await db.prepare('SELECT * FROM sleo ORDER BY op_date DESC, id DESC LIMIT 100').all();
@@ -311,15 +312,20 @@ export async function onRequest({ request, env, params }) {
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
 
         try {
-          await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,enemy_wounded,surrendered,captured,apprehended,firearms_seized,fa_csw,fa_high_powered,fa_low_powered,drugs_grams,drugs_value,contraband_details,war_materiel,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), warMat, n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+          await db.prepare('INSERT INTO sleo (op_date,unit,area,province,lead_agency,operation_type,target_group,arrested,killed,enemy_wounded,surrendered,captured,apprehended,firearms_seized,fa_csw,fa_high_powered,fa_low_powered,drugs_grams,drugs_value,contraband_details,war_materiel,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), warMat, n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
         } catch(err) {
           try {
-            await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,enemy_wounded,surrendered,captured,apprehended,firearms_seized,fa_csw,fa_high_powered,fa_low_powered,drugs_grams,drugs_value,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+            await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,enemy_wounded,surrendered,captured,apprehended,firearms_seized,fa_csw,fa_high_powered,fa_low_powered,drugs_grams,drugs_value,contraband_details,war_materiel,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), warMat, n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
           } catch(err2) {
-            await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,surrendered,firearms_seized,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, sur, totalFA, txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+            try {
+              await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,enemy_wounded,surrendered,captured,apprehended,firearms_seized,fa_csw,fa_high_powered,fa_low_powered,drugs_grams,drugs_value,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+                .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+            } catch(err3) {
+              await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,surrendered,firearms_seized,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+                .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, sur, totalFA, txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+            }
           }
         }
         return json({ ok: true });
@@ -342,15 +348,20 @@ export async function onRequest({ request, env, params }) {
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
 
         try {
-          await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,enemy_wounded=?,surrendered=?,captured=?,apprehended=?,firearms_seized=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,drugs_grams=?,drugs_value=?,contraband_details=?,war_materiel=?,kia=?,wia=?,remarks=? WHERE id=?')
-            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), warMat, n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+          await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,province=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,enemy_wounded=?,surrendered=?,captured=?,apprehended=?,firearms_seized=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,drugs_grams=?,drugs_value=?,contraband_details=?,war_materiel=?,kia=?,wia=?,remarks=? WHERE id=?')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), warMat, n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
         } catch(err) {
           try {
-            await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,enemy_wounded=?,surrendered=?,captured=?,apprehended=?,firearms_seized=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,drugs_grams=?,drugs_value=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
-              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+            await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,enemy_wounded=?,surrendered=?,captured=?,apprehended=?,firearms_seized=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,drugs_grams=?,drugs_value=?,contraband_details=?,war_materiel=?,kia=?,wia=?,remarks=? WHERE id=?')
+              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), warMat, n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
           } catch(err2) {
-            await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,surrendered=?,firearms_seized=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
-              .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, sur, totalFA, txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+            try {
+              await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,enemy_wounded=?,surrendered=?,captured=?,apprehended=?,firearms_seized=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,drugs_grams=?,drugs_value=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
+                .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, totalFA, csw, hp, lp, txt(b.drugs_grams), txt(b.drugs_value), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+            } catch(err3) {
+              await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,surrendered=?,firearms_seized=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
+                .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, sur, totalFA, txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+            }
           }
         }
         return json({ ok: true });
