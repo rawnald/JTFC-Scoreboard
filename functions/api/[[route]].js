@@ -304,7 +304,7 @@ export async function onRequest({ request, env, params }) {
         db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
         db.prepare("SELECT DISTINCT threat_category FROM ops WHERE threat_category IS NOT NULL AND threat_category != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT threat_category, threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM rido WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != '' UNION SELECT DISTINCT unit, war_materiel FROM tolf WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM tolf WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
       ]);
@@ -357,8 +357,20 @@ export async function onRequest({ request, env, params }) {
         if (b && b !== '—') bdeSet.add(b);
       });
 
-      const provSet = new Set(['Maguindanao del Sur', 'Maguindanao del Norte', 'Cotabato', 'Sultan Kudarat', 'South Cotabato', 'Sarangani', 'SGA-BARMM']);
-      (provRows.results || []).forEach(r => { if (r.province && r.province.trim()) provSet.add(r.province.trim()); });
+      const provSet = new Set();
+      (provRows.results || []).forEach(r => {
+        if (r.province && r.province.trim()) {
+          const p = r.province.trim();
+          if (p.includes(',')) {
+            p.split(',').forEach(sub => {
+              const sp = sub.trim();
+              if (sp) provSet.add(sp);
+            });
+          } else {
+            provSet.add(p);
+          }
+        }
+      });
 
       const availableYears = Array.from(new Set([y, new Date().getFullYear(), ...(yrRows.results || []).map(r => +r.yr).filter(Boolean)])).sort((a, b) => b - a);
 

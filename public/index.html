@@ -388,13 +388,15 @@ async function load() {
   }
   $('filter-brigade').value = currentBrigade;
 
-  // Populate Province dropdown once
-  if ($('filter-province').options.length <= 1 && s.available_provinces) {
+  // Populate Province dropdown
+  if (s.available_provinces) {
+    const curProv = currentProvince;
+    $('filter-province').innerHTML = '<option value="">All Provinces</option>';
     s.available_provinces.forEach(prov => {
       $('filter-province').add(new Option(prov, prov));
     });
+    $('filter-province').value = curProv;
   }
-  $('filter-province').value = currentProvince;
 
   updateDateRangeUI();
 
