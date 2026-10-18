@@ -123,10 +123,11 @@ function agg(rows) {
 
     const bName = getBrigade(r);
     const provName = getProvince(r);
-    const b = a.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, _provs: new Set() };
+    const b = a.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
     b.enc += encCount;
     b.neutralized += nz;
     b.firearms += (r.firearms || 0);
+    b.sur += (r.surrendered || 0);
     if (provName && provName !== '—') b._provs.add(provName);
 
     const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0 };
@@ -374,8 +375,9 @@ export async function onRequest({ request, env, params }) {
         const bName = getBrigade(r);
         if (bName && bName !== '—') {
           const provName = getProvince(r);
-          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sleo: 0, salw: 0, _provs: new Set() };
+          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
           b.sleo = (b.sleo || 0) + 1;
+          b.sur = (b.sur || 0) + (r.surrendered || 0);
           if (provName && provName !== '—') b._provs.add(provName);
         }
       });
@@ -384,7 +386,7 @@ export async function onRequest({ request, env, params }) {
         const bName = getBrigade(r);
         if (bName && bName !== '—') {
           const provName = getProvince(r);
-          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sleo: 0, salw: 0, _provs: new Set() };
+          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
           b.salw = (b.salw || 0) + (r.firearms_count || 0);
           if (provName && provName !== '—') b._provs.add(provName);
         }
@@ -392,7 +394,7 @@ export async function onRequest({ request, env, params }) {
 
       STANDARD_BRIGADES.forEach(bName => {
         if (!brigade || bName.toLowerCase().includes(brigade.toLowerCase())) {
-          cur.brigades[bName] ||= { brigade: bName, unit: bName, province: '', area: '', enc: 0, neutralized: 0, firearms: 0, sleo: 0, salw: 0, _provs: new Set() };
+          cur.brigades[bName] ||= { brigade: bName, unit: bName, province: '', area: '', enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
         }
       });
 
@@ -401,6 +403,7 @@ export async function onRequest({ request, env, params }) {
         b.salw = b.salw || 0;
         b.firearms = b.firearms || 0;
         b.enc = b.enc || 0;
+        b.sur = b.sur || 0;
         if (b._provs && b._provs.size > 0) {
           b.province = Array.from(b._provs).join(', ');
           b.area = b.province;
