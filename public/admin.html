@@ -390,8 +390,17 @@ const CATEGORIES = {
       { key: 'lead_agency', label: 'Agency Supported', render: o => `<span class="badge bg-indigo-100 text-indigo-800 font-bold">${esc(o.lead_agency)}</span>` },
       { key: 'operation_type', label: 'Op Type' },
       { key: 'target_group', label: 'Target / Personality' },
-      { key: 'arrested', label: 'Arr/Kil/Sur', render: o => `${o.arrested}/${o.killed}/${o.surrendered}` },
-      { key: 'firearms_seized', label: 'FA Seized', render: o => `<span class="font-bold text-green-700">${o.firearms_seized}</span>` },
+      { key: 'casualties', label: 'Enemy Neutralized', render: o => {
+        const k = o.killed || 0;
+        const w = o.enemy_wounded || o.wounded || 0;
+        const s = o.surrendered || 0;
+        const c = o.captured || 0;
+        const a = o.apprehended || o.arrested || 0;
+        const full = `Killed: ${k}, Wounded: ${w}, Surrendered: ${s}, Captured: ${c}, Apprehended: ${a}`;
+        return `<span class="badge bg-blue-50 text-blue-800 font-mono text-[10.5px] px-1.5 py-0 whitespace-nowrap" title="${full}">${k}K/${w}W/${s}S/${c}C/${a}A</span>`;
+      }},
+      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium text-[10px] px-1.5 py-0 whitespace-nowrap">${o.kia}K / ${o.wia}W</span>` : '<span class="text-slate-400 text-[10px]">0</span>' },
+      { key: 'firearms_seized', label: 'FA Seized', render: o => `<span class="font-bold text-green-700">${o.firearms_seized || 0}</span>` },
       { key: 'contraband_details', label: 'Contraband / Seizures', render: o => `<span class="text-xs text-slate-600 truncate max-w-[160px] block" title="${esc(o.contraband_details)}">${esc(o.contraband_details || '—')}</span>` },
       { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
@@ -402,13 +411,8 @@ const CATEGORIES = {
       { id: 'lead_agency', label: 'Lead Agency Supported', placeholder: 'e.g. PNP, PDEA, NBI, CIDG', required: true },
       { id: 'operation_type', label: 'Operation Type', type: 'select_with_other', options: ['Anti-Drug Operations', 'Anti-Criminalities', 'Anti-Illegal Logging', 'Others'], placeholder: 'Specify operation type...', required: true },
       { id: 'target_group', label: 'Target / Subject', placeholder: 'e.g. Drug Syndicate, Wanted Person' },
-      { id: 'arrested', label: 'Arrested', type: 'number', value: 0 },
-      { id: 'killed', label: 'Killed', type: 'number', value: 0 },
-      { id: 'surrendered', label: 'Surrendered', type: 'number', value: 0 },
       { id: 'firearms_seized', label: 'Firearms Seized', type: 'number', value: 0 },
-      { id: 'contraband_details', label: 'Contraband / Drugs Details', placeholder: 'e.g. 50g Shabu (Est. PHP 340,000)', colSpan: 2 },
-      { id: 'kia', label: 'Friendly KIA', type: 'number', value: 0 },
-      { id: 'wia', label: 'Friendly WIA', type: 'number', value: 0 }
+      { id: 'contraband_details', label: 'Contraband / Drugs Details', placeholder: 'e.g. 50g Shabu (Est. PHP 340,000)', colSpan: 2 }
     ]
   },
   tolf: {
@@ -840,9 +844,11 @@ function openModal(mode, id) {
   $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the operation details below`;
   $('modal-submit-btn').innerHTML = `<span class="ms">save</span> ${id ? 'Update Record' : 'Save Record'}`;
 
-  // Specially customized form for Combat / Military Operations
+  // Specially customized form for Combat / Military Operations & SLEO
   if (currentTab === 'ops') {
     renderCombatModalForm(record);
+  } else if (currentTab === 'sleo') {
+    renderSleoModalForm(record);
   } else {
     renderStandardModalForm(cat, record);
   }
@@ -1359,6 +1365,153 @@ function renderCombatModalForm(record) {
   calcCombatFirearms();
 }
 
+function renderSleoModalForm(record) {
+  const opDate = record ? (record.op_date || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
+  const rawOpType = record ? (record.operation_type || 'Anti-Drug Operations') : 'Anti-Drug Operations';
+  const standardOpTypes = ['Anti-Drug Operations', 'Anti-Criminalities', 'Anti-Illegal Logging'];
+  const isOtherOpType = rawOpType && !standardOpTypes.includes(rawOpType);
+  const selectedOpType = isOtherOpType ? 'Others' : rawOpType;
+  const otherOpTypeVal = isOtherOpType ? rawOpType : '';
+
+  const kia = record?.kia ?? 0;
+  const wia = record?.wia ?? 0;
+  const killed = record?.killed ?? 0;
+  const wounded = record?.enemy_wounded ?? record?.wounded ?? 0;
+  const surrendered = record?.surrendered ?? 0;
+  const captured = record?.captured ?? 0;
+  const apprehended = record?.apprehended ?? record?.arrested ?? 0;
+
+  $('modal-form-content').innerHTML = `
+    <!-- SECTION 1: General & Agency Information -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
+        <span class="ms !text-lg text-blue-600">local_police</span> General & Agency Information
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div>
+          <label>Date of Operation <span class="text-red-500">*</span></label>
+          <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
+        </div>
+        <div>
+          <label>Military Unit Involved <span class="text-red-500">*</span></label>
+          <input id="f_unit" list="unit_list" value="${esc(record?.unit || '')}" placeholder="e.g. 601st Bde, 40IB" class="f" required>
+        </div>
+        <div>
+          <label>Location / Municipality</label>
+          <input id="f_area" value="${esc(record?.area || '')}" placeholder="e.g. Tacurong City, Sultan Kudarat" class="f">
+        </div>
+        <div>
+          <label>Lead Agency Supported <span class="text-red-500">*</span></label>
+          <input id="f_lead_agency" value="${esc(record?.lead_agency || '')}" placeholder="e.g. PNP, PDEA, NBI, CIDG" class="f" required>
+        </div>
+        <div>
+          <label>Operation Type <span class="text-red-500">*</span></label>
+          <select id="f_operation_type" class="f" onchange="onSelectWithOtherChange(this, 'f_operation_type_other_wrap', 'f_operation_type_other')" required>
+            <option value="Anti-Drug Operations" ${selectedOpType === 'Anti-Drug Operations' ? 'selected' : ''}>Anti-Drug Operations</option>
+            <option value="Anti-Criminalities" ${selectedOpType === 'Anti-Criminalities' ? 'selected' : ''}>Anti-Criminalities</option>
+            <option value="Anti-Illegal Logging" ${selectedOpType === 'Anti-Illegal Logging' ? 'selected' : ''}>Anti-Illegal Logging</option>
+            <option value="Others" ${selectedOpType === 'Others' ? 'selected' : ''}>Others</option>
+          </select>
+          <div id="f_operation_type_other_wrap" class="${selectedOpType === 'Others' ? '' : 'hidden'} mt-2">
+            <input id="f_operation_type_other" type="text" value="${esc(otherOpTypeVal)}" placeholder="Specify operation type..." class="f" ${selectedOpType === 'Others' ? 'required' : ''}>
+          </div>
+        </div>
+        <div>
+          <label>Target / Subject</label>
+          <input id="f_target_group" value="${esc(record?.target_group || '')}" placeholder="e.g. Drug Syndicate, Wanted Person" class="f">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: CASUALTY INPUT (EXACTLY MATCHING USER'S ATTACHED SPREADSHEET IMAGE) -->
+    <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm">
+      <div class="flex items-center justify-between mb-1">
+        <label class="!mb-0 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <span class="ms !text-lg text-rose-600">personal_injury</span> Casualty Details
+        </label>
+      </div>
+
+      <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+        <table class="w-full text-center border-collapse min-w-[620px]">
+          <thead>
+            <!-- Top Header Row -->
+            <tr>
+              <th colspan="2" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-r-2 border-b border-black tracking-wider text-xs sm:text-sm">
+                GOVERNMENT CASUALTY
+              </th>
+              <th colspan="5" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b border-black tracking-wider text-xs sm:text-sm">
+                ENEMY CASUALTY
+              </th>
+            </tr>
+            <!-- Subheaders Row: Purple for Govt, Coral/Pink for Enemy -->
+            <tr class="font-extrabold text-black text-xs sm:text-sm">
+              <th class="bg-[#ba8efc] py-2 px-1 border-r border-b border-black w-[14%]">KIA</th>
+              <th class="bg-[#ba8efc] py-2 px-1 border-r-2 border-b border-black w-[14%]">WIA</th>
+              <th class="bg-[#ff9999] py-2 px-1 border-r border-b border-black w-[14.4%]">KILLED</th>
+              <th class="bg-[#ff9999] py-2 px-1 border-r border-b border-black w-[14.4%]">WOUNDED</th>
+              <th class="bg-[#ff9999] py-2 px-1 border-r border-b border-black w-[14.4%]">SURRENDERED</th>
+              <th class="bg-[#ff9999] py-2 px-1 border-r border-b border-black w-[14.4%]">CAPTURED</th>
+              <th class="bg-[#ff9999] py-2 px-1 border-b border-black w-[14.4%]">APPREHENDED</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Data Row with editable number inputs -->
+            <tr class="bg-white">
+              <td class="p-0 border-r border-black">
+                <input id="f_kia" type="number" min="0" value="${kia}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r-2 border-black">
+                <input id="f_wia" type="number" min="0" value="${wia}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_killed" type="number" min="0" value="${killed}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_enemy_wounded" type="number" min="0" value="${wounded}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_surrendered" type="number" min="0" value="${surrendered}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-r border-black">
+                <input id="f_captured" type="number" min="0" value="${captured}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+              <td class="p-0 border-black">
+                <input id="f_apprehended" type="number" min="0" value="${apprehended}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Firearms & Contraband Seizures -->
+    <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
+      <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
+        <span class="ms !text-lg text-emerald-600">inventory_2</span> Firearms & Contraband Seizures
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div>
+          <label>Firearms Seized</label>
+          <input id="f_firearms_seized" type="number" min="0" value="${record?.firearms_seized ?? 0}" class="f">
+        </div>
+        <div class="sm:col-span-2">
+          <label>Contraband / Drugs Details</label>
+          <input id="f_contraband_details" value="${esc(record?.contraband_details || '')}" placeholder="e.g. 50g Shabu (Est. PHP 340,000)" class="f">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Remarks / Narrative -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="!mb-0">Remarks / Narrative</label>
+        <span class="text-[11px] text-slate-400 italic">Drag bottom-right corner to resize</span>
+      </div>
+      <textarea id="f_remarks" rows="3" class="f resize-y min-h-[90px] max-h-[450px]" placeholder="Optional details, notes, or narrative summary...">${esc(record?.remarks || '')}</textarea>
+    </div>
+  `;
+}
+
 function onSelectWithOtherChange(sel, wrapId, inputId) {
   const wrap = $(wrapId);
   const input = $(inputId);
@@ -1554,6 +1707,39 @@ async function handleFormSubmit(e) {
       fa_low_powered: faLP,
       fa_breakdown: faBreakdown,
       war_materiel: warMat
+    };
+  } else if (currentTab === 'sleo') {
+    const opTypeSel = $('f_operation_type')?.value || '';
+    const opTypeOther = ($('f_operation_type_other')?.value || '').trim();
+    const finalOpType = opTypeSel === 'Others' ? (opTypeOther || 'Others') : opTypeSel;
+
+    const apprehended = parseInt($('f_apprehended')?.value || 0, 10) || 0;
+    const killed = parseInt($('f_killed')?.value || 0, 10) || 0;
+    const wounded = parseInt($('f_enemy_wounded')?.value || 0, 10) || 0;
+    const surrendered = parseInt($('f_surrendered')?.value || 0, 10) || 0;
+    const captured = parseInt($('f_captured')?.value || 0, 10) || 0;
+    const kia = parseInt($('f_kia')?.value || 0, 10) || 0;
+    const wia = parseInt($('f_wia')?.value || 0, 10) || 0;
+
+    payload = {
+      ...payload,
+      op_date: $('f_op_date').value,
+      unit: $('f_unit').value.trim(),
+      area: $('f_area').value.trim(),
+      lead_agency: $('f_lead_agency').value.trim(),
+      operation_type: finalOpType,
+      target_group: $('f_target_group').value.trim(),
+      kia,
+      wia,
+      killed,
+      enemy_wounded: wounded,
+      wounded,
+      surrendered,
+      captured,
+      apprehended,
+      arrested: apprehended,
+      firearms_seized: parseInt($('f_firearms_seized')?.value || 0, 10) || 0,
+      contraband_details: $('f_contraband_details')?.value.trim()
     };
   } else {
     const cat = CATEGORIES[currentTab];

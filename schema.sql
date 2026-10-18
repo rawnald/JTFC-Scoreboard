@@ -38,7 +38,10 @@ CREATE TABLE IF NOT EXISTS sleo (
   target_group TEXT,                -- e.g. Drug Syndicate, Lawless Group
   arrested INTEGER DEFAULT 0,
   killed INTEGER DEFAULT 0,
+  enemy_wounded INTEGER DEFAULT 0,
   surrendered INTEGER DEFAULT 0,
+  captured INTEGER DEFAULT 0,
+  apprehended INTEGER DEFAULT 0,
   firearms_seized INTEGER DEFAULT 0,
   contraband_details TEXT,          -- e.g. Shabu, Contraband, Cash
   kia INTEGER DEFAULT 0,

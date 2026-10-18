@@ -279,6 +279,10 @@ export async function onRequest({ request, env, params }) {
 
     // 2. Support to Law Enforcement Operations (sleo)
     if (r0 === 'sleo') {
+      try { await db.prepare('ALTER TABLE sleo ADD COLUMN enemy_wounded INTEGER DEFAULT 0').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE sleo ADD COLUMN captured INTEGER DEFAULT 0').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE sleo ADD COLUMN apprehended INTEGER DEFAULT 0').run(); } catch(e) {}
+
       if (method === 'GET') {
         const x = await db.prepare('SELECT * FROM sleo ORDER BY op_date DESC, id DESC LIMIT 100').all();
         return json({ rows: x.results });
@@ -288,8 +292,19 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.lead_agency)) {
           return json({ error: 'Date, Unit, and Lead Agency are required' }, 400);
         }
-        await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,surrendered,firearms_seized,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), n(b.arrested), n(b.killed), n(b.surrendered), n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+        const app = n(b.apprehended) || n(b.arrested);
+        const wnd = n(b.enemy_wounded) || n(b.wounded);
+        const cap = n(b.captured);
+        const kld = n(b.killed);
+        const sur = n(b.surrendered);
+
+        try {
+          await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,enemy_wounded,surrendered,captured,apprehended,firearms_seized,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+        } catch(err) {
+          await db.prepare('INSERT INTO sleo (op_date,unit,area,lead_agency,operation_type,target_group,arrested,killed,surrendered,firearms_seized,contraband_details,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, sur, n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500)).run();
+        }
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -297,8 +312,19 @@ export async function onRequest({ request, env, params }) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.lead_agency)) {
           return json({ error: 'Date, Unit, and Lead Agency are required' }, 400);
         }
-        await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,surrendered=?,firearms_seized=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
-          .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), n(b.arrested), n(b.killed), n(b.surrendered), n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+        const app = n(b.apprehended) || n(b.arrested);
+        const wnd = n(b.enemy_wounded) || n(b.wounded);
+        const cap = n(b.captured);
+        const kld = n(b.killed);
+        const sur = n(b.surrendered);
+
+        try {
+          await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,enemy_wounded=?,surrendered=?,captured=?,apprehended=?,firearms_seized=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, wnd, sur, cap, app, n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+        } catch(err) {
+          await db.prepare('UPDATE sleo SET op_date=?,unit=?,area=?,lead_agency=?,operation_type=?,target_group=?,arrested=?,killed=?,surrendered=?,firearms_seized=?,contraband_details=?,kia=?,wia=?,remarks=? WHERE id=?')
+            .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.lead_agency), txt(b.operation_type || 'Law Enforcement Support'), txt(b.target_group), app, kld, sur, n(b.firearms_seized), txt(b.contraband_details, 255), n(b.kia), n(b.wia), txt(b.remarks, 500), n(r1)).run();
+        }
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
