@@ -194,6 +194,45 @@ const barLabelsPlugin = {
   }
 };
 
+const lineLabelsPlugin = {
+  id: 'lineLabelsPlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta0 = chart.getDatasetMeta(0);
+    const meta1 = chart.getDatasetMeta(1);
+
+    // Draw numbers for Current Year (Dataset 0)
+    if (meta0 && meta0.visible !== false) {
+      meta0.data.forEach((point, i) => {
+        const val = chart.data.datasets[0].data[i];
+        if (val === undefined || val === null) return;
+        ctx.save();
+        ctx.font = 'bold 11px Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = val > 0 ? '#1d5bff' : '#94a3b8';
+        ctx.fillText(String(val), point.x, Math.max(point.y - 7, 12));
+        ctx.restore();
+      });
+    }
+
+    // Draw numbers for Last Year (Dataset 1)
+    if (meta1 && meta1.visible !== false) {
+      meta1.data.forEach((point, i) => {
+        const val = chart.data.datasets[1].data[i];
+        if (val === undefined || val === null || val <= 0) return;
+        ctx.save();
+        ctx.font = '500 10px Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText(String(val), point.x, point.y + 6);
+        ctx.restore();
+      });
+    }
+  }
+};
+
 const donutSlicePlugin = {
   id: 'donutSlicePlugin',
   afterDatasetsDraw(chart) {
@@ -346,11 +385,40 @@ async function load() {
     data: {
       labels: M,
       datasets: [
-        { label: `Initiated Encounters (${currentYear})`, data: c.monthly || Array(12).fill(0), borderColor: blue, backgroundColor: 'rgba(29,91,255,.15)', fill: true, tension: .3, pointBackgroundColor: blue },
-        { label: `Initiated Encounters (${currentYear - 1})`, data: p.monthly || Array(12).fill(0), borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: .3 }
+        {
+          label: `Initiated Encounters (${currentYear})`,
+          data: c.monthly || Array(12).fill(0),
+          borderColor: blue,
+          backgroundColor: 'rgba(29,91,255,.15)',
+          fill: true,
+          tension: 0,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: blue
+        },
+        {
+          label: `Initiated Encounters (${currentYear - 1})`,
+          data: p.monthly || Array(12).fill(0),
+          borderColor: '#94a3b8',
+          borderDash: [5, 5],
+          tension: 0,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#94a3b8'
+        }
       ]
     },
-    options: { ...opt, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    options: {
+      ...opt,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0 }
+        }
+      }
+    },
+    plugins: [lineLabelsPlugin]
   });
 
   const pct = s.target ? (c.fa || 0) / s.target * 100 : 0;
