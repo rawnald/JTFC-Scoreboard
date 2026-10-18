@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS sleo (
   province TEXT,                    -- e.g. Sultan Kudarat, Cotabato
   lead_agency TEXT NOT NULL,        -- e.g. PNP, PDEA, NBI, CIDG
   operation_type TEXT NOT NULL,     -- e.g. Anti-Illegal Drugs, Search Warrant
+  threat_group TEXT,                -- e.g. BIFF, DITG, ALG, LLE, CNT
   target_group TEXT,                -- e.g. Drug Syndicate, Lawless Group
   arrested INTEGER DEFAULT 0,
   killed INTEGER DEFAULT 0,

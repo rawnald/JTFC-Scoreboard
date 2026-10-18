@@ -407,7 +407,19 @@ const CATEGORIES = {
       }},
       { key: 'lead_agency', label: 'Agency Supported', render: o => `<span class="badge bg-indigo-100 text-indigo-800 font-bold">${esc(o.lead_agency)}</span>` },
       { key: 'operation_type', label: 'Op Type' },
-      { key: 'target_group', label: 'Target / Personality' },
+      { key: 'target_group', label: 'Threat Group / Target', render: o => {
+        const tg = o.threat_group || (['BIFF','DITG','ALG','LLE','CNT'].includes(o.target_group) ? o.target_group : '') || o.target_group || '—';
+        const sub = o.target_group && o.target_group !== tg ? o.target_group : '';
+        let badgeColor = 'bg-slate-100 text-slate-800 border-slate-200';
+        if (tg.includes('BIFF') || tg.includes('DITG')) badgeColor = 'bg-red-100 text-red-800 border-red-200';
+        else if (tg.includes('CNT')) badgeColor = 'bg-purple-100 text-purple-800 border-purple-200';
+        else if (tg.includes('ALG') || tg.includes('LLE')) badgeColor = 'bg-amber-100 text-amber-800 border-amber-200';
+        return `
+          <div class="leading-tight max-w-[110px] sm:max-w-[140px] truncate" title="${esc(tg)}${sub ? ' (' + esc(sub) + ')' : ''}">
+            <span class="badge ${badgeColor} text-[10.5px] font-bold px-1.5 py-0">${esc(tg)}</span>
+            ${sub ? `<div class="text-[10px] text-slate-500 truncate mt-0.5">${esc(sub)}</div>` : ''}
+          </div>`;
+      }},
       { key: 'casualties', label: 'Enemy Neutralized', render: o => {
         const k = o.killed || 0;
         const w = o.enemy_wounded || o.wounded || 0;
@@ -454,7 +466,8 @@ const CATEGORIES = {
       { id: 'province', label: 'Province', placeholder: 'e.g. Sultan Kudarat, Cotabato' },
       { id: 'lead_agency', label: 'Lead Agency Supported', placeholder: 'e.g. PNP, PDEA, NBI, CIDG', required: true },
       { id: 'operation_type', label: 'Operation Type', type: 'select_with_other', options: ['Anti-Drug Operations', 'Anti-Criminalities', 'Anti-Illegal Logging', 'Others'], placeholder: 'Specify operation type...', required: true },
-      { id: 'target_group', label: 'Target / Subject', placeholder: 'e.g. Drug Syndicate, Wanted Person' },
+      { id: 'threat_group', label: 'Threat Group', type: 'select_with_other', options: ['BIFF', 'DITG', 'ALG', 'LLE', 'CNT', 'Others'], placeholder: 'Specify threat group...', required: true },
+      { id: 'target_group', label: 'Target / Personality', placeholder: 'e.g. Personality name, Alias, Wanted Person' },
       { id: 'firearms_seized', label: 'Firearms Seized', type: 'number', value: 0 },
       { id: 'contraband_details', label: 'Contraband / Drugs Details', placeholder: 'e.g. 50g Shabu (Est. PHP 340,000)', colSpan: 2 }
     ]
@@ -1458,6 +1471,29 @@ function renderSleoModalForm(record) {
   const selectedOpType = isOtherOpType ? 'Others' : rawOpType;
   const otherOpTypeVal = isOtherOpType ? rawOpType : '';
 
+  const standardThreatGroups = ['BIFF', 'DITG', 'ALG', 'LLE', 'CNT'];
+  const rawThreatGroup = record ? (record.threat_group || '') : '';
+  let selectedTG = '';
+  let otherTGVal = '';
+
+  if (rawThreatGroup) {
+    if (standardThreatGroups.includes(rawThreatGroup)) {
+      selectedTG = rawThreatGroup;
+    } else {
+      selectedTG = 'Others';
+      otherTGVal = rawThreatGroup;
+    }
+  } else if (record && record.target_group) {
+    const tgUpper = record.target_group.toUpperCase();
+    const found = standardThreatGroups.find(g => tgUpper.includes(g));
+    if (found) {
+      selectedTG = found;
+    } else {
+      selectedTG = 'Others';
+      otherTGVal = record.target_group;
+    }
+  }
+
   const kia = record?.kia ?? 0;
   const wia = record?.wia ?? 0;
   const killed = record?.killed ?? 0;
@@ -1605,8 +1641,23 @@ function renderSleoModalForm(record) {
           </div>
         </div>
         <div>
-          <label>Target / Subject</label>
-          <input id="f_target_group" value="${esc(record?.target_group || '')}" placeholder="e.g. Drug Syndicate, Wanted Person" class="f">
+          <label>Threat Group <span class="text-red-500">*</span></label>
+          <select id="f_threat_group" class="f" onchange="onSelectWithOtherChange(this, 'f_threat_group_other_wrap', 'f_threat_group_other')" required>
+            <option value="" disabled ${!selectedTG ? 'selected' : ''}>-- Select Threat Group --</option>
+            <option value="BIFF" ${selectedTG === 'BIFF' ? 'selected' : ''}>BIFF</option>
+            <option value="DITG" ${selectedTG === 'DITG' ? 'selected' : ''}>DITG</option>
+            <option value="ALG" ${selectedTG === 'ALG' ? 'selected' : ''}>ALG</option>
+            <option value="LLE" ${selectedTG === 'LLE' ? 'selected' : ''}>LLE</option>
+            <option value="CNT" ${selectedTG === 'CNT' ? 'selected' : ''}>CNT</option>
+            <option value="Others" ${selectedTG === 'Others' ? 'selected' : ''}>Others</option>
+          </select>
+          <div id="f_threat_group_other_wrap" class="${selectedTG === 'Others' ? '' : 'hidden'} mt-2">
+            <input id="f_threat_group_other" type="text" value="${esc(otherTGVal)}" placeholder="Specify other threat group..." class="f" ${selectedTG === 'Others' ? 'required' : ''}>
+          </div>
+        </div>
+        <div class="sm:col-span-2 lg:col-span-4">
+          <label>Target / Personality <span class="text-xs text-slate-400 font-normal">(Optional name, alias, or subject details)</span></label>
+          <input id="f_target_group" value="${esc(record?.target_group && record.target_group !== selectedTG && record.target_group !== otherTGVal ? record.target_group : '')}" placeholder="e.g. Alias Kumander X, Wanted Person, Drug Personality" class="f">
         </div>
       </div>
     </div>
@@ -2114,6 +2165,12 @@ async function handleFormSubmit(e) {
 
     const combinedContraband = parts.join(' | ');
 
+    const tgSel = $('f_threat_group')?.value || '';
+    const tgOther = ($('f_threat_group_other')?.value || '').trim();
+    const finalThreatGroup = tgSel === 'Others' ? (tgOther || 'Others') : tgSel;
+    const targetGroupVal = ($('f_target_group')?.value || '').trim();
+    const finalTargetGroup = targetGroupVal || finalThreatGroup;
+
     payload = {
       ...payload,
       op_date: $('f_op_date').value,
@@ -2123,7 +2180,8 @@ async function handleFormSubmit(e) {
       province: ($('f_province')?.value || '').trim(),
       lead_agency: $('f_lead_agency').value.trim(),
       operation_type: finalOpType,
-      target_group: $('f_target_group').value.trim(),
+      threat_group: finalThreatGroup,
+      target_group: finalTargetGroup,
       kia,
       wia,
       killed,
