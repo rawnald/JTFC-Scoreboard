@@ -125,17 +125,13 @@
     </div>
   </header>
   <section id="kpis" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"></section>
-  <section class="grid xl:grid-cols-3 gap-4">
-    <div class="card p-5 xl:col-span-2">
+  <section class="w-full">
+    <div class="card p-5">
       <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
         <h2 class="font-bold text-lg">Monthly Operational Trend</h2>
-    
       </div>
-      <div class="h-64"><canvas id="trend"></canvas></div>
+      <div class="h-72"><canvas id="trend"></canvas></div>
     </div>
-    <div class="card p-5"><h2 class="font-bold text-lg">Firearms Target Achievement</h2>
-      <div class="h-40 relative mt-4"><canvas id="gauge"></canvas><div class="absolute inset-x-0 bottom-0 text-center"><div id="gpct" class="text-3xl font-bold text-green-600"></div><div class="text-sm">of Target</div></div></div>
-      <div id="gstats" class="grid grid-cols-3 text-center mt-5"></div></div>
   </section>
   <section class="grid xl:grid-cols-3 gap-4">
     <div class="card p-5 flex flex-col"><h2 class="font-bold text-lg mb-2">Neutralizations by Threat Group</h2><div class="h-[360px] w-full"><canvas id="groups"></canvas></div></div>
@@ -420,25 +416,6 @@ async function load() {
     },
     plugins: [lineLabelsPlugin]
   });
-
-  const pct = s.target ? (c.fa || 0) / s.target * 100 : 0;
-  draw('gauge', {
-    type: 'doughnut',
-    data: {
-      datasets: [{
-        data: [Math.min(pct, 150), Math.max(150 - pct, 0)],
-        backgroundColor: ['#22a85a', '#e5e7eb'],
-        borderWidth: 0
-      }]
-    },
-    options: { ...opt, circumference: 180, rotation: 270, cutout: '72%', plugins: { tooltip: { enabled: false } } }
-  });
-  $('gpct').textContent = pct.toFixed(1) + '%';
-  $('gstats').innerHTML = [
-    [c.fa || 0, 'Actual'],
-    [s.target || 0, 'Target'],
-    [((c.fa || 0) - (s.target || 0) >= 0 ? '+' : '') + ((c.fa || 0) - (s.target || 0)), 'Variance']
-  ].map(([v, l], i) => `<div><div class="text-2xl font-bold ${i === 2 ? ((c.fa || 0) >= (s.target || 0) ? 'text-green-600' : 'text-red-600') : ''}">${v}</div><div class="text-sm">${l}</div></div>`).join('');
 
   const allGroups = [...THREAT_GROUPS];
   if (c.groups) {

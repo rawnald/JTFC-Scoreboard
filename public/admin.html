@@ -193,27 +193,6 @@
       </div>
     </section>
 
-    <!-- ANNUAL TARGET SETTINGS -->
-    <section class="card p-5 sm:p-6 border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
-      <div class="max-w-xl">
-        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
-          <span class="ms text-blue-600">flag</span> Scoreboard Annual Firearms Target
-        </h3>
-        <p class="text-xs text-slate-500 mt-1">
-          Target number of gained firearms used to calculate overall scoreboard achievement percentages.
-        </p>
-      </div>
-      <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-        <div>
-          <label class="sr-only">Annual Target</label>
-          <input id="tgt" type="number" min="0" class="f w-32 font-bold text-base text-center" placeholder="200">
-        </div>
-        <button onclick="saveTarget()" class="btn py-2.5 px-4 shadow">
-          <span class="ms">save</span> Save Target
-        </button>
-      </div>
-    </section>
-
   </main>
 </div>
 
@@ -767,7 +746,6 @@ async function checkAuthAndLoad() {
   $('app').classList.remove('hidden');
   
   const d = await r.json().catch(() => ({}));
-  if (d.target !== undefined) $('tgt').value = d.target;
   tabData.ops = d.rows || [];
 
   initOpsYearSelect();
@@ -2862,17 +2840,6 @@ async function deleteRecord(id) {
   } else {
     const err = await r.json().catch(() => ({}));
     alert(err.error || 'Failed to delete record');
-  }
-}
-
-// Save Annual Firearms Target
-async function saveTarget() {
-  const target = $('tgt').value;
-  const r = await api('target', 'PUT', { target });
-  if (r.ok) {
-    alert('Annual Firearms Target saved successfully!');
-  } else {
-    alert('Failed to save target.');
   }
 }
 
