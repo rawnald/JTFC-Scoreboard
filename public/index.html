@@ -160,7 +160,7 @@
     </div>
     <div class="card p-5 overflow-x-auto flex flex-col"><h2 class="font-bold text-lg mb-2">Brigade Accomplishments</h2>
       <div class="flex-1 overflow-y-auto max-h-[360px]">
-        <table class="w-full text-sm"><thead><tr class="text-left border-b sticky top-0 bg-white"><th class="py-2">Brigade</th><th>Firearms</th><th>Initiated Opns</th></tr></thead><tbody id="matrix"></tbody></table>
+        <table class="w-full text-xs sm:text-sm"><thead><tr class="text-left border-b sticky top-0 bg-white text-slate-700 font-semibold"><th class="py-2 pr-2">Brigade</th><th class="py-2 px-1 text-center">Firearms</th><th class="py-2 px-1 text-center">Initiated Opns</th><th class="py-2 px-1 text-center">SLEO</th><th class="py-2 pl-1 text-center">SALW</th></tr></thead><tbody id="matrix"></tbody></table>
       </div>
     </div>
   </section>
@@ -659,7 +659,15 @@ async function load() {
     plugins: [donutSlicePlugin]
   });
 
-  $('matrix').innerHTML = (s.matrix || []).map(u => `<tr class="border-b"><td class="py-2 font-medium">${esc(u.brigade || u.unit || '—')}</td><td>${u.firearms}</td><td><span class="bg-green-100 px-2 py-1 rounded font-bold">${u.enc}</span></td></tr>`).join('') || '<tr><td colspan=3 class="py-4 text-center text-slate-400">No data yet</td></tr>';
+  $('matrix').innerHTML = (s.matrix || []).map(u => `
+    <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition">
+      <td class="py-2.5 pr-2 font-semibold text-slate-800 whitespace-nowrap">${esc(u.brigade || u.unit || '—')}</td>
+      <td class="py-2.5 px-1 text-center font-bold text-slate-700">${u.firearms || 0}</td>
+      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-green-100 text-green-800 px-2 py-0.5 rounded font-bold text-xs">${u.enc || 0}</span></td>
+      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold text-xs">${u.sleo || 0}</span></td>
+      <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded font-bold text-xs">${u.salw || 0}</span></td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="py-4 text-center text-slate-400">No data yet</td></tr>';
 }
 
 const esc = t => String(t).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));

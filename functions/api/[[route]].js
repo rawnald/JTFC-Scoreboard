@@ -59,19 +59,32 @@ const STANDARD_BRIGADES = [
   '601st Bde', '602nd Bde', '603rd Bde', '1Mech BDE', '1Mar BDE'
 ];
 
+function cleanBrigadeName(val) {
+  if (!val) return '—';
+  const str = String(val).trim();
+  const lower = str.toLowerCase();
+  if (lower.includes('601')) return '601st Bde';
+  if (lower.includes('602')) return '602nd Bde';
+  if (lower.includes('603')) return '603rd Bde';
+  if (lower.includes('mech')) return '1Mech BDE';
+  if (lower.includes('mar')) return '1Mar BDE';
+  return str;
+}
+
 function getBrigade(r) {
+  if (r.brigade && typeof r.brigade === 'string' && r.brigade.trim()) return cleanBrigadeName(r.brigade);
   if (typeof r.war_materiel === 'string') {
     try {
       const wm = JSON.parse(r.war_materiel);
-      if (wm && wm.brigade) return wm.brigade.trim();
+      if (wm && wm.brigade) return cleanBrigadeName(wm.brigade);
     } catch(e) {}
   } else if (typeof r.war_materiel === 'object' && r.war_materiel?.brigade) {
-    return String(r.war_materiel.brigade).trim();
+    return cleanBrigadeName(r.war_materiel.brigade);
   }
   if (r.unit) {
     const m = r.unit.match(/\((.*?)\)/);
-    if (m) return m[1].trim();
-    return r.unit.trim();
+    if (m) return cleanBrigadeName(m[1]);
+    return cleanBrigadeName(r.unit);
   }
   return '—';
 }
@@ -315,20 +328,22 @@ export async function onRequest({ request, env, params }) {
           return {
             firearms: filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0),
             monthly: getMonthlyFirearms(filtered),
-            wm_monthly: getMonthlyTolfWM(filtered)
+            wm_monthly: getMonthlyTolfWM(filtered),
+            rows: filtered
           };
         })
-        .catch(() => ({ firearms: 0, monthly: Array(12).fill(0), wm_monthly: Array(12).fill(0) }));
+        .catch(() => ({ firearms: 0, monthly: Array(12).fill(0), wm_monthly: Array(12).fill(0), rows: [] }));
 
       const qSleo = (sDate, eDate) => db.prepare('SELECT * FROM sleo WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
         .then(x => {
           const filtered = filterSleoRows(x.results || []);
           return {
-            monthly: getMonthlyCounts(filtered)
+            monthly: getMonthlyCounts(filtered),
+            rows: filtered
           };
         })
-        .catch(() => ({ monthly: Array(12).fill(0) }));
+        .catch(() => ({ monthly: Array(12).fill(0), rows: [] }));
 
       const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, catRows, catGroupRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
@@ -355,7 +370,37 @@ export async function onRequest({ request, env, params }) {
       cur.sleo_monthly = curSleo.monthly || Array(12).fill(0);
       prev.sleo_monthly = prevSleo.monthly || Array(12).fill(0);
 
+      (curSleo.rows || []).forEach(r => {
+        const bName = getBrigade(r);
+        if (bName && bName !== '—') {
+          const provName = getProvince(r);
+          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sleo: 0, salw: 0, _provs: new Set() };
+          b.sleo = (b.sleo || 0) + 1;
+          if (provName && provName !== '—') b._provs.add(provName);
+        }
+      });
+
+      (curTolf.rows || []).forEach(r => {
+        const bName = getBrigade(r);
+        if (bName && bName !== '—') {
+          const provName = getProvince(r);
+          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sleo: 0, salw: 0, _provs: new Set() };
+          b.salw = (b.salw || 0) + (r.firearms_count || 0);
+          if (provName && provName !== '—') b._provs.add(provName);
+        }
+      });
+
+      STANDARD_BRIGADES.forEach(bName => {
+        if (!brigade || bName.toLowerCase().includes(brigade.toLowerCase())) {
+          cur.brigades[bName] ||= { brigade: bName, unit: bName, province: '', area: '', enc: 0, neutralized: 0, firearms: 0, sleo: 0, salw: 0, _provs: new Set() };
+        }
+      });
+
       Object.values(cur.brigades).forEach(b => {
+        b.sleo = b.sleo || 0;
+        b.salw = b.salw || 0;
+        b.firearms = b.firearms || 0;
+        b.enc = b.enc || 0;
         if (b._provs && b._provs.size > 0) {
           b.province = Array.from(b._provs).join(', ');
           b.area = b.province;
@@ -414,6 +459,12 @@ export async function onRequest({ request, env, params }) {
 
       const availCategories = Array.from(catSet).filter(Boolean).sort();
 
+      let matrixList = Object.values(cur.brigades);
+      if (brigade) {
+        matrixList = matrixList.filter(b => b.brigade.toLowerCase().includes(brigade.toLowerCase()));
+      }
+      matrixList.sort((a, b) => ((b.firearms || 0) + (b.salw || 0)) - ((a.firearms || 0) + (a.salw || 0)) || (b.enc || 0) - (a.enc || 0) || (b.sleo || 0) - (a.sleo || 0));
+
       return json({
         year: y,
         start_date: startDate,
@@ -425,7 +476,7 @@ export async function onRequest({ request, env, params }) {
         target: +(t?.value || 0),
         cur,
         prev,
-        matrix: Object.values(cur.brigades).sort((a, b) => b.firearms - a.firearms),
+        matrix: matrixList,
         available_threat_categories: availCategories,
         available_threat_groups: availCategories,
         threat_category_map: threatCategoryMap,
