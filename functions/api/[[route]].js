@@ -269,6 +269,41 @@ export async function onRequest({ request, env, params }) {
         return m;
       }
 
+      function getTolfWarMaterielCount(r) {
+        let count = 0;
+        if (r.war_materiel) {
+          if (typeof r.war_materiel === 'object' && r.war_materiel !== null) {
+            const wm = r.war_materiel;
+            count = (+wm.ied || 0) + (+wm.uxo || 0) + (+wm.explosives || 0) + (+wm.magazine || 0) + (+wm.ammo || 0);
+          } else if (typeof r.war_materiel === 'string') {
+            try {
+              const wm = JSON.parse(r.war_materiel);
+              if (wm && typeof wm === 'object') {
+                count = (+wm.ied || 0) + (+wm.uxo || 0) + (+wm.explosives || 0) + (+wm.magazine || 0) + (+wm.ammo || 0);
+              }
+            } catch (e) {
+              const num = parseInt(r.war_materiel, 10);
+              if (!isNaN(num) && num > 0) count = num;
+            }
+          }
+        }
+        if (!count && r.explosives_count) {
+          count = +r.explosives_count || 0;
+        }
+        return count;
+      }
+
+      function getMonthlyTolfWM(rows) {
+        const m = Array(12).fill(0);
+        for (const r of rows) {
+          if (r.op_date && r.op_date.length >= 7) {
+            const idx = +r.op_date.slice(5, 7) - 1;
+            if (idx >= 0 && idx < 12) m[idx] += getTolfWarMaterielCount(r);
+          }
+        }
+        return m;
+      }
+
       const q = (sDate, eDate) => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
         .then(x => agg(filterRows(x.results || [])));
@@ -279,10 +314,11 @@ export async function onRequest({ request, env, params }) {
           const filtered = filterTolfRows(x.results || []);
           return {
             firearms: filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0),
-            monthly: getMonthlyFirearms(filtered)
+            monthly: getMonthlyFirearms(filtered),
+            wm_monthly: getMonthlyTolfWM(filtered)
           };
         })
-        .catch(() => ({ firearms: 0, monthly: Array(12).fill(0) }));
+        .catch(() => ({ firearms: 0, monthly: Array(12).fill(0), wm_monthly: Array(12).fill(0) }));
 
       const qSleo = (sDate, eDate) => db.prepare('SELECT * FROM sleo WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
@@ -313,6 +349,8 @@ export async function onRequest({ request, env, params }) {
       prev.tolf = prevTolf.firearms || prev.tolf || 0;
       cur.tolf_monthly = curTolf.monthly || Array(12).fill(0);
       prev.tolf_monthly = prevTolf.monthly || Array(12).fill(0);
+      cur.tolf_wm_monthly = curTolf.wm_monthly || Array(12).fill(0);
+      prev.tolf_wm_monthly = prevTolf.wm_monthly || Array(12).fill(0);
 
       cur.sleo_monthly = curSleo.monthly || Array(12).fill(0);
       prev.sleo_monthly = prevSleo.monthly || Array(12).fill(0);

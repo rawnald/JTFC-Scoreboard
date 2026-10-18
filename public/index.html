@@ -241,16 +241,16 @@ const lineLabelsPlugin = {
       });
     }
 
-    // Draw numbers for Last Year (Dataset 1)
+    // Draw numbers for Last Year / Series 2 (Dataset 1)
     if (meta1 && meta1.visible !== false) {
       meta1.data.forEach((point, i) => {
         const val = chart.data.datasets[1].data[i];
         if (val === undefined || val === null || val <= 0) return;
         ctx.save();
-        ctx.font = '500 10px Roboto, sans-serif';
+        ctx.font = 'bold 10px Roboto, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = chart.data.datasets[1].borderColor === '#94a3b8' ? '#64748b' : (chart.data.datasets[1].borderColor || '#64748b');
         ctx.fillText(String(val), point.x, point.y + 6);
         ctx.restore();
       });
@@ -510,14 +510,15 @@ async function load() {
           pointBackgroundColor: '#0891b2'
         },
         {
-          label: `Firearms (${currentYear - 1})`,
-          data: p.tolf_monthly || Array(12).fill(0),
-          borderColor: '#94a3b8',
-          borderDash: [5, 5],
+          label: `Other War Materials (${currentYear})`,
+          data: c.tolf_wm_monthly || Array(12).fill(0),
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245,158,11,.15)',
+          fill: false,
           tension: 0,
-          pointRadius: 3,
-          pointHoverRadius: 5,
-          pointBackgroundColor: '#94a3b8'
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#f59e0b'
         }
       ]
     },
