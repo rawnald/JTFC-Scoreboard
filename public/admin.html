@@ -400,7 +400,7 @@ const CATEGORIES = {
       { id: 'unit', label: 'Military Unit Involved', placeholder: 'e.g. 601st Bde, 40IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Tacurong City, Sultan Kudarat' },
       { id: 'lead_agency', label: 'Lead Agency Supported', placeholder: 'e.g. PNP, PDEA, NBI, CIDG', required: true },
-      { id: 'operation_type', label: 'Operation Type', placeholder: 'e.g. Anti-Illegal Drugs, Search Warrant, Checkpoint', required: true },
+      { id: 'operation_type', label: 'Operation Type', type: 'select_with_other', options: ['Anti-Drug Operations', 'Anti-Criminalities', 'Anti-Illegal Logging', 'Others'], placeholder: 'Specify operation type...', required: true },
       { id: 'target_group', label: 'Target / Subject', placeholder: 'e.g. Drug Syndicate, Wanted Person' },
       { id: 'arrested', label: 'Arrested', type: 'number', value: 0 },
       { id: 'killed', label: 'Killed', type: 'number', value: 0 },
@@ -1359,6 +1359,20 @@ function renderCombatModalForm(record) {
   calcCombatFirearms();
 }
 
+function onSelectWithOtherChange(sel, wrapId, inputId) {
+  const wrap = $(wrapId);
+  const input = $(inputId);
+  if (!wrap || !input) return;
+  if (sel.value === 'Others') {
+    wrap.classList.remove('hidden');
+    input.required = true;
+    input.focus();
+  } else {
+    wrap.classList.add('hidden');
+    input.required = false;
+  }
+}
+
 function renderStandardModalForm(cat, record) {
   let fieldsHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
   cat.fields.forEach(f => {
@@ -1372,6 +1386,25 @@ function renderStandardModalForm(cat, record) {
           <select id="f_${f.id}" class="f">
             ${f.options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
           </select>
+        </div>`;
+    } else if (f.type === 'select_with_other') {
+      const standardOpts = f.options.filter(o => o !== 'Others');
+      const isKnown = standardOpts.includes(val);
+      const isOther = val ? !isKnown : false;
+      const selectedOpt = isOther ? 'Others' : (val || f.options[0]);
+      const otherVal = isOther ? val : '';
+
+      fieldsHtml += `
+        <div class="${colClass}">
+          <label>${f.label} ${f.required ? '<span class="text-red-500">*</span>' : ''}</label>
+          <select id="f_${f.id}" class="f" onchange="onSelectWithOtherChange(this, 'f_${f.id}_other_wrap', 'f_${f.id}_other')" ${f.required ? 'required' : ''}>
+            ${f.options.map(opt => `<option value="${opt}" ${selectedOpt === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+          </select>
+          <div id="f_${f.id}_other_wrap" class="${selectedOpt === 'Others' ? '' : 'hidden'} mt-2">
+            <input id="f_${f.id}_other" type="text" value="${esc(otherVal)}" 
+                   placeholder="${esc(f.placeholder || 'Specify other...')}" 
+                   class="f" ${selectedOpt === 'Others' ? 'required' : ''}>
+          </div>
         </div>`;
     } else {
       fieldsHtml += `
@@ -1527,7 +1560,16 @@ async function handleFormSubmit(e) {
     cat.fields.forEach(f => {
       const el = $('f_' + f.id);
       if (el) {
-        payload[f.id] = f.type === 'number' ? (parseInt(el.value, 10) || 0) : el.value;
+        if (f.type === 'select_with_other') {
+          if (el.value === 'Others') {
+            const otherVal = ($('f_' + f.id + '_other')?.value || '').trim();
+            payload[f.id] = otherVal || 'Others';
+          } else {
+            payload[f.id] = el.value;
+          }
+        } else {
+          payload[f.id] = f.type === 'number' ? (parseInt(el.value, 10) || 0) : el.value;
+        }
       }
     });
   }
