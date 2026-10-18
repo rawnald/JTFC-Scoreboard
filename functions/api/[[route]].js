@@ -164,19 +164,57 @@ export async function onRequest({ request, env, params }) {
         });
       }
 
+      function filterTolfRows(rows) {
+        if (!threatGroup && !brigade && !province) return rows;
+        return rows.filter(r => {
+          if (threatGroup) {
+            const sg = (r.source_group || '').toLowerCase();
+            const tg = threatGroup.toLowerCase();
+            if (!sg.includes(tg)) return false;
+          }
+          if (brigade) {
+            const b = getBrigade(r).toLowerCase();
+            const tb = brigade.toLowerCase();
+            const u = (r.unit || '').toLowerCase();
+            if (b !== tb && !b.includes(tb) && !u.includes(tb)) return false;
+          }
+          if (province) {
+            const p = getProvince(r).toLowerCase();
+            const tp = province.toLowerCase();
+            const rp = (r.province || '').toLowerCase();
+            const ra = (r.area || '').toLowerCase();
+            if (p !== tp && !rp.includes(tp) && !ra.includes(tp)) return false;
+          }
+          return true;
+        });
+      }
+
       const q = (sDate, eDate) => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
         .then(x => agg(filterRows(x.results || [])));
 
-      const [cur, prev, t, tgRows, provRows, bdeRows, yrRows] = await Promise.all([
+      const qTolf = (sDate, eDate) => db.prepare('SELECT * FROM tolf WHERE op_date BETWEEN ? AND ?')
+        .bind(sDate, eDate).all()
+        .then(x => {
+          const filtered = filterTolfRows(x.results || []);
+          return filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0);
+        })
+        .catch(() => 0);
+
+      const [cur, prev, curTolf, prevTolf, t, tgRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
         q(prevStartDate, prevEndDate),
+        qTolf(startDate, endDate),
+        qTolf(prevStartDate, prevEndDate),
         db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
         db.prepare("SELECT DISTINCT threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
+        db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != '' UNION SELECT DISTINCT unit, war_materiel FROM tolf WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM tolf WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
       ]);
+
+      cur.tolf = curTolf || cur.tolf || 0;
+      prev.tolf = prevTolf || prev.tolf || 0;
 
       Object.values(cur.brigades).forEach(b => {
         if (b._provs && b._provs.size > 0) {
