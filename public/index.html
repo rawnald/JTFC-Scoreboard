@@ -481,7 +481,7 @@ async function load() {
       labels: M,
       datasets: [
         {
-          label: `Turn-Over Operations (${currentYear})`,
+          label: `Firearms (${currentYear})`,
           data: c.tolf_monthly || Array(12).fill(0),
           borderColor: '#0891b2',
           backgroundColor: 'rgba(8,145,178,.15)',
@@ -492,7 +492,7 @@ async function load() {
           pointBackgroundColor: '#0891b2'
         },
         {
-          label: `Turn-Over Operations (${currentYear - 1})`,
+          label: `Firearms (${currentYear - 1})`,
           data: p.tolf_monthly || Array(12).fill(0),
           borderColor: '#94a3b8',
           borderDash: [5, 5],

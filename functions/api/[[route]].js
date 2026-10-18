@@ -225,6 +225,17 @@ export async function onRequest({ request, env, params }) {
         return m;
       }
 
+      function getMonthlyFirearms(rows) {
+        const m = Array(12).fill(0);
+        for (const r of rows) {
+          if (r.op_date && r.op_date.length >= 7) {
+            const idx = +r.op_date.slice(5, 7) - 1;
+            if (idx >= 0 && idx < 12) m[idx] += (r.firearms_count || 0);
+          }
+        }
+        return m;
+      }
+
       const q = (sDate, eDate) => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
         .then(x => agg(filterRows(x.results || [])));
@@ -235,7 +246,7 @@ export async function onRequest({ request, env, params }) {
           const filtered = filterTolfRows(x.results || []);
           return {
             firearms: filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0),
-            monthly: getMonthlyCounts(filtered)
+            monthly: getMonthlyFirearms(filtered)
           };
         })
         .catch(() => ({ firearms: 0, monthly: Array(12).fill(0) }));
