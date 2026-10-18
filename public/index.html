@@ -170,7 +170,7 @@ const $=id=>document.getElementById(id), blue='#1d5bff', charts={};
 const delta=(c,p,inv)=>{if(!p)return'<span class="text-slate-400">—</span>';const d=(c-p)/p*100,good=inv?d<=0:d>=0;return `<span class="${good?'text-green-600':'text-red-600'} font-medium flex items-center"><span class="ms !text-base">${d>=0?'arrow_upward':'arrow_downward'}</span>${d>=0?'+':''}${d.toFixed(1)}%</span>`};
 const draw=(id,cfg)=>{charts[id]?.destroy();charts[id]=new Chart($(id),cfg)};
 const opt={responsive:true,maintainAspectRatio:false};
-function kpi(icon,color,label,val,d,sub){return `<div class="card p-4 flex flex-col justify-between"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}"><span class="ms">${icon}</span></div><div class="min-w-0"><div class="text-sm font-medium truncate" style="color:${color}">${label}</div><div class="text-2xl font-bold leading-tight">${val}</div>${sub?`<div class="text-[11px] font-medium text-slate-500 mt-1 leading-snug">${sub}</div>`:''}</div></div><div class="flex justify-between text-sm mt-3 text-slate-500">vs Last Year ${d}</div></div>`}
+function kpi(icon,color,label,val,d,sub){return `<div class="card p-4 flex flex-col justify-between"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}"><span class="ms">${icon}</span></div><div class="min-w-0"><div class="text-sm font-medium truncate" style="color:${color}">${label}</div><div class="text-2xl font-bold leading-tight text-black">${val}</div>${sub?`<div class="text-[11px] font-bold text-black mt-1 leading-snug">${sub}</div>`:''}</div></div><div class="flex justify-between text-sm mt-3 text-slate-500">vs Last Year ${d}</div></div>`}
 
 const THREAT_MAPPING = {
   'Local Terrorist Groups (LTG)': [
@@ -401,10 +401,11 @@ async function load() {
   updateDateRangeUI();
 
   const faSub = `(HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0})`;
+  const salwSub = `(HPFAs: ${c.tolf_hp || 0}, LPFAs: ${c.tolf_lp || 0}, CSW: ${c.tolf_csw || 0})`;
   $('kpis').innerHTML =
     kpi('shield', '#2563eb', 'Total Neutralized', c.neutralized || 0, delta(c.neutralized, p.neutralized)) +
     kpi('gps_fixed', '#16a34a', 'Firearms Gained', c.fa || 0, delta(c.fa, p.fa), faSub) +
-    kpi('inventory_2', '#0891b2', 'Loose FAs (SALW)', c.tolf || 0, delta(c.tolf, p.tolf)) +
+    kpi('inventory_2', '#0891b2', 'Loose FAs (SALW)', c.tolf || 0, delta(c.tolf, p.tolf), salwSub) +
     kpi('groups', '#f97316', 'Initiated Operations', c.enc || 0, delta(c.enc, p.enc)) +
     kpi('policy', '#6366f1', 'Total SLEO', c.sleo || 0, delta(c.sleo, p.sleo)) +
     kpi('handshake', '#7c3aed', 'Total Surrender', c.sur || 0, delta(c.sur || 0, p.sur || 0)) +
@@ -668,7 +669,7 @@ async function load() {
       <td class="py-2.5 px-1 text-center font-bold text-slate-700" title="HPFAs: ${u.fa_hp || 0}, LPFAs: ${u.fa_lp || 0}, CSW: ${u.fa_csw || 0}">${u.firearms || 0}</td>
       <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-bold text-xs">${u.sur || 0}</span></td>
       <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold text-xs">${u.sleo || 0}</span></td>
-      <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded font-bold text-xs">${u.salw || 0}</span></td>
+      <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded font-bold text-xs" title="HPFAs: ${u.salw_hp || 0}, LPFAs: ${u.salw_lp || 0}, CSW: ${u.salw_csw || 0}">${u.salw || 0}</span></td>
     </tr>
   `).join('') || '<tr><td colspan="6" class="py-4 text-center text-slate-400">No data yet</td></tr>';
 }

@@ -349,14 +349,36 @@ export async function onRequest({ request, env, params }) {
         .bind(sDate, eDate).all()
         .then(x => {
           const filtered = filterTolfRows(x.results || []);
+          let csw = 0, hp = 0, lp = 0;
+          for (const r of filtered) {
+            let rCsw = (r.fa_csw || r.crew_served || 0);
+            let rHp  = (r.fa_high_powered || r.light_weapons || 0);
+            let rLp  = (r.fa_low_powered || r.small_arms || 0);
+            if (!rCsw && !rHp && !rLp && r.war_materiel) {
+              try {
+                const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+                if (wm) {
+                  rCsw = +(wm.csw || wm.crew_served || 0);
+                  rHp  = +(wm.hp || wm.light_weapons || wm.fa_high_powered || 0);
+                  rLp  = +(wm.lp || wm.small_arms || wm.fa_low_powered || 0);
+                }
+              } catch(e) {}
+            }
+            csw += rCsw;
+            hp  += rHp;
+            lp  += rLp;
+          }
           return {
             firearms: filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0),
+            fa_csw: csw,
+            fa_hp: hp,
+            fa_lp: lp,
             monthly: getMonthlyFirearms(filtered),
             wm_monthly: getMonthlyTolfWM(filtered),
             rows: filtered
           };
         })
-        .catch(() => ({ firearms: 0, monthly: Array(12).fill(0), wm_monthly: Array(12).fill(0), rows: [] }));
+        .catch(() => ({ firearms: 0, fa_csw: 0, fa_hp: 0, fa_lp: 0, monthly: Array(12).fill(0), wm_monthly: Array(12).fill(0), rows: [] }));
 
       const qSleo = (sDate, eDate) => db.prepare('SELECT * FROM sleo WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
@@ -386,7 +408,13 @@ export async function onRequest({ request, env, params }) {
       ]);
 
       cur.tolf = curTolf.firearms || cur.tolf || 0;
+      cur.tolf_csw = curTolf.fa_csw || 0;
+      cur.tolf_hp = curTolf.fa_hp || 0;
+      cur.tolf_lp = curTolf.fa_lp || 0;
       prev.tolf = prevTolf.firearms || prev.tolf || 0;
+      prev.tolf_csw = prevTolf.fa_csw || 0;
+      prev.tolf_hp = prevTolf.fa_hp || 0;
+      prev.tolf_lp = prevTolf.fa_lp || 0;
       cur.tolf_monthly = curTolf.monthly || Array(12).fill(0);
       prev.tolf_monthly = prevTolf.monthly || Array(12).fill(0);
       cur.tolf_wm_monthly = curTolf.wm_monthly || Array(12).fill(0);
@@ -401,7 +429,7 @@ export async function onRequest({ request, env, params }) {
         const bName = getBrigade(r);
         if (bName && bName !== '—') {
           const provName = getProvince(r);
-          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
+          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, sur: 0, sleo: 0, salw: 0, salw_hp: 0, salw_lp: 0, salw_csw: 0, _provs: new Set() };
           b.sleo = (b.sleo || 0) + 1;
           b.sur = (b.sur || 0) + (r.surrendered || 0);
           if (provName && provName !== '—') b._provs.add(provName);
@@ -412,8 +440,11 @@ export async function onRequest({ request, env, params }) {
         const bName = getBrigade(r);
         if (bName && bName !== '—') {
           const provName = getProvince(r);
-          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
+          const b = cur.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, sur: 0, sleo: 0, salw: 0, salw_hp: 0, salw_lp: 0, salw_csw: 0, _provs: new Set() };
           b.salw = (b.salw || 0) + (r.firearms_count || 0);
+          b.salw_csw = (b.salw_csw || 0) + (r.fa_csw || r.crew_served || 0);
+          b.salw_hp  = (b.salw_hp || 0) + (r.fa_high_powered || r.light_weapons || 0);
+          b.salw_lp  = (b.salw_lp || 0) + (r.fa_low_powered || r.small_arms || 0);
           if (provName && provName !== '—') b._provs.add(provName);
         }
       });
