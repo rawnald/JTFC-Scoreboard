@@ -506,7 +506,25 @@ const CATEGORIES = {
         const tot = o.firearms_count || (csw + hp + lp);
         return `<div class="whitespace-nowrap" title="CSW: ${csw}, HP: ${hp}, LP: ${lp}"><span class="badge bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 text-xs">+${tot}</span> <span class="text-[10px] text-slate-500 font-mono">(${csw}C/${hp}H/${lp}L)</span></div>`;
       }},
-      { key: 'explosives_count', label: 'Explosives / IEDs', render: o => o.explosives_count ? `<span class="badge bg-amber-100 text-amber-800 font-bold">${o.explosives_count}</span>` : '<span class="text-slate-400 text-[10px]">—</span>' },
+      { key: 'recoveries', label: 'Other War Materials', render: o => {
+        let parsed = null;
+        try { parsed = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
+        const badges = [];
+        if (parsed) {
+          if (parsed.ied) badges.push(`${parsed.ied} IED`);
+          if (parsed.uxo) badges.push(`${parsed.uxo} UXO`);
+          if (parsed.explosives) badges.push(`${parsed.explosives} Expl`);
+          if (parsed.magazine) badges.push(`${parsed.magazine} Mag`);
+          if (parsed.ammo) badges.push(`${parsed.ammo} Ammo`);
+          if (parsed.other) badges.push(parsed.other);
+        }
+        if (!badges.length && o.explosives_count) {
+          badges.push(`${o.explosives_count} Expl/IED`);
+        }
+        if (!badges.length) return '<span class="text-slate-400 text-[10px]">—</span>';
+        const allText = badges.join(', ');
+        return `<div class="max-w-[85px] sm:max-w-[120px] truncate" title="${esc(allText)}"><span class="badge bg-amber-50 text-amber-900 border border-amber-200 text-[10.5px] px-1.5 py-0 truncate max-w-full inline-block">${esc(badges[0])}${badges.length > 1 ? ` +${badges.length - 1}` : ''}</span></div>`;
+      }},
       { key: 'remarks', label: 'Remarks', render: o => `<span class="text-xs text-slate-500 truncate max-w-[130px] block" title="${esc(o.remarks)}">${esc(o.remarks || '—')}</span>` }
     ],
     fields: [
@@ -519,7 +537,11 @@ const CATEGORIES = {
       { id: 'fa_csw', label: 'CSW', type: 'number', value: 0 },
       { id: 'fa_high_powered', label: 'High Powered (HP)', type: 'number', value: 0 },
       { id: 'fa_low_powered', label: 'Low Powered (LP)', type: 'number', value: 0 },
-      { id: 'explosives_count', label: 'Explosives / Ordnance / IEDs', type: 'number', value: 0 }
+      { id: 'ied', label: 'IED', type: 'number', value: 0 },
+      { id: 'uxo', label: 'UXO', type: 'number', value: 0 },
+      { id: 'explosives', label: 'Explosives', type: 'number', value: 0 },
+      { id: 'magazine', label: 'Magazine', type: 'number', value: 0 },
+      { id: 'ammo', label: 'Ammo', type: 'number', value: 0 }
     ]
   },
   rido: {
@@ -1988,7 +2010,24 @@ function renderTolfModalForm(record) {
   const totalFa = (record?.firearms_count !== undefined && record?.firearms_count !== null)
     ? record.firearms_count
     : (csw + hp + lp);
-  const explosives = record?.explosives_count ?? 0;
+
+  let wm = { ied: 0, uxo: 0, explosives: 0, magazine: 0, ammo: 0 };
+  if (record && record.war_materiel) {
+    try {
+      const parsed = typeof record.war_materiel === 'string' ? JSON.parse(record.war_materiel) : record.war_materiel;
+      if (parsed) {
+        wm.ied = parsed.ied || 0;
+        wm.uxo = parsed.uxo || 0;
+        wm.explosives = parsed.explosives || 0;
+        wm.magazine = parsed.magazine || 0;
+        wm.ammo = parsed.ammo || 0;
+      }
+    } catch(e) {}
+  } else if (record && record.explosives_count) {
+    wm.explosives = record.explosives_count;
+  }
+  const totalWm = (wm.ied || 0) + (wm.uxo || 0) + (wm.explosives || 0) + (wm.magazine || 0) + (wm.ammo || 0);
+
   const sourceGroup = record?.source_group || '';
   const remarks = record?.remarks || '';
 
@@ -2052,10 +2091,10 @@ function renderTolfModalForm(record) {
       </div>
     </div>
 
-    <!-- SECTION 2: FIREARMS GAINED & EXPLOSIVES (MATCHING OFFICIAL SPREADSHEET TEMPLATE) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- Firearms Breakdown Table (CSW, HP, LP) -->
-      <div class="lg:col-span-2 card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm flex flex-col justify-between">
+    <!-- SECTION 2: FIREARMS GAINED & OTHER WAR MATERIALS (MATCHING OFFICIAL SPREADSHEET TEMPLATES) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Table 1: FAs GAINED (CSW, HP, LP) -->
+      <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm flex flex-col justify-between">
         <div class="flex items-center justify-between mb-1">
           <label class="!mb-0 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
             <span class="ms !text-lg text-emerald-600">grid_on</span> Firearms Gained Breakdown
@@ -2082,13 +2121,13 @@ function renderTolfModalForm(record) {
             <tbody>
               <tr class="bg-white">
                 <td class="p-0 border-r border-black">
-                  <input id="f_fa_csw" type="number" min="0" value="${csw}" oninput="calcTolfFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                  <input id="f_fa_csw" type="number" min="0" value="${csw}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <td class="p-0 border-r border-black">
-                  <input id="f_fa_hp" type="number" min="0" value="${hp}" oninput="calcTolfFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                  <input id="f_fa_hp" type="number" min="0" value="${hp}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <td class="p-0 border-black">
-                  <input id="f_fa_lp" type="number" min="0" value="${lp}" oninput="calcTolfFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                  <input id="f_fa_lp" type="number" min="0" value="${lp}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
               </tr>
               <tr class="bg-[#cbe5f8] font-bold text-xs sm:text-sm text-black">
@@ -2101,20 +2140,58 @@ function renderTolfModalForm(record) {
         </div>
       </div>
 
-      <!-- Explosives / Ordnance Card -->
-      <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-3 shadow-sm flex flex-col justify-between">
-        <div>
-          <label class="!mb-1 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-            <span class="ms !text-lg text-amber-600">warning</span> Explosives & Ordnance
+      <!-- Table 2: OTHER WAR MATERIALS (IED, UXO, Explosives, Magazine, Ammo - MATCHING USER IMAGE) -->
+      <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-2.5 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-1">
+          <label class="!mb-0 text-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms !text-lg text-amber-600">shield</span> Other War Materials
           </label>
-          <p class="text-[11px] text-slate-500">IEDs, mortar rounds, RPG rounds, or unexploded ordnance turned over.</p>
+          <span id="tolf_wm_badge" class="badge bg-amber-100 text-amber-900 font-bold text-xs py-0.5 px-2.5">
+            Total Items: ${totalWm}
+          </span>
         </div>
-        <div class="py-2">
-          <label class="font-medium text-xs text-slate-700">Explosives / IEDs Count</label>
-          <input id="f_explosives_count" type="number" min="0" value="${explosives}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="f font-bold text-center text-lg mt-1">
-        </div>
-        <div class="text-[11px] text-slate-400 italic">
-          Leave 0 if none turned over
+
+        <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+          <table class="w-full text-center border-collapse">
+            <thead>
+              <tr>
+                <th colspan="5" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                  OTHER WAR MATERIALS
+                </th>
+              </tr>
+              <tr class="font-bold text-black text-xs sm:text-sm">
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/5">IED</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/5">UXO</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/5">Explosives</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-r border-b border-black w-1/5">Magazine</th>
+                <th class="bg-[#84cc58] py-2 px-1 border-b border-black w-1/5">Ammo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-black">
+                  <input id="f_wm_ied" type="number" min="0" value="${wm.ied ?? 0}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-black">
+                  <input id="f_wm_uxo" type="number" min="0" value="${wm.uxo ?? 0}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-black">
+                  <input id="f_wm_explosives" type="number" min="0" value="${wm.explosives ?? 0}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-black">
+                  <input id="f_wm_magazine" type="number" min="0" value="${wm.magazine ?? 0}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-black">
+                  <input id="f_wm_ammo" type="number" min="0" value="${wm.ammo ?? 0}" oninput="calcTolfTotals()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2.5 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+              </tr>
+              <tr class="bg-[#cbe5f8] font-bold text-xs sm:text-sm text-black">
+                <td colspan="5" class="py-2 px-2 text-center border-t border-black">
+                  Total War Materials: <span id="tolf_wm_total" class="font-extrabold text-blue-950 ml-1">${totalWm}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -2129,16 +2206,29 @@ function renderTolfModalForm(record) {
     </div>
   `;
 
-  calcTolfFirearms();
+  calcTolfTotals();
 }
 
-function calcTolfFirearms() {
+function calcTolfTotals() {
   const csw = parseInt($('f_fa_csw')?.value || 0, 10) || 0;
   const hp  = parseInt($('f_fa_hp')?.value || 0, 10) || 0;
   const lp  = parseInt($('f_fa_lp')?.value || 0, 10) || 0;
-  const total = csw + hp + lp;
-  if ($('tolf_fa_badge')) $('tolf_fa_badge').textContent = `Total FAs: ${total}`;
-  if ($('tolf_fa_total')) $('tolf_fa_total').textContent = `${total}`;
+  const totalFA = csw + hp + lp;
+  if ($('tolf_fa_badge')) $('tolf_fa_badge').textContent = `Total FAs: ${totalFA}`;
+  if ($('tolf_fa_total')) $('tolf_fa_total').textContent = `${totalFA}`;
+
+  const ied  = parseInt($('f_wm_ied')?.value || 0, 10) || 0;
+  const uxo  = parseInt($('f_wm_uxo')?.value || 0, 10) || 0;
+  const expl = parseInt($('f_wm_explosives')?.value || 0, 10) || 0;
+  const mag  = parseInt($('f_wm_magazine')?.value || 0, 10) || 0;
+  const ammo = parseInt($('f_wm_ammo')?.value || 0, 10) || 0;
+  const totalWM = ied + uxo + expl + mag + ammo;
+  if ($('tolf_wm_badge')) $('tolf_wm_badge').textContent = `Total Items: ${totalWM}`;
+  if ($('tolf_wm_total')) $('tolf_wm_total').textContent = `${totalWM}`;
+}
+
+function calcTolfFirearms() {
+  calcTolfTotals();
 }
 
 function onSelectWithOtherChange(sel, wrapId, inputId) {
@@ -2446,14 +2536,25 @@ async function handleFormSubmit(e) {
     const hp  = parseInt($('f_fa_hp')?.value || 0, 10) || 0;
     const lp  = parseInt($('f_fa_lp')?.value || 0, 10) || 0;
     const totalFA = csw + hp + lp;
-    const explosives = parseInt($('f_explosives_count')?.value || 0, 10) || 0;
+
+    const wmIed  = parseInt($('f_wm_ied')?.value || 0, 10) || 0;
+    const wmUxo  = parseInt($('f_wm_uxo')?.value || 0, 10) || 0;
+    const wmExpl = parseInt($('f_wm_explosives')?.value || 0, 10) || 0;
+    const wmMag  = parseInt($('f_wm_magazine')?.value || 0, 10) || 0;
+    const wmAmmo = parseInt($('f_wm_ammo')?.value || 0, 10) || 0;
+    const explosivesCount = wmIed + wmUxo + wmExpl;
 
     const warMat = {
       brigade: brigadeVal,
       unit_only: unitVal,
       fa_csw: csw,
       fa_hp: hp,
-      fa_lp: lp
+      fa_lp: lp,
+      ied: wmIed,
+      uxo: wmUxo,
+      explosives: wmExpl,
+      magazine: wmMag,
+      ammo: wmAmmo
     };
 
     payload = {
@@ -2471,7 +2572,7 @@ async function handleFormSubmit(e) {
       light_weapons: hp,
       small_arms: lp,
       firearms_count: totalFA,
-      explosives_count: explosives,
+      explosives_count: explosivesCount,
       war_materiel: warMat
     };
   } else {
