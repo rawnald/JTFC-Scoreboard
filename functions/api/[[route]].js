@@ -340,11 +340,12 @@ export async function onRequest({ request, env, params }) {
         .then(x => {
           const filtered = filterSleoRows(x.results || []);
           return {
+            total: filtered.length,
             monthly: getMonthlyCounts(filtered),
             rows: filtered
           };
         })
-        .catch(() => ({ monthly: Array(12).fill(0), rows: [] }));
+        .catch(() => ({ total: 0, monthly: Array(12).fill(0), rows: [] }));
 
       const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, catRows, catGroupRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
@@ -368,6 +369,8 @@ export async function onRequest({ request, env, params }) {
       cur.tolf_wm_monthly = curTolf.wm_monthly || Array(12).fill(0);
       prev.tolf_wm_monthly = prevTolf.wm_monthly || Array(12).fill(0);
 
+      cur.sleo = curSleo.total || 0;
+      prev.sleo = prevSleo.total || 0;
       cur.sleo_monthly = curSleo.monthly || Array(12).fill(0);
       prev.sleo_monthly = prevSleo.monthly || Array(12).fill(0);
 
