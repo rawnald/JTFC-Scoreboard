@@ -98,6 +98,52 @@ function getProvince(r) {
   return r.area ? r.area.trim() : '—';
 }
 
+const PROVINCE_TO_REGION = {
+  'Maguindanao del Norte': 'BARMM',
+  'Maguindanao del Sur': 'BARMM',
+  'SGA-BARMM': 'BARMM',
+  'Cotabato City': 'BARMM',
+  'Lanao del Sur': 'BARMM',
+  'Basilan': 'BARMM',
+  'Sulu': 'BARMM',
+  'Tawi-Tawi': 'BARMM',
+  'North Cotabato': 'Region XII',
+  'Cotabato': 'Region XII',
+  'South Cotabato': 'Region XII',
+  'Sultan Kudarat': 'Region XII',
+  'Sarangani': 'Region XII',
+  'Sarangani Province': 'Region XII',
+  'General Santos City': 'Region XII'
+};
+
+function getRegionForProvince(provName) {
+  if (!provName) return '';
+  const clean = String(provName).trim();
+  if (PROVINCE_TO_REGION[clean]) return PROVINCE_TO_REGION[clean];
+  const lower = clean.toLowerCase();
+  if (lower.includes('barmm') || lower.includes('maguindanao') || lower.includes('sga') || lower.includes('shariff') || lower.includes('basilan') || lower.includes('sulu') || lower.includes('tawi') || lower.includes('lanao del sur')) {
+    return 'BARMM';
+  }
+  if (lower.includes('cotabato') || lower.includes('kudarat') || lower.includes('sarangani') || lower.includes('gensan') || lower.includes('general santos') || lower.includes('koronadal') || lower.includes('tacurong') || lower.includes('isulan')) {
+    if (lower.includes('cotabato city')) return 'BARMM';
+    return 'Region XII';
+  }
+  if (lower.includes('davao')) return 'Region XI';
+  if (lower.includes('bukidnon') || lower.includes('lanao del norte')) return 'Region X';
+  return '';
+}
+
+function matchRegion(r, targetRegion) {
+  if (!targetRegion) return true;
+  const p = getProvince(r);
+  const reg = getRegionForProvince(p);
+  const tr = targetRegion.toLowerCase();
+  if (reg && reg.toLowerCase() === tr) return true;
+  if ((r.province || '').toLowerCase().includes(tr)) return true;
+  if ((r.area || '').toLowerCase().includes(tr)) return true;
+  return false;
+}
+
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
@@ -174,6 +220,7 @@ export async function onRequest({ request, env, params }) {
       const endDate = url.searchParams.get('end_date') || (reqYear ? `${reqYear}-12-31` : `${new Date().getFullYear()}-12-31`);
       const threatCategory = (url.searchParams.get('threat_category') || url.searchParams.get('threat_group') || '').trim();
       const brigade = (url.searchParams.get('brigade') || '').trim();
+      const region = (url.searchParams.get('region') || '').trim();
       const province = (url.searchParams.get('province') || '').trim();
 
       const y = reqYear || parseInt(startDate.slice(0, 4), 10) || new Date().getFullYear();
@@ -211,7 +258,7 @@ export async function onRequest({ request, env, params }) {
       }
 
       function filterRows(rows) {
-        if (!threatCategory && !brigade && !province) return rows;
+        if (!threatCategory && !brigade && !region && !province) return rows;
         return rows.filter(r => {
           if (threatCategory) {
             const hasCatMatch = r.threat_category && matchThreatCategory(r.threat_category, threatCategory);
@@ -223,6 +270,9 @@ export async function onRequest({ request, env, params }) {
             const tb = brigade.toLowerCase();
             const u = (r.unit || '').toLowerCase();
             if (b !== tb && !b.includes(tb) && !u.includes(tb)) return false;
+          }
+          if (region) {
+            if (!matchRegion(r, region)) return false;
           }
           if (province) {
             const p = getProvince(r).toLowerCase();
@@ -236,7 +286,7 @@ export async function onRequest({ request, env, params }) {
       }
 
       function filterTolfRows(rows) {
-        if (!threatCategory && !brigade && !province) return rows;
+        if (!threatCategory && !brigade && !region && !province) return rows;
         return rows.filter(r => {
           if (threatCategory) {
             const sg = (r.source_group || '').toLowerCase();
@@ -247,6 +297,9 @@ export async function onRequest({ request, env, params }) {
             const tb = brigade.toLowerCase();
             const u = (r.unit || '').toLowerCase();
             if (b !== tb && !b.includes(tb) && !u.includes(tb)) return false;
+          }
+          if (region) {
+            if (!matchRegion(r, region)) return false;
           }
           if (province) {
             const p = getProvince(r).toLowerCase();
@@ -260,7 +313,7 @@ export async function onRequest({ request, env, params }) {
       }
 
       function filterSleoRows(rows) {
-        if (!threatCategory && !brigade && !province) return rows;
+        if (!threatCategory && !brigade && !region && !province) return rows;
         return rows.filter(r => {
           if (threatCategory) {
             const tg = (r.threat_group || '').toLowerCase();
@@ -272,6 +325,9 @@ export async function onRequest({ request, env, params }) {
             const tb = brigade.toLowerCase();
             const u = (r.unit || '').toLowerCase();
             if (b !== tb && !b.includes(tb) && !u.includes(tb)) return false;
+          }
+          if (region) {
+            if (!matchRegion(r, region)) return false;
           }
           if (province) {
             const p = getProvince(r).toLowerCase();
@@ -522,17 +578,35 @@ export async function onRequest({ request, env, params }) {
       });
 
       const provSet = new Set();
+      const regionSet = new Set(['BARMM', 'Region XII']);
       (provRows.results || []).forEach(r => {
         if (r.province && r.province.trim()) {
           const p = r.province.trim();
           if (p.includes(',')) {
             p.split(',').forEach(sub => {
               const sp = sub.trim();
-              if (sp) provSet.add(sp);
+              if (sp) {
+                provSet.add(sp);
+                const reg = getRegionForProvince(sp);
+                if (reg) regionSet.add(reg);
+              }
             });
           } else {
             provSet.add(p);
+            const reg = getRegionForProvince(p);
+            if (reg) regionSet.add(reg);
           }
+        }
+      });
+
+      const regionProvinceMap = {};
+      Array.from(regionSet).forEach(reg => {
+        regionProvinceMap[reg] = [];
+      });
+      Array.from(provSet).filter(Boolean).sort().forEach(p => {
+        const reg = getRegionForProvince(p);
+        if (reg && regionProvinceMap[reg]) {
+          regionProvinceMap[reg].push(p);
         }
       });
 
@@ -553,6 +627,7 @@ export async function onRequest({ request, env, params }) {
         threat_category: threatCategory,
         threat_group: threatCategory,
         brigade: brigade,
+        region: region,
         province: province,
         target: +(t?.value || 0),
         cur,
@@ -562,7 +637,9 @@ export async function onRequest({ request, env, params }) {
         available_threat_groups: availCategories,
         threat_category_map: threatCategoryMap,
         available_brigades: Array.from(bdeSet).filter(Boolean).sort(),
+        available_regions: Array.from(regionSet).filter(Boolean).sort(),
         available_provinces: Array.from(provSet).filter(Boolean).sort(),
+        region_province_map: regionProvinceMap,
         available_years: availableYears
       });
     }
