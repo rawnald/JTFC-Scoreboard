@@ -88,6 +88,10 @@
           <span class="ms text-rose-400">health_and_safety</span>
           <span class="truncate">HADR Operations</span>
         </button>
+        <button onclick="switchTab('incident_reports')" id="tab-incident_reports" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-teal-400">description</span>
+          <span class="truncate">Incident Reports</span>
+        </button>
       </nav>
     </div>
 
@@ -131,6 +135,7 @@
       <button onclick="switchTab('tolf')" id="mob-tab-tolf" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">TOLF</button>
       <button onclick="switchTab('rido')" id="mob-tab-rido" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Rido Cases</button>
       <button onclick="switchTab('hadr')" id="mob-tab-hadr" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">HADR</button>
+      <button onclick="switchTab('incident_reports')" id="mob-tab-incident_reports" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Incident Reports</button>
     </div>
   </div>
 
@@ -243,7 +248,7 @@ const $ = id => document.getElementById(id);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
 
 let currentTab = 'ops';
-let tabData = { ops: [], sleo: [], tolf: [], rido: [], hadr: [] };
+let tabData = { ops: [], sleo: [], tolf: [], rido: [], hadr: [], incident_reports: [] };
 
 // Threat Group Mapping per Category
 const THREAT_MAPPING = {
@@ -602,6 +607,12 @@ const CATEGORIES = {
       { id: 'personnel_deployed', label: 'Military Personnel Deployed', type: 'number', value: 0 },
       { id: 'partner_agencies', label: 'Partner Agencies (MDRRMO, DSWD, etc.)', placeholder: 'e.g. PDRRMO, MDRRMO, DSWD, Philippine Red Cross' }
     ]
+  },
+  incident_reports: {
+    title: 'Incident Reports',
+    desc: 'Incident reports, encounters, threat classifications, casualties, firearms gained, and war materiel',
+    icon: 'description',
+    get columns() { return CATEGORIES.ops.columns; }
   }
 };
 
@@ -631,12 +642,15 @@ let ridoSelectedYear = new Date().getFullYear();
 let ridoSelectedMonth = new Date().getMonth() + 1;
 let hadrSelectedYear = new Date().getFullYear();
 let hadrSelectedMonth = new Date().getMonth() + 1;
+let incidentReportsSelectedYear = new Date().getFullYear();
+let incidentReportsSelectedMonth = new Date().getMonth() + 1;
 
 function getSelectedYear() {
   if (currentTab === 'sleo') return sleoSelectedYear;
   if (currentTab === 'tolf') return tolfSelectedYear;
   if (currentTab === 'rido') return ridoSelectedYear;
   if (currentTab === 'hadr') return hadrSelectedYear;
+  if (currentTab === 'incident_reports') return incidentReportsSelectedYear;
   return opsSelectedYear;
 }
 function setSelectedYear(y) {
@@ -644,6 +658,7 @@ function setSelectedYear(y) {
   else if (currentTab === 'tolf') tolfSelectedYear = y;
   else if (currentTab === 'rido') ridoSelectedYear = y;
   else if (currentTab === 'hadr') hadrSelectedYear = y;
+  else if (currentTab === 'incident_reports') incidentReportsSelectedYear = y;
   else opsSelectedYear = y;
 }
 function getSelectedMonth() {
@@ -651,6 +666,7 @@ function getSelectedMonth() {
   if (currentTab === 'tolf') return tolfSelectedMonth;
   if (currentTab === 'rido') return ridoSelectedMonth;
   if (currentTab === 'hadr') return hadrSelectedMonth;
+  if (currentTab === 'incident_reports') return incidentReportsSelectedMonth;
   return opsSelectedMonth;
 }
 function setSelectedMonth(m) {
@@ -658,6 +674,7 @@ function setSelectedMonth(m) {
   else if (currentTab === 'tolf') tolfSelectedMonth = m;
   else if (currentTab === 'rido') ridoSelectedMonth = m;
   else if (currentTab === 'hadr') hadrSelectedMonth = m;
+  else if (currentTab === 'incident_reports') incidentReportsSelectedMonth = m;
   else opsSelectedMonth = m;
 }
 
@@ -864,7 +881,8 @@ function renderTable() {
       sleo: 'SLEO records',
       tolf: 'TOLF records',
       rido: 'Rido cases',
-      hadr: 'HADR operations'
+      hadr: 'HADR operations',
+      incident_reports: 'incident reports'
     };
     const entity = entities[currentTab] || 'records';
     const singularEntity = entity.replace(/s$/, '');
@@ -985,8 +1003,8 @@ function openModal(mode, id) {
   $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the operation details below`;
   $('modal-submit-btn').innerHTML = `<span class="ms">save</span> ${id ? 'Update Record' : 'Save Record'}`;
 
-  // Specially customized form for Combat / Military Operations, SLEO, TOLF & Rido Cases
-  if (currentTab === 'ops') {
+  // Specially customized form for Combat / Military Operations, Incident Reports, SLEO, TOLF & Rido Cases
+  if (currentTab === 'ops' || currentTab === 'incident_reports') {
     renderCombatModalForm(record);
   } else if (currentTab === 'sleo') {
     renderSleoModalForm(record);
@@ -1034,13 +1052,15 @@ function renderCombatModalForm(record) {
   }
 
   let defaultOpDate = new Date().toISOString().slice(0, 10);
-  if (opsSelectedMonth !== 'all') {
+  const curSelM = getSelectedMonth();
+  const curSelY = getSelectedYear();
+  if (curSelM !== 'all') {
     const curY = new Date().getFullYear();
     const curM = new Date().getMonth() + 1;
-    if (opsSelectedYear === curY && opsSelectedMonth === curM) {
+    if (curSelY === curY && curSelM === curM) {
       defaultOpDate = new Date().toISOString().slice(0, 10);
     } else {
-      defaultOpDate = `${opsSelectedYear}-${String(opsSelectedMonth).padStart(2, '0')}-01`;
+      defaultOpDate = `${curSelY}-${String(curSelM).padStart(2, '0')}-01`;
     }
   }
   const opDate = record ? record.op_date : defaultOpDate;
@@ -2498,7 +2518,7 @@ async function handleFormSubmit(e) {
 
   let payload = { remarks: $('f_remarks').value };
 
-  if (currentTab === 'ops') {
+  if (currentTab === 'ops' || currentTab === 'incident_reports') {
     const warMat = {
       enemy_camp: parseInt($('wm_enemy_camp')?.value || 0, 10) || 0,
       ied: parseInt($('wm_ied')?.value || 0, 10) || 0,

@@ -994,6 +994,152 @@ export async function onRequest({ request, env, params }) {
       }
     }
 
+    // 6. Incident Reports (incident_reports)
+    if (r0 === 'incident_reports' || r0 === 'incidents') {
+      try {
+        await db.prepare(`CREATE TABLE IF NOT EXISTS incident_reports (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          op_date TEXT NOT NULL,
+          unit TEXT NOT NULL,
+          area TEXT NOT NULL,
+          province TEXT,
+          threat_category TEXT,
+          threat_group TEXT NOT NULL,
+          engagement_type TEXT,
+          surrendered INTEGER DEFAULT 0,
+          killed INTEGER DEFAULT 0,
+          enemy_wounded INTEGER DEFAULT 0,
+          captured INTEGER DEFAULT 0,
+          apprehended INTEGER DEFAULT 0,
+          firearms INTEGER DEFAULT 0,
+          fa_captured INTEGER DEFAULT 0,
+          fa_confiscated INTEGER DEFAULT 0,
+          fa_surrendered INTEGER DEFAULT 0,
+          fa_recovered INTEGER DEFAULT 0,
+          fa_csw INTEGER DEFAULT 0,
+          fa_high_powered INTEGER DEFAULT 0,
+          fa_low_powered INTEGER DEFAULT 0,
+          tolf INTEGER DEFAULT 0,
+          kia INTEGER DEFAULT 0,
+          wia INTEGER DEFAULT 0,
+          war_materiel TEXT,
+          remarks TEXT
+        )`).run();
+        await db.prepare(`CREATE INDEX IF NOT EXISTS idx_incident_reports_date ON incident_reports(op_date)`).run();
+      } catch(e) {}
+
+      if (method === 'GET') {
+        const url = new URL(request.url);
+        const y = url.searchParams.get('year');
+        let sql = 'SELECT * FROM incident_reports';
+        const params = [];
+        if (y) {
+          sql += ' WHERE op_date LIKE ?';
+          params.push(`${y}-%`);
+        }
+        sql += ' ORDER BY op_date DESC, id DESC LIMIT 500';
+        const q = params.length ? db.prepare(sql).bind(...params) : db.prepare(sql);
+        const x = await q.all();
+        return json({ rows: x.results });
+      }
+      if (method === 'POST') {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
+          return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
+        }
+        if (b.fa_breakdown) {
+          const bd = b.fa_breakdown;
+          const cap = bd.captured || {}, conf = bd.confiscated || {}, sur = bd.surrendered || {}, rec = bd.recovered || {};
+          const capCSW = n(cap.csw), capHP = n(cap.hp), capLP = n(cap.lp);
+          const confCSW = n(conf.csw), confHP = n(conf.hp), confLP = n(conf.lp);
+          const surCSW = n(sur.csw), surHP = n(sur.hp), surLP = n(sur.lp);
+          const recCSW = n(rec.csw), recHP = n(rec.hp), recLP = n(rec.lp);
+
+          b.fa_captured = capCSW + capHP + capLP;
+          b.fa_confiscated = confCSW + confHP + confLP;
+          b.fa_surrendered = surCSW + surHP + surLP;
+          b.fa_recovered = recCSW + recHP + recLP;
+
+          b.fa_csw = capCSW + confCSW + surCSW + recCSW;
+          b.fa_high_powered = capHP + confHP + surHP + recHP;
+          b.fa_low_powered = capLP + confLP + surLP + recLP;
+
+          b.firearms = b.fa_captured + b.fa_confiscated + b.fa_surrendered + b.fa_recovered;
+
+          if (typeof b.war_materiel === 'object' && b.war_materiel !== null) {
+            b.war_materiel.fa_breakdown = bd;
+          }
+        }
+        const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
+        await db.prepare(`INSERT INTO incident_reports (
+          op_date,unit,area,province,threat_category,threat_group,engagement_type,
+          surrendered,killed,enemy_wounded,captured,apprehended,
+          firearms,fa_captured,fa_confiscated,fa_surrendered,fa_recovered,
+          fa_csw,fa_high_powered,fa_low_powered,tolf,kia,wia,
+          war_materiel,remarks
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+          .bind(
+            b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type),
+            n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+            totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+            n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+            warMat, txt(b.remarks, 1000)
+          ).run();
+        return json({ ok: true });
+      }
+      if (method === 'PUT' && r1) {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
+          return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
+        }
+        if (b.fa_breakdown) {
+          const bd = b.fa_breakdown;
+          const cap = bd.captured || {}, conf = bd.confiscated || {}, sur = bd.surrendered || {}, rec = bd.recovered || {};
+          const capCSW = n(cap.csw), capHP = n(cap.hp), capLP = n(cap.lp);
+          const confCSW = n(conf.csw), confHP = n(conf.hp), confLP = n(conf.lp);
+          const surCSW = n(sur.csw), surHP = n(sur.hp), surLP = n(sur.lp);
+          const recCSW = n(rec.csw), recHP = n(rec.hp), recLP = n(rec.lp);
+
+          b.fa_captured = capCSW + capHP + capLP;
+          b.fa_confiscated = confCSW + confHP + confLP;
+          b.fa_surrendered = surCSW + surHP + surLP;
+          b.fa_recovered = recCSW + recHP + recLP;
+
+          b.fa_csw = capCSW + confCSW + surCSW + recCSW;
+          b.fa_high_powered = capHP + confHP + surHP + recHP;
+          b.fa_low_powered = capLP + confLP + surLP + recLP;
+
+          b.firearms = b.fa_captured + b.fa_confiscated + b.fa_surrendered + b.fa_recovered;
+
+          if (typeof b.war_materiel === 'object' && b.war_materiel !== null) {
+            b.war_materiel.fa_breakdown = bd;
+          }
+        }
+        const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
+        await db.prepare(`UPDATE incident_reports SET
+          op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
+          surrendered=?,killed=?,enemy_wounded=?,captured=?,apprehended=?,
+          firearms=?,fa_captured=?,fa_confiscated=?,fa_surrendered=?,fa_recovered=?,
+          fa_csw=?,fa_high_powered=?,fa_low_powered=?,tolf=?,kia=?,wia=?,
+          war_materiel=?,remarks=?
+        WHERE id=?`)
+          .bind(
+            b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type),
+            n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+            totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+            n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+            warMat, txt(b.remarks, 1000), n(r1)
+          ).run();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE' && r1) {
+        await db.prepare('DELETE FROM incident_reports WHERE id=?').bind(n(r1)).run();
+        return json({ ok: true });
+      }
+    }
+
     return json({ error: 'Not found' }, 404);
   } catch (e) {
     return json({ error: e.message || String(e), stack: e.stack }, 500);
