@@ -939,7 +939,8 @@ const ENGAGEMENT_TYPES = [
   { id: 'grenade', label: 'Grenade Throwing' },
   { id: 'ied', label: 'IED Explosion' },
   { id: 'ambush', label: 'Ambush' },
-  { id: 'shooting', label: 'Shooting' }
+  { id: 'shooting', label: 'Shooting' },
+  { id: 'other_act', label: 'Other Activities' }
 ];
 
 // Auto-sum Firearms in Combat Modal (Captured, Confiscated, Surrendered, Recovered each by CSW, HP, LP)
@@ -1020,6 +1021,8 @@ function openModal(mode, id) {
 }
 
 function renderCombatModalForm(record) {
+  const isIncidentReport = currentTab === 'incident_reports';
+
   let warMat = {};
   if (record && record.war_materiel) {
     try {
@@ -1067,8 +1070,8 @@ function renderCombatModalForm(record) {
   const selCat = record ? (record.threat_category || 'Local Terrorist Groups (LTG)') : 'Local Terrorist Groups (LTG)';
   const selGroup = record ? record.threat_group : (THREAT_MAPPING[selCat] ? THREAT_MAPPING[selCat][0] : '');
 
-  // Engagements breakdown (Encounter, Harassment, Grenade Throwing, IED Explosion, Ambush, Shooting)
-  let eng = { encounter: 0, harassment: 0, grenade: 0, ied: 0, ambush: 0, shooting: 0 };
+  // Engagements breakdown (Encounter, Harassment, Grenade Throwing, IED Explosion, Ambush, Shooting, Other Activities)
+  let eng = { encounter: 0, harassment: 0, grenade: 0, ied: 0, ambush: 0, shooting: 0, other_act: 0 };
   if (warMat && warMat.engagements) {
     eng = {
       encounter: warMat.engagements.encounter || 0,
@@ -1076,7 +1079,8 @@ function renderCombatModalForm(record) {
       grenade: warMat.engagements.grenade || 0,
       ied: warMat.engagements.ied || 0,
       ambush: warMat.engagements.ambush || 0,
-      shooting: warMat.engagements.shooting || 0
+      shooting: warMat.engagements.shooting || 0,
+      other_act: warMat.engagements.other_act || warMat.engagements.other_activities || 0
     };
   } else if (record && record.engagement_type) {
     const et = String(record.engagement_type).toLowerCase();
@@ -1085,6 +1089,9 @@ function renderCombatModalForm(record) {
         eng[t.id] = 1;
       }
     });
+    if (et.includes('other act') || et.includes('other activities')) {
+      eng.other_act = 1;
+    }
   }
 
   let savedBrigade = '';
@@ -1176,10 +1183,61 @@ function renderCombatModalForm(record) {
         </div>
       </div>
 
-      <!-- ENGAGEMENT TYPE SPREADSHEET TABLE (Styled exactly like the official operational template) -->
+      <!-- ENGAGEMENT TYPE SPREADSHEET TABLE -->
       <div class="space-y-1.5 pt-1">
         <label class="!mb-0 text-slate-700 font-bold">Engagement Type</label>
 
+        ${isIncidentReport ? `
+        <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
+          <table class="w-full text-center border-collapse min-w-[620px]">
+            <thead>
+              <!-- Top Header Row -->
+              <tr>
+                <th colspan="6" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border border-black tracking-wider text-xs sm:text-sm">
+                  ENEMY-INITIATED ENGAGEMENT
+                </th>
+              </tr>
+              <!-- Subheaders Row: Harassment, Grenade Throwing, IED Explosion, Ambush, Shooting, Other Activities (Purple) -->
+              <tr class="font-extrabold text-black text-[11px] sm:text-xs">
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">HARASSMENT</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">GRENADE<br>THROWING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">IED<br>EXPLOSION</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">AMBUSH</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">SHOOTING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">OTHER<br>ACTIVITIES</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Data Row with Editable Number Inputs for Incident Reports -->
+              <tr class="bg-white">
+                <!-- Harassment -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_harassment" type="number" min="0" value="${eng.harassment}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Grenade Throwing -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_grenade" type="number" min="0" value="${eng.grenade}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- IED Explosion -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_ied" type="number" min="0" value="${eng.ied}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Ambush -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_ambush" type="number" min="0" value="${eng.ambush}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Shooting -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_shooting" type="number" min="0" value="${eng.shooting}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Other Activities -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_other_act" type="number" min="0" value="${eng.other_act}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>` : `
         <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
           <table class="w-full text-center border-collapse min-w-[620px]">
             <thead>
@@ -1231,7 +1289,7 @@ function renderCombatModalForm(record) {
               </tr>
             </tbody>
           </table>
-        </div>
+        </div>`}
       </div>
     </div>
 
@@ -2574,6 +2632,7 @@ async function handleFormSubmit(e) {
     const iedCount = parseInt($('f_eng_ied')?.value || 0, 10) || 0;
     const ambCount = parseInt($('f_eng_ambush')?.value || 0, 10) || 0;
     const shoCount = parseInt($('f_eng_shooting')?.value || 0, 10) || 0;
+    const othCount = parseInt($('f_eng_other_act')?.value || 0, 10) || 0;
 
     const engBreakdown = {
       encounter: encCount,
@@ -2581,7 +2640,8 @@ async function handleFormSubmit(e) {
       grenade: greCount,
       ied: iedCount,
       ambush: ambCount,
-      shooting: shoCount
+      shooting: shoCount,
+      other_act: othCount
     };
 
     warMat.engagements = engBreakdown;
@@ -2593,6 +2653,7 @@ async function handleFormSubmit(e) {
     if (iedCount > 0)        activeEngTypes.push(iedCount > 1 ? `IED Explosion (${iedCount})` : 'IED Explosion');
     if (ambCount > 0)     activeEngTypes.push(ambCount > 1 ? `Ambush (${ambCount})` : 'Ambush');
     if (shoCount > 0)   activeEngTypes.push(shoCount > 1 ? `Shooting (${shoCount})` : 'Shooting');
+    if (othCount > 0) activeEngTypes.push(othCount > 1 ? `Other Activities (${othCount})` : 'Other Activities');
 
     const engTypeStr = activeEngTypes.length > 0 ? activeEngTypes.join(', ') : '—';
 
