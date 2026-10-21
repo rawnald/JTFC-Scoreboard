@@ -291,8 +291,8 @@ const CATEGORIES = {
     desc: 'Encounters, neutralized threat elements, firearms gained, and captured war materiel',
     icon: 'swords',
     columns: [
-      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '';
         let u = o.unit || '—';
@@ -378,8 +378,8 @@ const CATEGORIES = {
     desc: 'Joint operations supporting PNP, PDEA, NBI, anti-illegal drugs, search warrants, and checkpoints',
     icon: 'local_police',
     columns: [
-      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '', u = o.unit || '';
         let wm = null;
@@ -473,8 +473,8 @@ const CATEGORIES = {
     desc: 'Voluntary turnover of loose firearms, light weapons, and ordnance from communities & LGUs',
     icon: 'inventory_2',
     columns: [
-      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '', u = o.unit || '';
         let wm = null;
@@ -547,8 +547,8 @@ const CATEGORIES = {
     desc: 'Monitoring, arbitration, mediation, and peaceful settlement of family and clan feuds',
     icon: 'handshake',
     columns: [
-      { key: 'case_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.case_date || '—')}</span>` },
       { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
+      { key: 'case_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.case_date || '—')}</span>` },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '', u = o.unit || '';
         if (o.brigade) b = o.brigade;
@@ -600,8 +600,8 @@ const CATEGORIES = {
     desc: 'Humanitarian Assistance and Disaster Relief: flood, typhoon, earthquake, and fire response',
     icon: 'health_and_safety',
     columns: [
-      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
       { key: 'unit', label: 'Unit' },
       { key: 'area', label: 'Location' },
       { key: 'disaster_type', label: 'Disaster Type', render: o => `<span class="badge bg-rose-100 text-rose-800 font-bold">${esc(o.disaster_type)}</span>` },
