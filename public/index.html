@@ -136,6 +136,17 @@
           </div>
         </div>
       </div>
+
+      <!-- Latest Control # Input Pill -->
+      <div id="latest-ctrl-container" class="card px-3.5 py-2.5 flex items-center gap-2.5 border border-slate-200/80 bg-white hover:border-blue-400 transition shadow-sm min-h-[50px]">
+        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 grid place-items-center shrink-0">
+          <span class="ms !text-xl">tag</span>
+        </div>
+        <div>
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none">Latest Control # Input</div>
+          <div id="index-latest-ctrl" class="font-mono text-xs sm:text-sm font-bold text-blue-700 mt-1 whitespace-nowrap">—</div>
+        </div>
+      </div>
     </div>
   </header>
   <section id="kpis" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4"></section>
@@ -383,6 +394,10 @@ async function load() {
   const res = await fetch('/api/stats?' + params.toString());
   const s = await res.json();
   const c = s.cur || {}, p = s.prev || {};
+
+  if (s.latest_control_number) {
+    updateIndexLatestControl(s.latest_control_number);
+  }
 
   // Populate Year options once
   if (!$('year').options.length) {
@@ -837,6 +852,41 @@ $('filter-province').onchange = e => {
   }
   load();
 };
+
+function updateIndexLatestControl(val) {
+  const el = $('index-latest-ctrl');
+  if (el) {
+    el.textContent = val || '—';
+    el.title = val ? `Latest Control # Input: ${val}` : 'No control number recorded';
+  }
+}
+
+// Sync Latest Control # across monitors, tabs & windows in real time
+const ctrlBroadcast = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('jtfc_control_sync') : null;
+if (ctrlBroadcast) {
+  ctrlBroadcast.onmessage = e => {
+    if (e.data && e.data.control_number) {
+      updateIndexLatestControl(e.data.control_number);
+    }
+  };
+}
+window.addEventListener('storage', e => {
+  if (e.key === 'jtfc_latest_control_number' && e.newValue) {
+    updateIndexLatestControl(e.newValue);
+  }
+});
+
+async function pollLatestControlNumber() {
+  try {
+    const res = await fetch('/api/latest_control_number');
+    if (res.ok) {
+      const d = await res.json().catch(() => ({}));
+      if (d && d.latest_control_number) updateIndexLatestControl(d.latest_control_number);
+    }
+  } catch(e) {}
+}
+setInterval(pollLatestControlNumber, 15000);
+pollLatestControlNumber();
 
 load();
 </script></body></html>

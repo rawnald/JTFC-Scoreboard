@@ -206,6 +206,47 @@ function agg(rows) {
   return a;
 }
 
+async function getLatestControlNumber(db) {
+  try {
+    const s = await db.prepare("SELECT value FROM settings WHERE key='latest_control_number'").first();
+    if (s && s.value && String(s.value).trim()) return String(s.value).trim();
+  } catch(e) {}
+
+  return await syncLatestControlNumberFromDb(db);
+}
+
+async function setLatestControlNumber(db, val) {
+  if (!val || !String(val).trim()) return;
+  try {
+    await db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('latest_control_number', ?)").bind(String(val).trim()).run();
+  } catch(e) {}
+}
+
+async function syncLatestControlNumberFromDb(db) {
+  const tables = ['incident_reports', 'ops', 'sleo', 'tolf', 'rido', 'hadr'];
+  let bestId = -1;
+  let bestCtrl = '';
+
+  for (const tbl of tables) {
+    try {
+      const row = await db.prepare(`SELECT id, control_number FROM ${tbl} WHERE control_number IS NOT NULL AND TRIM(control_number) != '' ORDER BY id DESC LIMIT 1`).first();
+      if (row && row.control_number && String(row.control_number).trim()) {
+        const idNum = Number(row.id) || 0;
+        if (idNum > bestId) {
+          bestId = idNum;
+          bestCtrl = String(row.control_number).trim();
+        }
+      }
+    } catch(e) {}
+  }
+
+  try {
+    await db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('latest_control_number', ?)").bind(bestCtrl).run();
+  } catch(e) {}
+
+  return bestCtrl;
+}
+
 export async function onRequest({ request, env, params }) {
   const db = env.DB || env.DB_Scoreboard;
   const route = [].concat(params.route || []);
@@ -630,6 +671,7 @@ export async function onRequest({ request, env, params }) {
         region: region,
         province: province,
         target: +(t?.value || 0),
+        latest_control_number: await getLatestControlNumber(db),
         cur,
         prev,
         matrix: matrixList,
@@ -642,6 +684,21 @@ export async function onRequest({ request, env, params }) {
         region_province_map: regionProvinceMap,
         available_years: availableYears
       });
+    }
+
+    // Latest Control Number endpoint (publicly readable for displays & admin)
+    if (r0 === 'latest_control_number') {
+      if (method === 'GET') {
+        const ctrl = await getLatestControlNumber(db);
+        return json({ latest_control_number: ctrl });
+      }
+      if (method === 'POST' || method === 'PUT') {
+        if (!(await authed(request, env))) return json({ error: 'Unauthorized' }, 401);
+        const b = await request.json().catch(() => ({}));
+        const val = txt(b.control_number || b.latest_control_number, 100);
+        if (val) await setLatestControlNumber(db, val);
+        return json({ ok: true, latest_control_number: val });
+      }
     }
 
     // Authentication endpoints
@@ -746,6 +803,7 @@ export async function onRequest({ request, env, params }) {
               warMat, txt(b.remarks, 1000)
             ).run();
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -810,10 +868,12 @@ export async function onRequest({ request, env, params }) {
               warMat, txt(b.remarks, 1000), n(r1)
             ).run();
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
         await db.prepare('DELETE FROM ops WHERE id=?').bind(n(r1)).run();
+        await syncLatestControlNumberFromDb(db);
         return json({ ok: true });
       }
     }
@@ -894,6 +954,7 @@ export async function onRequest({ request, env, params }) {
             }
           }
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -943,10 +1004,12 @@ export async function onRequest({ request, env, params }) {
             }
           }
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
         await db.prepare('DELETE FROM sleo WHERE id=?').bind(n(r1)).run();
+        await syncLatestControlNumberFromDb(db);
         return json({ ok: true });
       }
     }
@@ -1003,6 +1066,7 @@ export async function onRequest({ request, env, params }) {
             }
           }
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -1034,10 +1098,12 @@ export async function onRequest({ request, env, params }) {
             }
           }
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
         await db.prepare('DELETE FROM tolf WHERE id=?').bind(n(r1)).run();
+        await syncLatestControlNumberFromDb(db);
         return json({ ok: true });
       }
     }
@@ -1079,6 +1145,7 @@ export async function onRequest({ request, env, params }) {
               .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500)).run();
           }
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -1099,10 +1166,12 @@ export async function onRequest({ request, env, params }) {
               .bind(b.case_date, txt(b.unit), txt(b.area), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500), n(r1)).run();
           }
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
         await db.prepare('DELETE FROM rido WHERE id=?').bind(n(r1)).run();
+        await syncLatestControlNumberFromDb(db);
         return json({ ok: true });
       }
     }
@@ -1137,6 +1206,7 @@ export async function onRequest({ request, env, params }) {
           await db.prepare('INSERT INTO hadr (op_date,unit,area,disaster_type,assisted_families,assisted_individuals,rescued_persons,relief_packs_distributed,personnel_deployed,partner_agencies,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
             .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.disaster_type), n(b.assisted_families), n(b.assisted_individuals), n(b.rescued_persons), n(b.relief_packs_distributed), n(b.personnel_deployed), txt(b.partner_agencies), txt(b.remarks, 500)).run();
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -1152,10 +1222,12 @@ export async function onRequest({ request, env, params }) {
           await db.prepare('UPDATE hadr SET op_date=?,unit=?,area=?,disaster_type=?,assisted_families=?,assisted_individuals=?,rescued_persons=?,relief_packs_distributed=?,personnel_deployed=?,partner_agencies=?,remarks=? WHERE id=?')
             .bind(b.op_date, txt(b.unit), txt(b.area), txt(b.disaster_type), n(b.assisted_families), n(b.assisted_individuals), n(b.rescued_persons), n(b.relief_packs_distributed), n(b.personnel_deployed), txt(b.partner_agencies), txt(b.remarks, 500), n(r1)).run();
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
         await db.prepare('DELETE FROM hadr WHERE id=?').bind(n(r1)).run();
+        await syncLatestControlNumberFromDb(db);
         return json({ ok: true });
       }
     }
@@ -1272,6 +1344,7 @@ export async function onRequest({ request, env, params }) {
               warMat, txt(b.remarks, 1000)
             ).run();
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'PUT' && r1) {
@@ -1336,10 +1409,12 @@ export async function onRequest({ request, env, params }) {
               warMat, txt(b.remarks, 1000), n(r1)
             ).run();
         }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
         return json({ ok: true });
       }
       if (method === 'DELETE' && r1) {
         await db.prepare('DELETE FROM incident_reports WHERE id=?').bind(n(r1)).run();
+        await syncLatestControlNumberFromDb(db);
         return json({ ok: true });
       }
     }

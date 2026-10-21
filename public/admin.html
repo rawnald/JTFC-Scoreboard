@@ -829,45 +829,37 @@ async function updateLatestControlNumber() {
     setLatestControlNumberUI(cached);
   }
 
-  if (!tabData.incident_reports || !tabData.incident_reports.length) {
-    try {
-      const r = await api('incident_reports');
-      if (r.ok) {
-        const d = await r.json().catch(() => ({ rows: [] }));
-        if (d && d.rows) tabData.incident_reports = d.rows;
+  // Fetch from server database so other monitors and browsers are always in sync
+  try {
+    const r = await fetch('/api/latest_control_number');
+    if (r.ok) {
+      const data = await r.json().catch(() => ({}));
+      const remoteLatest = (data.latest_control_number || '').trim();
+      if (remoteLatest) {
+        localStorage.setItem('jtfc_latest_control_number', remoteLatest);
+        setLatestControlNumberUI(remoteLatest);
+        return;
       }
-    } catch(e) {}
-  }
+    }
+  } catch(e) {}
 
   let latest = '';
-  if (tabData.incident_reports && tabData.incident_reports.length) {
-    const withCtrl = tabData.incident_reports.filter(x => x && x.control_number && String(x.control_number).trim() !== '');
+  for (const key of ['incident_reports', 'ops', 'sleo', 'tolf', 'rido', 'hadr']) {
+    const rows = tabData[key] || [];
+    const withCtrl = rows.filter(x => x && x.control_number && String(x.control_number).trim() !== '');
     if (withCtrl.length) {
       withCtrl.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
       latest = String(withCtrl[0].control_number).trim();
+      break;
     }
-  }
-
-  if (!latest) {
-    for (const key of ['ops', 'sleo', 'tolf', 'rido', 'hadr']) {
-      const rows = tabData[key] || [];
-      const withCtrl = rows.filter(x => x && x.control_number && String(x.control_number).trim() !== '');
-      if (withCtrl.length) {
-        withCtrl.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-        latest = String(withCtrl[0].control_number).trim();
-        break;
-      }
-    }
-  }
-
-  if (!latest && cached) {
-    latest = cached;
   }
 
   if (latest) {
     localStorage.setItem('jtfc_latest_control_number', latest);
+    setLatestControlNumberUI(latest);
+  } else if (!cached) {
+    setLatestControlNumberUI('—');
   }
-  setLatestControlNumberUI(latest);
 }
 
 async function checkAuthAndLoad() {
@@ -3037,6 +3029,7 @@ async function handleFormSubmit(e) {
     if (payload.control_number) {
       localStorage.setItem('jtfc_latest_control_number', payload.control_number);
       setLatestControlNumberUI(payload.control_number);
+      if (ctrlBroadcast) ctrlBroadcast.postMessage({ control_number: payload.control_number });
     }
     const recDate = payload.op_date || payload.case_date;
     if (recDate && recDate.length >= 7) {
@@ -3154,6 +3147,28 @@ $('modal').addEventListener('click', e => {
 });
 $('delete-modal').addEventListener('click', e => {
   if (e.target === $('delete-modal')) closeDeleteModal();
+});
+
+// Cross-window and multi-monitor real-time sync
+const ctrlBroadcast = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('jtfc_control_sync') : null;
+if (ctrlBroadcast) {
+  ctrlBroadcast.onmessage = e => {
+    if (e.data && e.data.control_number) {
+      setLatestControlNumberUI(e.data.control_number);
+      localStorage.setItem('jtfc_latest_control_number', e.data.control_number);
+    }
+  };
+}
+window.addEventListener('storage', e => {
+  if (e.key === 'jtfc_latest_control_number' && e.newValue) {
+    setLatestControlNumberUI(e.newValue);
+  }
+});
+
+// Periodic background polling (syncs across distinct browsers / machines / monitors every 10s)
+setInterval(updateLatestControlNumber, 10000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') updateLatestControlNumber();
 });
 
 // Initialize on load
