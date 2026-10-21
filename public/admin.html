@@ -88,21 +88,24 @@
           <span class="ms text-rose-400">health_and_safety</span>
           <span class="truncate">HADR Operations</span>
         </button>
-        <button onclick="switchTab('incident_reports')" id="tab-incident_reports" class="side-tab w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium text-slate-200 text-left">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <span class="ms text-teal-400 shrink-0">description</span>
-            <span class="truncate">Incident Reports</span>
-          </div>
-          <div class="flex flex-col items-end shrink-0 text-right leading-tight" title="Latest Control # Input">
-            <span class="text-[9px] text-teal-200/80 font-bold uppercase tracking-tight">Latest Control # Input</span>
-            <span id="sidebar-latest-ctrl" class="font-mono font-bold text-teal-300 text-xs leading-tight mt-0.5 max-w-[110px] truncate bg-black/25 border border-teal-400/30 px-1.5 py-0.5 rounded shadow-sm">—</span>
-          </div>
+        <button onclick="switchTab('incident_reports')" id="tab-incident_reports" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-teal-400">description</span>
+          <span class="truncate">Incident Reports</span>
         </button>
       </nav>
     </div>
 
     <!-- Sidebar Footer -->
     <div class="pt-6 border-t border-white/10 space-y-2">
+      <!-- Latest Control # Display -->
+      <div class="rounded-xl p-3 bg-white/5 border border-white/10 flex items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="ms text-teal-400 text-base shrink-0">tag</span>
+          <span class="text-[11px] text-blue-200 font-semibold truncate">Latest Control # Input</span>
+        </div>
+        <span id="sidebar-latest-ctrl" class="font-mono font-bold text-teal-300 text-xs shrink-0 bg-teal-950/70 border border-teal-500/30 px-2 py-0.5 rounded shadow-sm" title="Latest Control # Input">—</span>
+      </div>
+
       <a href="/" target="_blank" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/10 text-xs text-blue-200 font-medium transition">
         <span class="ms text-lg">open_in_new</span>
         <span>View Public Dashboard</span>
@@ -141,7 +144,7 @@
       <button onclick="switchTab('tolf')" id="mob-tab-tolf" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">TOLF</button>
       <button onclick="switchTab('rido')" id="mob-tab-rido" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Rido Cases</button>
       <button onclick="switchTab('hadr')" id="mob-tab-hadr" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">HADR</button>
-      <button onclick="switchTab('incident_reports')" id="mob-tab-incident_reports" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Incident Reports <span id="mob-sidebar-latest-ctrl" class="text-[10px] ml-1 font-mono text-teal-300 bg-white/10 px-1.5 py-0.5 rounded hidden"></span></button>
+      <button onclick="switchTab('incident_reports')" id="mob-tab-incident_reports" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Incident Reports</button>
     </div>
   </div>
 
