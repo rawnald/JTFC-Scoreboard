@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS ops (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  control_number TEXT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 602nd Bde
   area TEXT NOT NULL,               -- e.g. Pikit
@@ -30,6 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_ops_date ON ops(op_date);
 
 CREATE TABLE IF NOT EXISTS sleo (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  control_number TEXT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 601st Bde
   area TEXT NOT NULL,               -- e.g. Isulan
@@ -60,6 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_sleo_date ON sleo(op_date);
 
 CREATE TABLE IF NOT EXISTS tolf (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  control_number TEXT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 602nd Bde
   area TEXT NOT NULL,               -- e.g. Carmen
@@ -81,6 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_tolf_date ON tolf(op_date);
 
 CREATE TABLE IF NOT EXISTS rido (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  control_number TEXT,
   case_date TEXT NOT NULL,          -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 603rd Bde
   area TEXT NOT NULL,               -- e.g. Datu Piang
@@ -98,6 +102,7 @@ CREATE INDEX IF NOT EXISTS idx_rido_date ON rido(case_date);
 
 CREATE TABLE IF NOT EXISTS hadr (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  control_number TEXT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 6th ID / JTFC
   area TEXT NOT NULL,               -- e.g. Cotabato City / Maguindanao
@@ -114,6 +119,7 @@ CREATE INDEX IF NOT EXISTS idx_hadr_date ON hadr(op_date);
 
 CREATE TABLE IF NOT EXISTS incident_reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  control_number TEXT,
   op_date TEXT NOT NULL,            -- YYYY-MM-DD
   unit TEXT NOT NULL,               -- e.g. 602nd Bde
   area TEXT NOT NULL,               -- e.g. Pikit

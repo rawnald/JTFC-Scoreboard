@@ -283,6 +283,7 @@ const CATEGORIES = {
     icon: 'swords',
     columns: [
       { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
+      { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '';
         let u = o.unit || '—';
@@ -368,7 +369,8 @@ const CATEGORIES = {
     desc: 'Joint operations supporting PNP, PDEA, NBI, anti-illegal drugs, search warrants, and checkpoints',
     icon: 'local_police',
     columns: [
-      { key: 'op_date', label: 'Date' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
+      { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '', u = o.unit || '';
         let wm = null;
@@ -444,6 +446,7 @@ const CATEGORIES = {
     ],
     fields: [
       { id: 'op_date', label: 'Operation Date', type: 'date', required: true },
+      { id: 'control_number', label: 'Control #', placeholder: 'e.g. CTRL-2026-001' },
       { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 601st Bde', required: true },
       { id: 'unit', label: 'Unit', placeholder: 'e.g. 7IB, 40IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Tacurong City, Isulan' },
@@ -461,7 +464,8 @@ const CATEGORIES = {
     desc: 'Voluntary turnover of loose firearms, light weapons, and ordnance from communities & LGUs',
     icon: 'inventory_2',
     columns: [
-      { key: 'op_date', label: 'Date' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
+      { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '', u = o.unit || '';
         let wm = null;
@@ -513,6 +517,7 @@ const CATEGORIES = {
     ],
     fields: [
       { id: 'op_date', label: 'Turn-Over Date', type: 'date', required: true },
+      { id: 'control_number', label: 'Control #', placeholder: 'e.g. CTRL-2026-001' },
       { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 602nd Bde', required: true },
       { id: 'unit', label: 'Unit', placeholder: 'e.g. 7IB, 90IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Carmen, Pikit' },
@@ -533,7 +538,8 @@ const CATEGORIES = {
     desc: 'Monitoring, arbitration, mediation, and peaceful settlement of family and clan feuds',
     icon: 'handshake',
     columns: [
-      { key: 'case_date', label: 'Date' },
+      { key: 'case_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.case_date || '—')}</span>` },
+      { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
       { key: 'unit', label: 'Unit / Brigade', render: o => {
         let b = '', u = o.unit || '';
         if (o.brigade) b = o.brigade;
@@ -566,6 +572,7 @@ const CATEGORIES = {
     ],
     fields: [
       { id: 'case_date', label: 'Date of Incident / Settlement', type: 'date', required: true },
+      { id: 'control_number', label: 'Control #', placeholder: 'e.g. CTRL-2026-001' },
       { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 603rd Bde', required: true },
       { id: 'unit', label: 'Unit', placeholder: 'e.g. 37IB, 57IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Datu Piang, Pikit', required: true },
@@ -584,7 +591,8 @@ const CATEGORIES = {
     desc: 'Humanitarian Assistance and Disaster Relief: flood, typhoon, earthquake, and fire response',
     icon: 'health_and_safety',
     columns: [
-      { key: 'op_date', label: 'Date' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
+      { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
       { key: 'unit', label: 'Unit' },
       { key: 'area', label: 'Location' },
       { key: 'disaster_type', label: 'Disaster Type', render: o => `<span class="badge bg-rose-100 text-rose-800 font-bold">${esc(o.disaster_type)}</span>` },
@@ -597,6 +605,7 @@ const CATEGORIES = {
     ],
     fields: [
       { id: 'op_date', label: 'Operation Date', type: 'date', required: true },
+      { id: 'control_number', label: 'Control #', placeholder: 'e.g. CTRL-2026-001' },
       { id: 'unit', label: 'Responding Unit', placeholder: 'e.g. 6th ID / JTFC, 549ECB', required: true },
       { id: 'area', label: 'Affected Location / Municipality', placeholder: 'e.g. Sultan Kudarat, Maguindanao' },
       { id: 'disaster_type', label: 'Disaster Type', placeholder: 'e.g. Flashflood, Typhoon, Earthquake, Fire', required: true },
@@ -1119,10 +1128,14 @@ function renderCombatModalForm(record) {
       <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
         <span class="ms !text-lg text-blue-600">pin_drop</span> General & Location Information
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <div>
           <label>Date of Operation <span class="text-red-500">*</span></label>
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
+        </div>
+        <div>
+          <label>Control #</label>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
         </div>
         <div>
           <label>Brigade <span class="text-red-500">*</span></label>
@@ -1720,6 +1733,10 @@ function renderSleoModalForm(record) {
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
+          <label>Control #</label>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
+        </div>
+        <div>
           <label>Brigade <span class="text-red-500">*</span></label>
           <input id="f_brigade" list="sleo_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 601st Bde" class="f" required>
           <datalist id="sleo_brigade_list">
@@ -2126,6 +2143,10 @@ function renderTolfModalForm(record) {
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
+          <label>Control #</label>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
+        </div>
+        <div>
           <label>Brigade <span class="text-red-500">*</span></label>
           <input id="f_brigade" list="tolf_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 601st Bde" class="f" required>
           <datalist id="tolf_brigade_list">
@@ -2373,10 +2394,14 @@ function renderRidoModalForm(record) {
       <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
         <span class="ms !text-lg text-indigo-600">handshake</span> Incident & Unit Information
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div>
           <label>Date of Incident / Settlement <span class="text-red-500">*</span></label>
           <input id="f_case_date" type="date" value="${esc(caseDate)}" class="f" required>
+        </div>
+        <div>
+          <label>Control #</label>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
         </div>
         <div>
           <label>Brigade <span class="text-red-500">*</span></label>
@@ -2420,7 +2445,7 @@ function renderRidoModalForm(record) {
             <option value="Sarangani">
           </datalist>
         </div>
-        <div>
+        <div class="sm:col-span-2 lg:col-span-2">
           <label>Status <span class="text-red-500">*</span></label>
           <select id="f_status" class="f" onchange="onSelectWithOtherChange(this, 'f_status_other_wrap', 'f_status_other')">
             <option value="Ongoing Mediation" ${selectedStatus === 'Ongoing Mediation' ? 'selected' : ''}>Ongoing Mediation</option>
@@ -2574,7 +2599,11 @@ async function handleFormSubmit(e) {
   const method = editId ? 'PUT' : 'POST';
   const url = editId ? `${currentTab}/${editId}` : currentTab;
 
-  let payload = { remarks: $('f_remarks').value };
+  const ctrlNum = ($('f_control_number')?.value || '').trim();
+  let payload = {
+    remarks: $('f_remarks').value,
+    control_number: ctrlNum
+  };
 
   if (currentTab === 'ops' || currentTab === 'incident_reports') {
     const warMat = {
@@ -2666,6 +2695,7 @@ async function handleFormSubmit(e) {
 
     payload = {
       ...payload,
+      control_number: ctrlNum,
       op_date: $('f_op_date').value,
       unit: combinedUnit,
       brigade: brigadeVal,
@@ -2765,6 +2795,7 @@ async function handleFormSubmit(e) {
 
     payload = {
       ...payload,
+      control_number: ctrlNum,
       op_date: $('f_op_date').value,
       unit: combinedUnit,
       brigade: brigadeVal,
@@ -2824,6 +2855,7 @@ async function handleFormSubmit(e) {
 
     payload = {
       ...payload,
+      control_number: ctrlNum,
       op_date: $('f_op_date').value,
       unit: combinedUnit,
       brigade: brigadeVal,
@@ -2851,6 +2883,7 @@ async function handleFormSubmit(e) {
 
     payload = {
       ...payload,
+      control_number: ctrlNum,
       case_date: $('f_case_date').value,
       unit: combinedUnit,
       brigade: brigadeVal,
