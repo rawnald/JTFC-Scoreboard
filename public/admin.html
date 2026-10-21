@@ -252,6 +252,40 @@
   </div>
 </div>
 
+<!-- DELETE CONFIRMATION MODAL -->
+<div id="delete-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+  <div class="bg-white w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div class="p-5 sm:p-6">
+      <div class="flex items-start gap-3.5">
+        <div class="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 grid place-items-center shrink-0">
+          <span class="ms text-2xl">warning</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-bold text-base sm:text-lg text-slate-900">Delete Record</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Are you sure you want to permanently delete this record? This action cannot be undone.</p>
+        </div>
+        <button type="button" onclick="closeDeleteModal()" class="w-8 h-8 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 grid place-items-center transition shrink-0">
+          <span class="ms text-lg">close</span>
+        </button>
+      </div>
+
+      <div id="delete-record-summary" class="mt-4 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-1.5 text-slate-600">
+        <!-- Injected details: ID, Control #, Date, Unit, etc. -->
+      </div>
+      <div id="delete-modal-msg" class="text-xs text-rose-600 font-medium min-h-[1rem] mt-2"></div>
+    </div>
+
+    <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5">
+      <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-white text-xs sm:text-sm font-medium transition">
+        Cancel
+      </button>
+      <button type="button" id="delete-confirm-btn" onclick="confirmDeleteRecord()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-md shadow-rose-200 transition">
+        <span class="ms text-sm">delete</span> Delete Record
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 const $ = id => document.getElementById(id);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
@@ -3025,29 +3059,101 @@ async function handleFormSubmit(e) {
   return false;
 }
 
-// Delete Record
-async function deleteRecord(id) {
-  if (!confirm(`Are you sure you want to delete record #${id}? This action cannot be undone.`)) {
-    return;
-  }
-  const r = await api(`${currentTab}/${id}`, 'DELETE');
-  if (r.ok) {
-    loadTabData(currentTab);
-    updateLatestControlNumber();
-  } else {
-    const err = await r.json().catch(() => ({}));
-    alert(err.error || 'Failed to delete record');
+// Delete Record Modal Logic
+let recordIdPendingDelete = null;
+
+function deleteRecord(id) {
+  recordIdPendingDelete = id;
+  const rows = tabData[currentTab] || [];
+  const rec = rows.find(r => r && Number(r.id) === Number(id)) || {};
+  const cat = CATEGORIES[currentTab] || {};
+
+  const dVal = rec.op_date || rec.case_date || '—';
+  const ctrl = rec.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5">${esc(rec.control_number)}</span>` : '<span class="text-slate-400 font-normal">—</span>';
+  const unit = rec.unit || '—';
+  const loc = `${rec.area || ''}${rec.province ? ', ' + rec.province : ''}`.trim() || '—';
+
+  $('delete-record-summary').innerHTML = `
+    <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+      <span class="text-slate-500 font-medium">Category:</span>
+      <span class="font-semibold text-slate-800">${esc(cat.title || currentTab)}</span>
+    </div>
+    <div class="flex items-center justify-between py-0.5">
+      <span class="text-slate-500 font-medium">Control #:</span>
+      <span class="font-semibold">${ctrl}</span>
+    </div>
+    <div class="flex items-center justify-between py-0.5">
+      <span class="text-slate-500 font-medium">Record ID:</span>
+      <span class="font-mono text-slate-800">#${esc(id)}</span>
+    </div>
+    <div class="flex items-center justify-between py-0.5">
+      <span class="text-slate-500 font-medium">Date:</span>
+      <span class="font-mono text-slate-800">${esc(dVal)}</span>
+    </div>
+    <div class="flex items-center justify-between py-0.5">
+      <span class="text-slate-500 font-medium">Unit:</span>
+      <span class="font-semibold text-slate-800 truncate max-w-[200px]" title="${esc(unit)}">${esc(unit)}</span>
+    </div>
+    <div class="flex items-center justify-between pt-0.5">
+      <span class="text-slate-500 font-medium">Location:</span>
+      <span class="text-slate-800 truncate max-w-[200px]" title="${esc(loc)}">${esc(loc)}</span>
+    </div>
+  `;
+
+  $('delete-modal-msg').textContent = '';
+  const btn = $('delete-confirm-btn');
+  btn.disabled = false;
+  btn.innerHTML = `<span class="ms text-sm">delete</span> Delete Record`;
+
+  $('delete-modal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+  $('delete-modal').classList.add('hidden');
+  recordIdPendingDelete = null;
+}
+
+async function confirmDeleteRecord() {
+  if (!recordIdPendingDelete) return;
+  const btn = $('delete-confirm-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="ms text-sm animate-spin">refresh</span> Deleting...`;
+  $('delete-modal-msg').textContent = '';
+
+  try {
+    const r = await api(`${currentTab}/${recordIdPendingDelete}`, 'DELETE');
+    if (r.ok) {
+      closeDeleteModal();
+      loadTabData(currentTab);
+      updateLatestControlNumber();
+    } else {
+      const err = await r.json().catch(() => ({}));
+      $('delete-modal-msg').textContent = err.error || 'Failed to delete record';
+      btn.disabled = false;
+      btn.innerHTML = `<span class="ms text-sm">delete</span> Delete Record`;
+    }
+  } catch (err) {
+    $('delete-modal-msg').textContent = 'Network or server error while deleting.';
+    btn.disabled = false;
+    btn.innerHTML = `<span class="ms text-sm">delete</span> Delete Record`;
   }
 }
 
-// Close modal on Escape key or outside click
+// Close modals on Escape key or outside click
 window.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) {
-    closeModal();
+  if (e.key === 'Escape') {
+    if (!$('delete-modal').classList.contains('hidden')) {
+      closeDeleteModal();
+    } else if (!$('modal').classList.contains('hidden')) {
+      closeModal();
+    }
   }
 });
 $('modal').addEventListener('click', e => {
   if (e.target === $('modal')) closeModal();
+});
+$('delete-modal').addEventListener('click', e => {
+  if (e.target === $('delete-modal')) closeDeleteModal();
 });
 
 // Initialize on load
