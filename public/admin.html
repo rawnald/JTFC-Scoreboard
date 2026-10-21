@@ -88,9 +88,15 @@
           <span class="ms text-rose-400">health_and_safety</span>
           <span class="truncate">HADR Operations</span>
         </button>
-        <button onclick="switchTab('incident_reports')" id="tab-incident_reports" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
-          <span class="ms text-teal-400">description</span>
-          <span class="truncate">Incident Reports</span>
+        <button onclick="switchTab('incident_reports')" id="tab-incident_reports" class="side-tab w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm font-medium text-slate-200 text-left">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="ms text-teal-400 shrink-0">description</span>
+            <span class="truncate">Incident Reports</span>
+          </div>
+          <div class="flex flex-col items-end shrink-0 text-right leading-tight" title="Latest Control # Input">
+            <span class="text-[9px] text-teal-200/80 font-bold uppercase tracking-tight">Latest Control # Input</span>
+            <span id="sidebar-latest-ctrl" class="font-mono font-bold text-teal-300 text-xs leading-tight mt-0.5 max-w-[110px] truncate bg-black/25 border border-teal-400/30 px-1.5 py-0.5 rounded shadow-sm">—</span>
+          </div>
         </button>
       </nav>
     </div>
@@ -135,7 +141,7 @@
       <button onclick="switchTab('tolf')" id="mob-tab-tolf" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">TOLF</button>
       <button onclick="switchTab('rido')" id="mob-tab-rido" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Rido Cases</button>
       <button onclick="switchTab('hadr')" id="mob-tab-hadr" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">HADR</button>
-      <button onclick="switchTab('incident_reports')" id="mob-tab-incident_reports" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Incident Reports</button>
+      <button onclick="switchTab('incident_reports')" id="mob-tab-incident_reports" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Incident Reports <span id="mob-sidebar-latest-ctrl" class="text-[10px] ml-1 font-mono text-teal-300 bg-white/10 px-1.5 py-0.5 rounded hidden"></span></button>
     </div>
   </div>
 
@@ -761,6 +767,72 @@ const api = (path, method = 'GET', body) => fetch('/api/' + path, {
   body: body ? JSON.stringify(body) : undefined
 });
 
+function setLatestControlNumberUI(val) {
+  const displayVal = (val && String(val).trim()) ? String(val).trim() : '—';
+  const el = $('sidebar-latest-ctrl');
+  if (el) {
+    el.textContent = displayVal;
+    el.title = `Latest Control # Input: ${displayVal}`;
+  }
+  const mobEl = $('mob-sidebar-latest-ctrl');
+  if (mobEl) {
+    if (displayVal !== '—') {
+      mobEl.textContent = `(${displayVal})`;
+      mobEl.classList.remove('hidden');
+    } else {
+      mobEl.textContent = '';
+      mobEl.classList.add('hidden');
+    }
+  }
+}
+
+async function updateLatestControlNumber() {
+  const cached = localStorage.getItem('jtfc_latest_control_number');
+  if (cached) {
+    setLatestControlNumberUI(cached);
+  }
+
+  if (!tabData.incident_reports || !tabData.incident_reports.length) {
+    try {
+      const r = await api('incident_reports');
+      if (r.ok) {
+        const d = await r.json().catch(() => ({ rows: [] }));
+        if (d && d.rows) tabData.incident_reports = d.rows;
+      }
+    } catch(e) {}
+  }
+
+  let latest = '';
+  if (tabData.incident_reports && tabData.incident_reports.length) {
+    const withCtrl = tabData.incident_reports.filter(x => x && x.control_number && String(x.control_number).trim() !== '');
+    if (withCtrl.length) {
+      withCtrl.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+      latest = String(withCtrl[0].control_number).trim();
+    }
+  }
+
+  if (!latest) {
+    for (const key of ['ops', 'sleo', 'tolf', 'rido', 'hadr']) {
+      const rows = tabData[key] || [];
+      const withCtrl = rows.filter(x => x && x.control_number && String(x.control_number).trim() !== '');
+      if (withCtrl.length) {
+        withCtrl.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+        latest = String(withCtrl[0].control_number).trim();
+        break;
+      }
+    }
+  }
+
+  if (!latest && cached) {
+    latest = cached;
+  }
+
+  if (latest) {
+    localStorage.setItem('jtfc_latest_control_number', latest);
+  }
+  setLatestControlNumberUI(latest);
+}
+
 async function checkAuthAndLoad() {
   const r = await api('ops?year=' + opsSelectedYear);
   if (r.status === 401) {
@@ -777,6 +849,7 @@ async function checkAuthAndLoad() {
   initOpsYearSelect();
   renderOpsMonthButtons();
   switchTab(currentTab);
+  updateLatestControlNumber();
 }
 
 async function login(e) {
@@ -855,6 +928,7 @@ async function loadTabData(tabKey) {
   initOpsYearSelect();
   renderOpsMonthButtons();
   renderTable();
+  updateLatestControlNumber();
 }
 
 function renderTable() {
@@ -2923,6 +2997,10 @@ async function handleFormSubmit(e) {
   if (r.ok) {
     $('modal-msg').textContent = 'Saved successfully! ✓';
     $('modal-msg').className = 'text-xs font-medium text-green-600';
+    if (payload.control_number) {
+      localStorage.setItem('jtfc_latest_control_number', payload.control_number);
+      setLatestControlNumberUI(payload.control_number);
+    }
     const recDate = payload.op_date || payload.case_date;
     if (recDate && recDate.length >= 7) {
       const savedYear = parseInt(recDate.slice(0, 4), 10);
@@ -2933,6 +3011,7 @@ async function handleFormSubmit(e) {
     setTimeout(() => {
       closeModal();
       loadTabData(currentTab);
+      updateLatestControlNumber();
     }, 350);
   } else {
     const err = await r.json().catch(() => ({}));
@@ -2951,6 +3030,7 @@ async function deleteRecord(id) {
   const r = await api(`${currentTab}/${id}`, 'DELETE');
   if (r.ok) {
     loadTabData(currentTab);
+    updateLatestControlNumber();
   } else {
     const err = await r.json().catch(() => ({}));
     alert(err.error || 'Failed to delete record');
@@ -2969,6 +3049,7 @@ $('modal').addEventListener('click', e => {
 
 // Initialize on load
 checkAuthAndLoad();
+updateLatestControlNumber();
 </script>
 </body>
 </html>
