@@ -181,7 +181,7 @@
     </section>
 
     <!-- KPI STATS SECTION FOR INCIDENT REPORTS -->
-    <section id="incident-kpis" class="hidden grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5"></section>
+    <section id="incident-kpis" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-3.5"></section>
 
     <!-- RESPONSIVE DATA TABLE CARD -->
     <section class="card overflow-hidden border border-slate-200/80">
@@ -1071,140 +1071,164 @@ function renderIncidentKpis(rows) {
   const fmt = val => Number(val || 0).toLocaleString();
 
   let totalIncidents = rows.length;
-  let encounters = 0;
-  let otherEngagements = 0;
-
-  let killed = 0;
-  let enemyWounded = 0;
-  let surrendered = 0;
-  let captured = 0;
-  let apprehended = 0;
-
-  let firearmsTotal = 0;
-  let faCSW = 0;
-  let faHP = 0;
-  let faLP = 0;
-
-  let kia = 0;
-  let wia = 0;
-
-  let camps = 0;
-  let ied = 0;
-  let uxo = 0;
-  let explosives = 0;
-  let ammo = 0;
-  let magazines = 0;
+  let harassment = 0;
+  let ambush = 0;
+  let liquidation = 0;
+  let shooting = 0;
+  let armedClash = 0;
+  let iedExplosion = 0;
+  let busBombing = 0;
+  let carnapping = 0;
+  let otherIncidents = 0;
 
   rows.forEach(o => {
-    // Engagement Classification
-    const eng = String(o.engagement_type || '').toLowerCase();
-    if (eng.includes('encounter') || eng.includes('clash') || eng.includes('government initiated')) {
-      encounters++;
-    } else {
-      otherEngagements++;
-    }
-
-    // Casualties / Neutralized
-    killed += Number(o.killed) || 0;
-    enemyWounded += Number(o.enemy_wounded) || 0;
-    surrendered += Number(o.surrendered) || 0;
-    captured += Number(o.captured) || 0;
-    apprehended += Number(o.apprehended) || 0;
-
-    // Government / Friendly Casualties
-    kia += Number(o.kia) || 0;
-    wia += Number(o.wia) || 0;
-
-    // Firearms Breakdown
-    let csw = Number(o.fa_csw) || 0;
-    let hp = Number(o.fa_high_powered) || 0;
-    let lp = Number(o.fa_low_powered) || 0;
-
     let wm = null;
     try {
       wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel;
     } catch(e) {}
 
-    if (wm && wm.fa_breakdown) {
-      const b = wm.fa_breakdown;
-      const bCSW = (Number(b.captured?.csw) || 0) + (Number(b.confiscated?.csw) || 0) + (Number(b.surrendered?.csw) || 0) + (Number(b.recovered?.csw) || 0);
-      const bHP = (Number(b.captured?.hp) || 0) + (Number(b.confiscated?.hp) || 0) + (Number(b.surrendered?.hp) || 0) + (Number(b.recovered?.hp) || 0);
-      const bLP = (Number(b.captured?.lp) || 0) + (Number(b.confiscated?.lp) || 0) + (Number(b.surrendered?.lp) || 0) + (Number(b.recovered?.lp) || 0);
-      if (!csw && bCSW) csw = bCSW;
-      if (!hp && bHP) hp = bHP;
-      if (!lp && bLP) lp = bLP;
-    }
+    const we = (wm && wm.engagements) || {};
+    const et = String(o.engagement_type || '').toLowerCase();
+    const rem = String(o.remarks || '').toLowerCase();
 
-    faCSW += csw;
-    faHP += hp;
-    faLP += lp;
+    const getCount = (key, regexList) => {
+      if (we[key] !== undefined && we[key] !== null) {
+        return Number(we[key]) || 0;
+      }
+      for (const rx of regexList) {
+        const m = et.match(rx);
+        if (m) return m[1] ? Number(m[1]) : 1;
+      }
+      for (const rx of regexList) {
+        if (rem.match(rx)) return 1;
+      }
+      return 0;
+    };
 
-    const rowFa = Number(o.firearms) || (csw + hp + lp) || ((Number(o.fa_captured) || 0) + (Number(o.fa_confiscated) || 0) + (Number(o.fa_surrendered) || 0) + (Number(o.fa_recovered) || 0));
-    firearmsTotal += rowFa;
+    const h = getCount('harassment', [/harassment\s*(?:\((\d+)\))?/i]);
+    const a = getCount('ambush', [/ambush\s*(?:\((\d+)\))?/i]);
+    const l = getCount('liquidation', [/liquidation\s*(?:\((\d+)\))?/i, /liquidate[d]?/i]);
+    const s = getCount('shooting', [/shooting\s*(?:\((\d+)\))?/i, /shot\s+dead/i]);
+    const c = (Number(we.armed_clash) || Number(we.clash) || 0) || (()=>{
+      const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
+      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
+    })();
+    const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
+      const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
+      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
+    })();
+    const b = (Number(we.bus_bombing) || 0) || (()=>{
+      const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
+      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('bus bombing') ? 1 : 0);
+    })();
+    const cr = (Number(we.carnapping) || 0) || (()=>{
+      const m = et.match(/carnapping\s*(?:\((\d+)\))?/i);
+      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('carnapping') ? 1 : 0);
+    })();
+    const oCount = (Number(we.other_incidents) || Number(we.other_act) || Number(we.other_activities) || Number(we.grenade) || 0) || (()=>{
+      const m = et.match(/(?:other\s*(?:incident[s]?)?(?:\s*report[s]?)?|other\s*act|grenade\s*(?:throwing)?)\s*(?:\((\d+)\))?/i);
+      return m ? (m[1] ? Number(m[1]) : 1) : 0;
+    })();
 
-    // War Materiel
-    if (wm && typeof wm === 'object') {
-      camps += Number(wm.enemy_camp) || 0;
-      ied += Number(wm.ied) || 0;
-      uxo += Number(wm.uxo) || 0;
-      explosives += Number(wm.explosives) || 0;
-      ammo += Number(wm.ammo) || 0;
-      magazines += Number(wm.magazine) || 0;
+    harassment += h;
+    ambush += a;
+    liquidation += l;
+    shooting += s;
+    armedClash += c;
+    iedExplosion += i;
+    busBombing += b;
+    carnapping += cr;
+    otherIncidents += oCount;
+
+    // If an incident report has none of the 9 types marked, count as Other Incident Reports
+    if (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && oCount === 0) {
+      otherIncidents += 1;
     }
   });
 
-  const totalNeutralized = killed + enemyWounded + surrendered + captured + apprehended;
-  const totalExplosives = ied + uxo + explosives;
-  const totalWarMatItems = camps + totalExplosives + ammo + magazines;
+  const sumAllBreakdowns = harassment + ambush + liquidation + shooting + armedClash + iedExplosion + busBombing + carnapping + otherIncidents;
+  const displayTotal = Math.max(totalIncidents, sumAllBreakdowns);
 
   const kpis = [
     {
       title: 'Total Incidents',
-      val: fmt(totalIncidents),
-      sub: `${fmt(encounters)} Encounters · ${fmt(otherEngagements)} Others`,
+      val: fmt(displayTotal),
+      sub: `${fmt(totalIncidents)} Total Recorded`,
       icon: '<span class="ms !text-2xl">description</span>',
       bg: 'bg-gradient-to-br from-blue-600 to-indigo-700',
       shadow: 'shadow-blue-500/20'
     },
     {
-      title: 'Neutralized',
-      val: fmt(totalNeutralized),
-      sub: `${fmt(killed)} KIA · ${fmt(enemyWounded)} WIA · ${fmt(captured + apprehended)} Cap`,
-      icon: '<span class="ms !text-2xl">shield</span>',
-      bg: 'bg-gradient-to-br from-cyan-600 to-blue-700',
-      shadow: 'shadow-cyan-500/20'
-    },
-    {
-      title: 'Surrendered',
-      val: fmt(surrendered),
-      sub: 'Threat Group Returnees',
-      icon: '<span class="ms !text-2xl">handshake</span>',
-      bg: 'bg-gradient-to-br from-purple-600 to-indigo-800',
-      shadow: 'shadow-purple-500/20'
-    },
-    {
-      title: 'Firearms Gained',
-      val: firearmsTotal > 0 ? `+${fmt(firearmsTotal)}` : '0',
-      sub: `${fmt(faCSW)} CSW · ${fmt(faHP)} HP · ${fmt(faLP)} LP`,
-      icon: kpiPistolIcon,
-      bg: 'bg-gradient-to-br from-emerald-600 to-green-700',
-      shadow: 'shadow-emerald-500/20'
-    },
-    {
-      title: 'War Materiel',
-      val: fmt(totalWarMatItems),
-      sub: `${fmt(ied + uxo)} IED/UXO · ${fmt(camps)} Camp${camps === 1 ? '' : 's'} · ${fmt(ammo)} Ammo`,
-      icon: '<span class="ms !text-2xl">inventory_2</span>',
+      title: 'Harassment',
+      val: fmt(harassment),
+      sub: 'Enemy Harassment Events',
+      icon: '<span class="ms !text-2xl">campaign</span>',
       bg: 'bg-gradient-to-br from-amber-500 to-orange-600',
       shadow: 'shadow-amber-500/20'
     },
     {
-      title: "Gov't Casualties",
-      val: `${fmt(kia)} KIA / ${fmt(wia)} WIA`,
-      sub: `${fmt(kia + wia)} Friendly Casualties`,
-      icon: '<span class="ms !text-2xl">healing</span>',
-      bg: 'bg-gradient-to-br from-rose-500 to-red-700',
-      shadow: 'shadow-rose-500/20'
+      title: 'Ambush',
+      val: fmt(ambush),
+      sub: 'Tactical Ambush Incidents',
+      icon: '<span class="ms !text-2xl">crisis_alert</span>',
+      bg: 'bg-gradient-to-br from-red-600 to-rose-700',
+      shadow: 'shadow-red-500/20'
+    },
+    {
+      title: 'Liquidation',
+      val: fmt(liquidation),
+      sub: 'Targeted Liquidations',
+      icon: '<span class="ms !text-2xl">person_remove</span>',
+      bg: 'bg-gradient-to-br from-purple-600 to-violet-800',
+      shadow: 'shadow-purple-500/20'
+    },
+    {
+      title: 'Shooting',
+      val: fmt(shooting),
+      sub: 'Shooting Incidents',
+      icon: kpiPistolIcon,
+      bg: 'bg-gradient-to-br from-slate-600 to-slate-800',
+      shadow: 'shadow-slate-500/20'
+    },
+    {
+      title: 'Armed Clash',
+      val: fmt(armedClash),
+      sub: 'Armed Clash / Encounters',
+      icon: '<span class="ms !text-2xl">swords</span>',
+      bg: 'bg-gradient-to-br from-orange-600 to-red-700',
+      shadow: 'shadow-orange-500/20'
+    },
+    {
+      title: 'IED Explosion',
+      val: fmt(iedExplosion),
+      sub: 'IED Detonations / Blasts',
+      icon: '<span class="ms !text-2xl">bomb</span>',
+      bg: 'bg-gradient-to-br from-yellow-600 to-amber-700',
+      shadow: 'shadow-yellow-500/20'
+    },
+    {
+      title: 'Bus Bombing',
+      val: fmt(busBombing),
+      sub: 'Transit / Bus Bombings',
+      icon: '<span class="ms !text-2xl">directions_bus</span>',
+      bg: 'bg-gradient-to-br from-pink-600 to-rose-700',
+      shadow: 'shadow-pink-500/20'
+    },
+    {
+      title: 'Carnapping',
+      val: fmt(carnapping),
+      sub: 'Vehicle Hijackings',
+      icon: '<span class="ms !text-2xl">directions_car</span>',
+      bg: 'bg-gradient-to-br from-teal-600 to-cyan-800',
+      shadow: 'shadow-teal-500/20'
+    },
+    {
+      title: 'Other Incident Reports',
+      val: fmt(otherIncidents),
+      sub: 'Other Reported Incidents',
+      icon: '<span class="ms !text-2xl">pending_actions</span>',
+      bg: 'bg-gradient-to-br from-emerald-600 to-teal-700',
+      shadow: 'shadow-emerald-500/20'
     }
   ];
 
@@ -1241,10 +1265,15 @@ function onThreatCategoryChange(selectedCategory, preselectedGroup) {
 const ENGAGEMENT_TYPES = [
   { id: 'encounter', label: 'Encounter' },
   { id: 'harassment', label: 'Harassment' },
-  { id: 'grenade', label: 'Grenade Throwing' },
-  { id: 'ied', label: 'IED Explosion' },
   { id: 'ambush', label: 'Ambush' },
+  { id: 'liquidation', label: 'Liquidation' },
   { id: 'shooting', label: 'Shooting' },
+  { id: 'armed_clash', label: 'Armed Clash' },
+  { id: 'ied', label: 'IED Explosion' },
+  { id: 'bus_bombing', label: 'Bus Bombing' },
+  { id: 'carnapping', label: 'Carnapping' },
+  { id: 'other_incidents', label: 'Other Incident Reports' },
+  { id: 'grenade', label: 'Grenade Throwing' },
   { id: 'other_act', label: 'Other Activities' }
 ];
 
@@ -1375,28 +1404,52 @@ function renderCombatModalForm(record) {
   const selCat = record ? (record.threat_category || 'Local Terrorist Groups (LTG)') : 'Local Terrorist Groups (LTG)';
   const selGroup = record ? record.threat_group : (THREAT_MAPPING[selCat] ? THREAT_MAPPING[selCat][0] : '');
 
-  // Engagements breakdown (Encounter, Harassment, Grenade Throwing, IED Explosion, Ambush, Shooting, Other Activities)
-  let eng = { encounter: 0, harassment: 0, grenade: 0, ied: 0, ambush: 0, shooting: 0, other_act: 0 };
+  // Engagements breakdown (Encounter, Harassment, Ambush, Liquidation, Shooting, Armed Clash, IED Explosion, Bus Bombing, Carnapping, Other Incident Reports)
+  let eng = {
+    encounter: 0,
+    harassment: 0,
+    ambush: 0,
+    liquidation: 0,
+    shooting: 0,
+    armed_clash: 0,
+    ied: 0,
+    bus_bombing: 0,
+    carnapping: 0,
+    other_incidents: 0,
+    grenade: 0,
+    other_act: 0
+  };
   if (warMat && warMat.engagements) {
-    eng = {
-      encounter: warMat.engagements.encounter || 0,
-      harassment: warMat.engagements.harassment || 0,
-      grenade: warMat.engagements.grenade || 0,
-      ied: warMat.engagements.ied || 0,
-      ambush: warMat.engagements.ambush || 0,
-      shooting: warMat.engagements.shooting || 0,
-      other_act: warMat.engagements.other_act || warMat.engagements.other_activities || 0
-    };
+    const we = warMat.engagements;
+    eng.encounter = we.encounter || 0;
+    eng.harassment = we.harassment || 0;
+    eng.ambush = we.ambush || 0;
+    eng.liquidation = we.liquidation || 0;
+    eng.shooting = we.shooting || 0;
+    eng.armed_clash = we.armed_clash || we.clash || 0;
+    eng.ied = we.ied || we.ied_explosion || 0;
+    eng.bus_bombing = we.bus_bombing || 0;
+    eng.carnapping = we.carnapping || 0;
+    eng.other_incidents = we.other_incidents || we.other_act || we.other_activities || 0;
+    eng.grenade = we.grenade || 0;
+    eng.other_act = we.other_act || we.other_activities || 0;
   } else if (record && record.engagement_type) {
     const et = String(record.engagement_type).toLowerCase();
-    ENGAGEMENT_TYPES.forEach(t => {
-      if (et.includes(t.label.toLowerCase()) || et.includes(t.id)) {
-        eng[t.id] = 1;
-      }
-    });
-    if (et.includes('other act') || et.includes('other activities')) {
-      eng.other_act = 1;
-    }
+    const extractCount = (regex, fallback = 1) => {
+      const m = et.match(regex);
+      return m ? (m[1] ? parseInt(m[1], 10) : fallback) : 0;
+    };
+    if (et.includes('encounter')) eng.encounter = extractCount(/encounter\s*(?:\((\d+)\))?/i);
+    if (et.includes('harassment')) eng.harassment = extractCount(/harassment\s*(?:\((\d+)\))?/i);
+    if (et.includes('ambush')) eng.ambush = extractCount(/ambush\s*(?:\((\d+)\))?/i);
+    if (et.includes('liquidation')) eng.liquidation = extractCount(/liquidation\s*(?:\((\d+)\))?/i);
+    if (et.includes('shooting')) eng.shooting = extractCount(/shooting\s*(?:\((\d+)\))?/i);
+    if (et.includes('armed clash') || et.includes('clash')) eng.armed_clash = extractCount(/(?:armed\s*clash|clash)\s*(?:\((\d+)\))?/i);
+    if (et.includes('ied') || et.includes('explosion')) eng.ied = extractCount(/(?:ied\s*explosion|ied)\s*(?:\((\d+)\))?/i);
+    if (et.includes('bus bombing') || et.includes('bus bomb')) eng.bus_bombing = extractCount(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
+    if (et.includes('carnapping')) eng.carnapping = extractCount(/carnapping\s*(?:\((\d+)\))?/i);
+    if (et.includes('other incident') || et.includes('other act') || et.includes('other')) eng.other_incidents = extractCount(/other(?:\s*incident[s]?)?(?:\s*report[s]?)?\s*(?:\((\d+)\))?/i);
+    if (et.includes('grenade')) eng.grenade = extractCount(/grenade\s*(?:throwing)?\s*(?:\((\d+)\))?/i);
   }
 
   let savedBrigade = '';
@@ -1498,22 +1551,25 @@ function renderCombatModalForm(record) {
 
         ${isIncidentReport ? `
         <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
-          <table class="w-full text-center border-collapse min-w-[620px]">
+          <table class="w-full text-center border-collapse min-w-[760px]">
             <thead>
               <!-- Top Header Row -->
               <tr>
-                <th colspan="6" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border border-black tracking-wider text-xs sm:text-sm">
-                  ENEMY-INITIATED ENGAGEMENT
+                <th colspan="9" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border border-black tracking-wider text-xs sm:text-sm">
+                  ENEMY-INITIATED ENGAGEMENT / INCIDENT TYPE
                 </th>
               </tr>
-              <!-- Subheaders Row: Harassment, Grenade Throwing, IED Explosion, Ambush, Shooting, Other Activities (Purple) -->
-              <tr class="font-extrabold text-black text-[11px] sm:text-xs">
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">HARASSMENT</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">GRENADE<br>THROWING</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">IED<br>EXPLOSION</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">AMBUSH</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">SHOOTING</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[16.6%]">OTHER<br>ACTIVITIES</th>
+              <!-- Subheaders Row: 9 Incident Categories -->
+              <tr class="font-extrabold text-black text-[10px] sm:text-[11px]">
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">HARASSMENT</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">AMBUSH</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">LIQUIDATION</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">SHOOTING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">ARMED<br>CLASH</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">IED<br>EXPLOSION</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">BUS<br>BOMBING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">CARNAPPING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[11.1%]">OTHER<br>INCIDENTS</th>
               </tr>
             </thead>
             <tbody>
@@ -1523,25 +1579,37 @@ function renderCombatModalForm(record) {
                 <td class="p-0 border border-black">
                   <input id="f_eng_harassment" type="number" min="0" value="${eng.harassment}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
-                <!-- Grenade Throwing -->
-                <td class="p-0 border border-black">
-                  <input id="f_eng_grenade" type="number" min="0" value="${eng.grenade}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
-                </td>
-                <!-- IED Explosion -->
-                <td class="p-0 border border-black">
-                  <input id="f_eng_ied" type="number" min="0" value="${eng.ied}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
-                </td>
                 <!-- Ambush -->
                 <td class="p-0 border border-black">
                   <input id="f_eng_ambush" type="number" min="0" value="${eng.ambush}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Liquidation -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_liquidation" type="number" min="0" value="${eng.liquidation}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <!-- Shooting -->
                 <td class="p-0 border border-black">
                   <input id="f_eng_shooting" type="number" min="0" value="${eng.shooting}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
-                <!-- Other Activities -->
+                <!-- Armed Clash -->
                 <td class="p-0 border border-black">
-                  <input id="f_eng_other_act" type="number" min="0" value="${eng.other_act}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                  <input id="f_eng_armed_clash" type="number" min="0" value="${eng.armed_clash}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- IED Explosion -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_ied" type="number" min="0" value="${eng.ied}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Bus Bombing -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_bus_bombing" type="number" min="0" value="${eng.bus_bombing}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Carnapping -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_carnapping" type="number" min="0" value="${eng.carnapping}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Other Incidents -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_other_incidents" type="number" min="0" value="${eng.other_incidents}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
               </tr>
             </tbody>
@@ -2953,32 +3021,47 @@ async function handleFormSubmit(e) {
 
     const encCount = parseInt($('f_eng_encounter')?.value || 0, 10) || 0;
     const harCount = parseInt($('f_eng_harassment')?.value || 0, 10) || 0;
-    const greCount = parseInt($('f_eng_grenade')?.value || 0, 10) || 0;
-    const iedCount = parseInt($('f_eng_ied')?.value || 0, 10) || 0;
     const ambCount = parseInt($('f_eng_ambush')?.value || 0, 10) || 0;
+    const liqCount = parseInt($('f_eng_liquidation')?.value || 0, 10) || 0;
     const shoCount = parseInt($('f_eng_shooting')?.value || 0, 10) || 0;
+    const clashCount = parseInt($('f_eng_armed_clash')?.value || 0, 10) || 0;
+    const iedCount = parseInt($('f_eng_ied')?.value || 0, 10) || 0;
+    const busCount = parseInt($('f_eng_bus_bombing')?.value || 0, 10) || 0;
+    const carCount = parseInt($('f_eng_carnapping')?.value || 0, 10) || 0;
+    const othIncCount = parseInt($('f_eng_other_incidents')?.value || 0, 10) || 0;
+    const greCount = parseInt($('f_eng_grenade')?.value || 0, 10) || 0;
     const othCount = parseInt($('f_eng_other_act')?.value || 0, 10) || 0;
 
     const engBreakdown = {
       encounter: encCount,
       harassment: harCount,
-      grenade: greCount,
-      ied: iedCount,
       ambush: ambCount,
+      liquidation: liqCount,
       shooting: shoCount,
+      armed_clash: clashCount,
+      ied: iedCount,
+      bus_bombing: busCount,
+      carnapping: carCount,
+      other_incidents: othIncCount,
+      grenade: greCount,
       other_act: othCount
     };
 
     warMat.engagements = engBreakdown;
 
     const activeEngTypes = [];
-    if (encCount > 0)  activeEngTypes.push(encCount > 1 ? `Encounter (${encCount})` : 'Encounter');
-    if (harCount > 0) activeEngTypes.push(harCount > 1 ? `Harassment (${harCount})` : 'Harassment');
+    if (encCount > 0)    activeEngTypes.push(encCount > 1 ? `Encounter (${encCount})` : 'Encounter');
+    if (harCount > 0)    activeEngTypes.push(harCount > 1 ? `Harassment (${harCount})` : 'Harassment');
+    if (ambCount > 0)    activeEngTypes.push(ambCount > 1 ? `Ambush (${ambCount})` : 'Ambush');
+    if (liqCount > 0)    activeEngTypes.push(liqCount > 1 ? `Liquidation (${liqCount})` : 'Liquidation');
+    if (shoCount > 0)    activeEngTypes.push(shoCount > 1 ? `Shooting (${shoCount})` : 'Shooting');
+    if (clashCount > 0)  activeEngTypes.push(clashCount > 1 ? `Armed Clash (${clashCount})` : 'Armed Clash');
+    if (iedCount > 0)    activeEngTypes.push(iedCount > 1 ? `IED Explosion (${iedCount})` : 'IED Explosion');
+    if (busCount > 0)    activeEngTypes.push(busCount > 1 ? `Bus Bombing (${busCount})` : 'Bus Bombing');
+    if (carCount > 0)    activeEngTypes.push(carCount > 1 ? `Carnapping (${carCount})` : 'Carnapping');
+    if (othIncCount > 0) activeEngTypes.push(othIncCount > 1 ? `Other Incident Reports (${othIncCount})` : 'Other Incident Reports');
     if (greCount > 0)    activeEngTypes.push(greCount > 1 ? `Grenade Throwing (${greCount})` : 'Grenade Throwing');
-    if (iedCount > 0)        activeEngTypes.push(iedCount > 1 ? `IED Explosion (${iedCount})` : 'IED Explosion');
-    if (ambCount > 0)     activeEngTypes.push(ambCount > 1 ? `Ambush (${ambCount})` : 'Ambush');
-    if (shoCount > 0)   activeEngTypes.push(shoCount > 1 ? `Shooting (${shoCount})` : 'Shooting');
-    if (othCount > 0) activeEngTypes.push(othCount > 1 ? `Other Activities (${othCount})` : 'Other Activities');
+    if (othCount > 0)    activeEngTypes.push(othCount > 1 ? `Other Activities (${othCount})` : 'Other Activities');
 
     const engTypeStr = activeEngTypes.length > 0 ? activeEngTypes.join(', ') : '—';
 
