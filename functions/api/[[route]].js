@@ -1052,7 +1052,7 @@ export async function onRequest({ request, env, params }) {
         qIncident(prevStartDate, prevEndDate),
         db.prepare("SELECT DISTINCT threat_category FROM incident_reports WHERE threat_category IS NOT NULL AND threat_category != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT threat_category, threat_group FROM incident_reports WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT province FROM incident_reports WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT area FROM incident_reports WHERE area IS NOT NULL AND area != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT province FROM incident_reports WHERE province IS NOT NULL AND TRIM(province) != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT unit, war_materiel FROM incident_reports WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
         db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM incident_reports WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
       ]);
@@ -1112,7 +1112,7 @@ export async function onRequest({ request, env, params }) {
       });
 
       const provSet = new Set();
-      const regionSet = new Set(['BARMM', 'Region XII']);
+      const regionSet = new Set();
       (provRows.results || []).forEach(r => {
         if (r.province && r.province.trim()) {
           const p = r.province.trim();

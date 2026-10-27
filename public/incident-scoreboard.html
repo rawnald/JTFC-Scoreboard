@@ -632,7 +632,22 @@ async function load() {
   $('filter-brigade').value = currentBrigade;
 
   if (s.region_province_map) regionProvinceMap = s.region_province_map;
-  if (s.available_provinces) allAvailableProvinces = s.available_provinces;
+  if (s.available_provinces && Array.isArray(s.available_provinces)) {
+    allAvailableProvinces = s.available_provinces.filter(Boolean);
+  } else if (allFetchedIncidentRows && allFetchedIncidentRows.length > 0) {
+    const pSet = new Set();
+    allFetchedIncidentRows.forEach(r => {
+      if (r.province && r.province.trim()) {
+        const p = r.province.trim();
+        if (p.includes(',')) {
+          p.split(',').forEach(sub => { if (sub.trim()) pSet.add(sub.trim()); });
+        } else {
+          pSet.add(p);
+        }
+      }
+    });
+    allAvailableProvinces = Array.from(pSet).sort();
+  }
 
   // Populate Region dropdown
   if (s.available_regions) {
@@ -1170,6 +1185,41 @@ function renderIncidentLogTable() {
   }).join('');
 }
 
+const PROVINCE_TO_REGION = {
+  'Maguindanao del Norte': 'BARMM',
+  'Maguindanao del Sur': 'BARMM',
+  'SGA-BARMM': 'BARMM',
+  'Cotabato City': 'BARMM',
+  'Lanao del Sur': 'BARMM',
+  'Basilan': 'BARMM',
+  'Sulu': 'BARMM',
+  'Tawi-Tawi': 'BARMM',
+  'North Cotabato': 'Region XII',
+  'Cotabato': 'Region XII',
+  'South Cotabato': 'Region XII',
+  'Sultan Kudarat': 'Region XII',
+  'Sarangani': 'Region XII',
+  'Sarangani Province': 'Region XII',
+  'General Santos City': 'Region XII'
+};
+
+function getRegionForProvince(provName) {
+  if (!provName) return '';
+  const clean = String(provName).trim();
+  if (PROVINCE_TO_REGION[clean]) return PROVINCE_TO_REGION[clean];
+  const lower = clean.toLowerCase();
+  if (lower.includes('barmm') || lower.includes('maguindanao') || lower.includes('sga') || lower.includes('shariff') || lower.includes('basilan') || lower.includes('sulu') || lower.includes('tawi') || lower.includes('lanao del sur')) {
+    return 'BARMM';
+  }
+  if (lower.includes('cotabato') || lower.includes('kudarat') || lower.includes('sarangani') || lower.includes('gensan') || lower.includes('general santos') || lower.includes('koronadal') || lower.includes('tacurong') || lower.includes('isulan')) {
+    if (lower.includes('cotabato city')) return 'BARMM';
+    return 'Region XII';
+  }
+  if (lower.includes('davao')) return 'Region XI';
+  if (lower.includes('bukidnon') || lower.includes('lanao del norte')) return 'Region X';
+  return '';
+}
+
 // Client-side statistics processor fallback
 function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, prov) {
   let y = currentYear;
@@ -1298,6 +1348,37 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
   const cur = aggregate(curRows);
   const prev = aggregate(prevRows);
 
+  const pSet = new Set();
+  const regSet = new Set();
+  const regProvMap = {};
+  allRows.forEach(r => {
+    if (r.province && r.province.trim()) {
+      const p = r.province.trim();
+      if (p.includes(',')) {
+        p.split(',').forEach(sub => {
+          const sp = sub.trim();
+          if (sp) {
+            pSet.add(sp);
+            const reg = getRegionForProvince(sp);
+            if (reg) {
+              regSet.add(reg);
+              regProvMap[reg] = regProvMap[reg] || [];
+              if (!regProvMap[reg].includes(sp)) regProvMap[reg].push(sp);
+            }
+          }
+        });
+      } else {
+        pSet.add(p);
+        const reg = getRegionForProvince(p);
+        if (reg) {
+          regSet.add(reg);
+          regProvMap[reg] = regProvMap[reg] || [];
+          if (!regProvMap[reg].includes(p)) regProvMap[reg].push(p);
+        }
+      }
+    }
+  });
+
   return {
     year: y,
     start_date: sDate,
@@ -1306,6 +1387,9 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
     prev,
     matrix: Object.values(cur.brigades),
     rows: curRows.slice(0, 100),
+    available_provinces: Array.from(pSet).sort(),
+    available_regions: Array.from(regSet).sort(),
+    region_province_map: regProvMap,
     available_years: [y, y - 1, y - 2]
   };
 }
