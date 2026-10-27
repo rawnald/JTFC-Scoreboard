@@ -452,7 +452,7 @@ async function load() {
   const curOps = c.total_ops !== undefined ? c.total_ops : (c.enc || 0);
   const prevOps = p.total_ops !== undefined ? p.total_ops : (p.enc || 0);
   const curEnc = c.enc || 0;
-  const militaryOpsVal = `${curOps} Opns / ${curEnc} Encounter`;
+  const militaryOpsVal = `${curOps} Opns / ${curEnc} Enc`;
 
   $('kpis').innerHTML =
     kpi('groups', '#f97316', 'Military Operations', militaryOpsVal, delta(curOps, prevOps)) +
