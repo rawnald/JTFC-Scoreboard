@@ -1102,6 +1102,8 @@ function renderSecondaryImpactKpis(c, p) {
 
   const curFa = c.firearms || 0;
   const prevFa = p.firearms || 0;
+  const curFaThreat = `${c.fa_ctg || 0} CTG / ${c.fa_ltg || 0} LTG / ${c.fa_piag || 0} PIAGs`;
+  const faSub = `<div>${curFaThreat}</div><div class="text-[10px] text-slate-500 font-medium mt-0.5">HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0}</div>`;
 
   const curWm = c.war_materiel_count || 0;
   const prevWm = p.war_materiel_count || 0;
@@ -1131,7 +1133,7 @@ function renderSecondaryImpactKpis(c, p) {
   container.innerHTML =
     cardHtml('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta(curGovtCas, prevGovtCas, true), 'Govt Forces Affected') +
     cardHtml('shield', '#2563eb', 'Enemy Neutralized', curNz, delta(curNz, prevNz), `${c.killed || 0} KIA, ${c.captured || 0} Cap, ${c.surrendered || 0} Surr`) +
-    cardHtml(pistolIcon, '#16a34a', 'Firearms Gained', curFa, delta(curFa, prevFa), `HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0}`) +
+    cardHtml(pistolIcon, '#16a34a', 'Firearms Gained', curFa, delta(curFa, prevFa), faSub) +
     cardHtml('warning', '#d97706', 'War Materiel Intercepted', curWm, delta(curWm, prevWm), 'IEDs, UXOs & Explosives');
 }
 
@@ -1263,7 +1265,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       armed_clash: 0, ied_explosion: 0, bus_bombing: 0, carnapping: 0,
       active_rido: 0, other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
       killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, enemy_neutralized: 0,
-      firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, war_materiel_count: 0,
+      firearms: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, war_materiel_count: 0,
       monthly: Array(12).fill(0),
       monthly_harassment: Array(12).fill(0),
       monthly_ambush: Array(12).fill(0),
@@ -1316,6 +1318,17 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
 
       const fa = (r.firearms || 0) || (r.fa_high_powered || 0) + (r.fa_low_powered || 0) + (r.fa_csw || 0);
       a.firearms += fa;
+      if (fa > 0) {
+        const cat = (r.threat_category || '').toLowerCase();
+        const grp = (r.threat_group || '').toLowerCase();
+        if (cat.includes('ctg') || cat.includes('communist') || ['daguma', 'musa', 'sroc', 'roc', 'fsmr', 'gf 73', 'gf73', 'milisyang', 'cnt', 'ctg', 'communist', 'npa', 'cpp', 'ugmo'].some(t => grp.includes(t))) {
+          a.fa_ctg += fa;
+        } else if (cat.includes('ltg') || cat.includes('local terrorist') || ['biff', 'ditg', 'alg', 'lle', 'psrl', 'npsrl', 'ltg', 'local terrorist'].some(t => grp.includes(t))) {
+          a.fa_ltg += fa;
+        } else if (cat.includes('piag') || cat.includes('private armed') || ['milf', 'mnlf', 'pag', 'piag', 'rido'].some(t => grp.includes(t))) {
+          a.fa_piag += fa;
+        }
+      }
       a.fa_hp += (r.fa_high_powered || 0);
       a.fa_lp += (r.fa_low_powered || 0);
       a.fa_csw += (r.fa_csw || 0);

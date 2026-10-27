@@ -446,7 +446,8 @@ async function load() {
   const prevTotNeutralized = p.total_neutralized !== undefined ? p.total_neutralized : ((p.cmo_neutralized || p.neutralized || 0) + (p.sleo_neutralized || 0));
   const nzSub = `${cmoNz} CMO / ${sleoNz} SLEO`;
 
-  const faSub = `(HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0})`;
+  const faThreatSub = `${c.fa_ctg || 0} CTG / ${c.fa_ltg || 0} LTG / ${c.fa_piag || 0} PIAGs`;
+  const faSub = `<div>${faThreatSub}</div><div class="text-[10px] text-slate-500 font-medium mt-0.5">(HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0})</div>`;
   const salwSub = `(HPFAs: ${c.tolf_hp || 0}, LPFAs: ${c.tolf_lp || 0}, CSW: ${c.tolf_csw || 0})`;
 
   const curOps = c.total_ops !== undefined ? c.total_ops : (c.enc || 0);

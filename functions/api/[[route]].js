@@ -190,7 +190,7 @@ function getThreatCategoryKey(r) {
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
-  const a = { total_ops: 0, enc: 0, sur: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
+  const a = { total_ops: 0, enc: 0, sur: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
   for (const r of rows) {
     const opCount = getOperationsCount(r);
     a.total_ops += opCount;
@@ -203,7 +203,7 @@ function agg(rows) {
       else if (tc === 'piag') a.sur_piag += rSur;
     }
     a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
-    a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
+    a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
 
     let hp = r.fa_high_powered || 0;
     let lp = r.fa_low_powered || 0;
@@ -223,6 +223,15 @@ function agg(rows) {
     a.fa_hp += hp;
     a.fa_lp += lp;
     a.fa_csw += csw;
+
+    const rFa = (r.firearms || 0) || (hp + lp + csw);
+    a.fa += rFa;
+    if (rFa > 0) {
+      const tc = getThreatCategoryKey(r);
+      if (tc === 'ctg') a.fa_ctg += rFa;
+      else if (tc === 'ltg') a.fa_ltg += rFa;
+      else if (tc === 'piag') a.fa_piag += rFa;
+    }
 
     const encCount = getEncounterCount(r);
     a.enc += encCount;
@@ -934,6 +943,9 @@ export async function onRequest({ request, env, params }) {
           sur_piag: 0,
           enemy_neutralized: 0,
           firearms: 0,
+          fa_ctg: 0,
+          fa_ltg: 0,
+          fa_piag: 0,
           fa_hp: 0,
           fa_lp: 0,
           fa_csw: 0,
@@ -1007,6 +1019,12 @@ export async function onRequest({ request, env, params }) {
           }
           const rFa = (r.firearms || 0) || (hp + lp + csw);
           a.firearms += rFa;
+          if (rFa > 0) {
+            const tc = getThreatCategoryKey(r);
+            if (tc === 'ctg') a.fa_ctg = (a.fa_ctg || 0) + rFa;
+            else if (tc === 'ltg') a.fa_ltg = (a.fa_ltg || 0) + rFa;
+            else if (tc === 'piag') a.fa_piag = (a.fa_piag || 0) + rFa;
+          }
           a.fa_hp += hp;
           a.fa_lp += lp;
           a.fa_csw += csw;
