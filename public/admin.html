@@ -502,10 +502,10 @@ const CATEGORIES = {
     fields: [
       { id: 'op_date', label: 'Operation Date', type: 'date', required: true },
       { id: 'control_number', label: 'Control #', placeholder: 'e.g. CTRL-2026-001' },
-      { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 601st Bde', required: true },
+      { id: 'brigade', label: 'Brigade', type: 'select_with_other', options: ['601 BDE', '602 BDE', '603 BDE', '1MAR BDE', '1MECH BDE', '1BCT', 'Others'], placeholder: 'Specify brigade...', required: true },
       { id: 'unit', label: 'Unit', placeholder: 'e.g. 7IB, 40IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Tacurong City, Isulan' },
-      { id: 'province', label: 'Province', placeholder: 'e.g. Sultan Kudarat, Cotabato' },
+      { id: 'province', label: 'Province', type: 'select_with_other', options: ['Cotabato City', 'MDS', 'MDN', 'SGA-BARMM', 'Sultan Kudarat', 'North Cotabato', 'South Cotabato', 'Saranggani', 'Others'], placeholder: 'Specify province...' },
       { id: 'lead_agency', label: 'Lead Agency Supported', placeholder: 'e.g. PNP, PDEA, NBI, CIDG', required: true },
       { id: 'operation_type', label: 'Operation Type', type: 'select_with_other', options: ['Anti-Drug Operations', 'Anti-Criminalities', 'Anti-Illegal Logging', 'Others'], placeholder: 'Specify operation type...', required: true },
       { id: 'threat_group', label: 'Threat Group', type: 'select_with_other', options: ['BIFF', 'DITG', 'ALG', 'LLE', 'CNT', 'Others'], placeholder: 'Specify threat group...', required: true },
@@ -573,10 +573,10 @@ const CATEGORIES = {
     fields: [
       { id: 'op_date', label: 'Turn-Over Date', type: 'date', required: true },
       { id: 'control_number', label: 'Control #', placeholder: 'e.g. CTRL-2026-001' },
-      { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 602nd Bde', required: true },
+      { id: 'brigade', label: 'Brigade', type: 'select_with_other', options: ['601 BDE', '602 BDE', '603 BDE', '1MAR BDE', '1MECH BDE', '1BCT', 'Others'], placeholder: 'Specify brigade...', required: true },
       { id: 'unit', label: 'Unit', placeholder: 'e.g. 7IB, 90IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Carmen, Pikit' },
-      { id: 'province', label: 'Province', placeholder: 'e.g. Cotabato, Maguindanao del Sur' },
+      { id: 'province', label: 'Province', type: 'select_with_other', options: ['Cotabato City', 'MDS', 'MDN', 'SGA-BARMM', 'Sultan Kudarat', 'North Cotabato', 'South Cotabato', 'Saranggani', 'Others'], placeholder: 'Specify province...' },
       { id: 'source_group', label: 'Source Group / Community', placeholder: 'e.g. Local Officials, Former Rebels, Barangays' },
       { id: 'fa_csw', label: 'CSW', type: 'number', value: 0 },
       { id: 'fa_high_powered', label: 'High Powered (HP)', type: 'number', value: 0 },
@@ -628,10 +628,10 @@ const CATEGORIES = {
     fields: [
       { id: 'case_date', label: 'Date of Incident / Settlement', type: 'date', required: true },
       { id: 'control_number', label: 'Control #', placeholder: 'e.g. CTRL-2026-001' },
-      { id: 'brigade', label: 'Brigade', placeholder: 'e.g. 603rd Bde', required: true },
+      { id: 'brigade', label: 'Brigade', type: 'select_with_other', options: ['601 BDE', '602 BDE', '603 BDE', '1MAR BDE', '1MECH BDE', '1BCT', 'Others'], placeholder: 'Specify brigade...', required: true },
       { id: 'unit', label: 'Unit', placeholder: 'e.g. 37IB, 57IB', required: true },
       { id: 'area', label: 'Location / Municipality', placeholder: 'e.g. Datu Piang, Pikit', required: true },
-      { id: 'province', label: 'Province', placeholder: 'e.g. Maguindanao del Sur, Cotabato' },
+      { id: 'province', label: 'Province', type: 'select_with_other', options: ['Cotabato City', 'MDS', 'MDN', 'SGA-BARMM', 'Sultan Kudarat', 'North Cotabato', 'South Cotabato', 'Saranggani', 'Others'], placeholder: 'Specify province...' },
       { id: 'status', label: 'Status', type: 'select_with_other', options: ['Ongoing Mediation', 'Settled', 'Monitored', 'Arbitrated', 'Others'], placeholder: 'Specify status...', value: 'Ongoing Mediation' },
       { id: 'parties_involved', label: 'Parties / Families Involved', placeholder: 'e.g. Clan A vs Clan B', colSpan: 2, required: true },
       { id: 'casualties_killed', label: 'Casualties (Killed)', type: 'number', value: 0 },
@@ -1120,6 +1120,115 @@ function calcCombatFirearms() {
   if ($('sum-rec')) $('sum-rec').textContent = recTot;
 }
 
+const STANDARD_MODAL_BRIGADES = [
+  '601 BDE', '602 BDE', '603 BDE', '1MAR BDE', '1MECH BDE', '1BCT'
+];
+
+const STANDARD_MODAL_PROVINCES = [
+  'Cotabato City',
+  'MDS',
+  'MDN',
+  'SGA-BARMM',
+  'Sultan Kudarat',
+  'North Cotabato',
+  'South Cotabato',
+  'Saranggani'
+];
+
+function resolveBrigadeSelection(savedBrigade) {
+  let selected = '';
+  let other = '';
+  if (savedBrigade) {
+    const sb = String(savedBrigade).trim();
+    const sbUpper = sb.toUpperCase();
+    if (sbUpper === '601 BDE' || sbUpper === '601ST BDE' || sbUpper.includes('601')) {
+      selected = '601 BDE';
+    } else if (sbUpper === '602 BDE' || sbUpper === '602ND BDE' || sbUpper.includes('602')) {
+      selected = '602 BDE';
+    } else if (sbUpper === '603 BDE' || sbUpper === '603RD BDE' || sbUpper.includes('603')) {
+      selected = '603 BDE';
+    } else if (sbUpper === '1MAR BDE' || sbUpper === '1ST MAR BDE' || sbUpper.includes('1MAR') || sbUpper.includes('MARINE')) {
+      selected = '1MAR BDE';
+    } else if (sbUpper === '1MECH BDE' || sbUpper === '1ST MECH BDE' || sbUpper.includes('1MECH') || sbUpper.includes('MECHANIZED')) {
+      selected = '1MECH BDE';
+    } else if (sbUpper === '1BCT' || sbUpper.includes('1BCT')) {
+      selected = '1BCT';
+    } else {
+      selected = 'Others';
+      other = sb;
+    }
+  }
+  return { selected, other };
+}
+
+function resolveProvinceSelection(savedProvince) {
+  let selected = '';
+  let other = '';
+  if (savedProvince) {
+    const sp = String(savedProvince).trim();
+    const spUpper = sp.toUpperCase();
+    if (spUpper === 'COTABATO CITY' || spUpper.includes('COTABATO CITY')) {
+      selected = 'Cotabato City';
+    } else if (spUpper === 'MDS' || spUpper.includes('MAGUINDANAO DEL SUR')) {
+      selected = 'MDS';
+    } else if (spUpper === 'MDN' || spUpper.includes('MAGUINDANAO DEL NORTE')) {
+      selected = 'MDN';
+    } else if (spUpper === 'SGA-BARMM' || spUpper === 'SGA' || spUpper.includes('SGA')) {
+      selected = 'SGA-BARMM';
+    } else if (spUpper === 'SULTAN KUDARAT' || spUpper.includes('KUDARAT')) {
+      selected = 'Sultan Kudarat';
+    } else if (spUpper === 'NORTH COTABATO' || spUpper.includes('NORTH COTABATO')) {
+      selected = 'North Cotabato';
+    } else if (spUpper === 'SOUTH COTABATO' || spUpper.includes('SOUTH COTABATO')) {
+      selected = 'South Cotabato';
+    } else if (spUpper === 'SARANGGANI' || spUpper === 'SARANGANI' || spUpper.includes('SARANG')) {
+      selected = 'Saranggani';
+    } else {
+      selected = 'Others';
+      other = sp;
+    }
+  }
+  return { selected, other };
+}
+
+function renderBrigadeDropdownField(savedBrigade, required = true, fieldId = 'f_brigade') {
+  const { selected, other } = resolveBrigadeSelection(savedBrigade);
+  const wrapId = `${fieldId}_other_wrap`;
+  const otherId = `${fieldId}_other`;
+  return `
+    <div>
+      <label>Brigade ${required ? '<span class="text-red-500">*</span>' : ''}</label>
+      <select id="${fieldId}" class="f" onchange="onSelectWithOtherChange(this, '${wrapId}', '${otherId}')" ${required ? 'required' : ''}>
+        <option value="" disabled ${!selected ? 'selected' : ''}>-- Select Brigade --</option>
+        ${STANDARD_MODAL_BRIGADES.map(b => `<option value="${b}" ${selected === b ? 'selected' : ''}>${b}</option>`).join('')}
+        <option value="Others" ${selected === 'Others' ? 'selected' : ''}>Others</option>
+      </select>
+      <div id="${wrapId}" class="${selected === 'Others' ? '' : 'hidden'} mt-2">
+        <input id="${otherId}" type="text" value="${esc(other)}" placeholder="Specify other brigade..." class="f" ${selected === 'Others' && required ? 'required' : ''}>
+      </div>
+    </div>
+  `;
+}
+
+function renderProvinceDropdownField(savedProvince, required = false, fieldId = 'f_province') {
+  const { selected, other } = resolveProvinceSelection(savedProvince);
+  const wrapId = `${fieldId}_other_wrap`;
+  const otherId = `${fieldId}_other`;
+  return `
+    <div>
+      <label>Province ${required ? '<span class="text-red-500">*</span>' : ''}</label>
+      <select id="${fieldId}" class="f" onchange="onSelectWithOtherChange(this, '${wrapId}', '${otherId}')" ${required ? 'required' : ''}>
+        <option value="" ${!selected ? 'selected' : ''}>-- Select Province --</option>
+        ${STANDARD_MODAL_PROVINCES.map(p => `<option value="${p}" ${selected === p ? 'selected' : ''}>${p}</option>`).join('')}
+        <option value="Others" ${selected === 'Others' ? 'selected' : ''}>Others</option>
+      </select>
+      <div id="${wrapId}" class="${selected === 'Others' ? '' : 'hidden'} mt-2">
+        <input id="${otherId}" type="text" value="${esc(other)}" placeholder="Specify other province..." class="f" ${selected === 'Others' && required ? 'required' : ''}>
+      </div>
+    </div>
+  `;
+}
+
 // Modal handling
 function openModal(mode, id) {
   const cat = CATEGORIES[currentTab];
@@ -1272,57 +1381,7 @@ function renderCombatModalForm(record) {
     }
   }
 
-  // Brigade selection for incident modal
-  let selectedBrigade = '';
-  let otherBrigadeVal = '';
-  if (savedBrigade) {
-    const sb = savedBrigade.trim();
-    const sbUpper = sb.toUpperCase();
-    if (sbUpper === '601 BDE' || sbUpper === '601ST BDE' || sbUpper.includes('601')) {
-      selectedBrigade = '601 BDE';
-    } else if (sbUpper === '602 BDE' || sbUpper === '602ND BDE' || sbUpper.includes('602')) {
-      selectedBrigade = '602 BDE';
-    } else if (sbUpper === '603 BDE' || sbUpper === '603RD BDE' || sbUpper.includes('603')) {
-      selectedBrigade = '603 BDE';
-    } else if (sbUpper === '1MAR BDE' || sbUpper === '1ST MAR BDE' || sbUpper.includes('1MAR') || sbUpper.includes('MARINE')) {
-      selectedBrigade = '1MAR BDE';
-    } else if (sbUpper === '1MECH BDE' || sbUpper === '1ST MECH BDE' || sbUpper.includes('1MECH') || sbUpper.includes('MECHANIZED')) {
-      selectedBrigade = '1MECH BDE';
-    } else if (sbUpper === '1BCT' || sbUpper.includes('1BCT')) {
-      selectedBrigade = '1BCT';
-    } else {
-      selectedBrigade = 'Others';
-      otherBrigadeVal = sb;
-    }
-  }
-
-  // Province selection for incident modal
   const savedProv = (record?.province || '').trim();
-  let selectedProvince = '';
-  let otherProvinceVal = '';
-  if (savedProv) {
-    const spUpper = savedProv.toUpperCase();
-    if (spUpper === 'COTABATO CITY' || spUpper.includes('COTABATO CITY')) {
-      selectedProvince = 'Cotabato City';
-    } else if (spUpper === 'MDS' || spUpper.includes('MAGUINDANAO DEL SUR')) {
-      selectedProvince = 'MDS';
-    } else if (spUpper === 'MDN' || spUpper.includes('MAGUINDANAO DEL NORTE')) {
-      selectedProvince = 'MDN';
-    } else if (spUpper === 'SGA-BARMM' || spUpper === 'SGA' || spUpper.includes('SGA')) {
-      selectedProvince = 'SGA-BARMM';
-    } else if (spUpper === 'SULTAN KUDARAT' || spUpper.includes('KUDARAT')) {
-      selectedProvince = 'Sultan Kudarat';
-    } else if (spUpper === 'NORTH COTABATO' || spUpper.includes('NORTH COTABATO')) {
-      selectedProvince = 'North Cotabato';
-    } else if (spUpper === 'SOUTH COTABATO' || spUpper.includes('SOUTH COTABATO')) {
-      selectedProvince = 'South Cotabato';
-    } else if (spUpper === 'SARANGGANI' || spUpper === 'SARANGANI' || spUpper.includes('SARANG')) {
-      selectedProvince = 'Saranggani';
-    } else {
-      selectedProvince = 'Others';
-      otherProvinceVal = savedProv;
-    }
-  }
 
   $('modal-form-content').innerHTML = `
     <!-- SECTION 1: Incident & Location Details -->
@@ -1339,35 +1398,7 @@ function renderCombatModalForm(record) {
           <label>Control #</label>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
         </div>
-        ${isIncidentReport ? `
-        <div>
-          <label>Brigade <span class="text-red-500">*</span></label>
-          <select id="f_brigade" class="f" onchange="onSelectWithOtherChange(this, 'f_brigade_other_wrap', 'f_brigade_other')" required>
-            <option value="" disabled ${!selectedBrigade ? 'selected' : ''}>-- Select Brigade --</option>
-            <option value="601 BDE" ${selectedBrigade === '601 BDE' ? 'selected' : ''}>601 BDE</option>
-            <option value="602 BDE" ${selectedBrigade === '602 BDE' ? 'selected' : ''}>602 BDE</option>
-            <option value="603 BDE" ${selectedBrigade === '603 BDE' ? 'selected' : ''}>603 BDE</option>
-            <option value="1MAR BDE" ${selectedBrigade === '1MAR BDE' ? 'selected' : ''}>1MAR BDE</option>
-            <option value="1MECH BDE" ${selectedBrigade === '1MECH BDE' ? 'selected' : ''}>1MECH BDE</option>
-            <option value="1BCT" ${selectedBrigade === '1BCT' ? 'selected' : ''}>1BCT</option>
-            <option value="Others" ${selectedBrigade === 'Others' ? 'selected' : ''}>Others</option>
-          </select>
-          <div id="f_brigade_other_wrap" class="${selectedBrigade === 'Others' ? '' : 'hidden'} mt-2">
-            <input id="f_brigade_other" type="text" value="${esc(otherBrigadeVal)}" placeholder="Specify other brigade..." class="f" ${selectedBrigade === 'Others' ? 'required' : ''}>
-          </div>
-        </div>
-        ` : `
-        <div>
-          <label>Brigade <span class="text-red-500">*</span></label>
-          <input id="f_brigade" list="brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 602nd Bde" class="f" required>
-          <datalist id="brigade_list">
-            <option value="601st Bde">
-            <option value="602nd Bde">
-            <option value="603rd Bde">
-            <option value="1BCT">
-          </datalist>
-        </div>
-        `}
+        ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
           <label>Unit <span class="text-red-500">*</span></label>
           <input id="f_unit" list="unit_list" value="${esc(savedUnit)}" placeholder="e.g. 7IB, 90IB" class="f" required>
@@ -1388,31 +1419,7 @@ function renderCombatModalForm(record) {
           <label>Area / Municipality</label>
           <input id="f_area" value="${esc(record?.area || '')}" placeholder="e.g. Pikit, Shariff Saydona" class="f">
         </div>
-        ${isIncidentReport ? `
-        <div>
-          <label>Province</label>
-          <select id="f_province" class="f" onchange="onSelectWithOtherChange(this, 'f_province_other_wrap', 'f_province_other')">
-            <option value="" ${!selectedProvince ? 'selected' : ''}>-- Select Province --</option>
-            <option value="Cotabato City" ${selectedProvince === 'Cotabato City' ? 'selected' : ''}>Cotabato City</option>
-            <option value="MDS" ${selectedProvince === 'MDS' ? 'selected' : ''}>MDS</option>
-            <option value="MDN" ${selectedProvince === 'MDN' ? 'selected' : ''}>MDN</option>
-            <option value="SGA-BARMM" ${selectedProvince === 'SGA-BARMM' ? 'selected' : ''}>SGA-BARMM</option>
-            <option value="Sultan Kudarat" ${selectedProvince === 'Sultan Kudarat' ? 'selected' : ''}>Sultan Kudarat</option>
-            <option value="North Cotabato" ${selectedProvince === 'North Cotabato' ? 'selected' : ''}>North Cotabato</option>
-            <option value="South Cotabato" ${selectedProvince === 'South Cotabato' ? 'selected' : ''}>South Cotabato</option>
-            <option value="Saranggani" ${selectedProvince === 'Saranggani' ? 'selected' : ''}>Saranggani</option>
-            <option value="Others" ${selectedProvince === 'Others' ? 'selected' : ''}>Others</option>
-          </select>
-          <div id="f_province_other_wrap" class="${selectedProvince === 'Others' ? '' : 'hidden'} mt-2">
-            <input id="f_province_other" type="text" value="${esc(otherProvinceVal)}" placeholder="Specify other province..." class="f" ${selectedProvince === 'Others' ? 'required' : ''}>
-          </div>
-        </div>
-        ` : `
-        <div>
-          <label>Province</label>
-          <input id="f_province" value="${esc(record?.province || '')}" placeholder="e.g. Cotabato, Maguindanao del Sur" class="f">
-        </div>
-        `}
+        ${renderProvinceDropdownField(savedProv, false, 'f_province')}
       </div>
     </div>
 
@@ -1998,16 +2005,7 @@ function renderSleoModalForm(record) {
           <label>Control #</label>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
         </div>
-        <div>
-          <label>Brigade <span class="text-red-500">*</span></label>
-          <input id="f_brigade" list="sleo_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 601st Bde" class="f" required>
-          <datalist id="sleo_brigade_list">
-            <option value="601st Bde">
-            <option value="602nd Bde">
-            <option value="603rd Bde">
-            <option value="1BCT">
-          </datalist>
-        </div>
+        ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
           <label>Unit <span class="text-red-500">*</span></label>
           <input id="f_unit" list="sleo_unit_list" value="${esc(savedUnit)}" placeholder="e.g. 7IB, 40IB" class="f" required>
@@ -2032,18 +2030,7 @@ function renderSleoModalForm(record) {
           <label>Location / Municipality</label>
           <input id="f_area" value="${esc(savedArea)}" placeholder="e.g. Tacurong City, Isulan" class="f">
         </div>
-        <div>
-          <label>Province</label>
-          <input id="f_province" list="sleo_province_list" value="${esc(savedProvince)}" placeholder="e.g. Sultan Kudarat, Cotabato" class="f">
-          <datalist id="sleo_province_list">
-            <option value="Maguindanao del Sur">
-            <option value="Maguindanao del Norte">
-            <option value="Cotabato">
-            <option value="Sultan Kudarat">
-            <option value="South Cotabato">
-            <option value="Sarangani">
-          </datalist>
-        </div>
+        ${renderProvinceDropdownField(savedProvince, false, 'f_province')}
         <div>
           <label>Operation Type <span class="text-red-500">*</span></label>
           <select id="f_operation_type" class="f" onchange="onSelectWithOtherChange(this, 'f_operation_type_other_wrap', 'f_operation_type_other')" required>
@@ -2408,16 +2395,7 @@ function renderTolfModalForm(record) {
           <label>Control #</label>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
         </div>
-        <div>
-          <label>Brigade <span class="text-red-500">*</span></label>
-          <input id="f_brigade" list="tolf_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 601st Bde" class="f" required>
-          <datalist id="tolf_brigade_list">
-            <option value="601st Bde">
-            <option value="602nd Bde">
-            <option value="603rd Bde">
-            <option value="1BCT">
-          </datalist>
-        </div>
+        ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
           <label>Unit <span class="text-red-500">*</span></label>
           <input id="f_unit" list="tolf_unit_list" value="${esc(savedUnit)}" placeholder="e.g. 7IB, 40IB" class="f" required>
@@ -2438,18 +2416,7 @@ function renderTolfModalForm(record) {
           <label>Location / Municipality</label>
           <input id="f_area" value="${esc(savedArea)}" placeholder="e.g. Carmen, Pikit, Isulan" class="f">
         </div>
-        <div>
-          <label>Province</label>
-          <input id="f_province" list="tolf_province_list" value="${esc(savedProvince)}" placeholder="e.g. Cotabato, Maguindanao del Sur" class="f">
-          <datalist id="tolf_province_list">
-            <option value="Maguindanao del Sur">
-            <option value="Maguindanao del Norte">
-            <option value="Cotabato">
-            <option value="Sultan Kudarat">
-            <option value="South Cotabato">
-            <option value="Sarangani">
-          </datalist>
-        </div>
+        ${renderProvinceDropdownField(savedProvince, false, 'f_province')}
         <div>
           <label>Source Group / Community</label>
           <input id="f_source_group" value="${esc(sourceGroup)}" placeholder="e.g. Local Officials, Former Rebels, Barangays" class="f">
@@ -2665,16 +2632,7 @@ function renderRidoModalForm(record) {
           <label>Control #</label>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
         </div>
-        <div>
-          <label>Brigade <span class="text-red-500">*</span></label>
-          <input id="f_brigade" list="rido_brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 603rd Bde" class="f" required>
-          <datalist id="rido_brigade_list">
-            <option value="601st Bde">
-            <option value="602nd Bde">
-            <option value="603rd Bde">
-            <option value="1BCT">
-          </datalist>
-        </div>
+        ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
           <label>Unit <span class="text-red-500">*</span></label>
           <input id="f_unit" list="rido_unit_list" value="${esc(savedUnit)}" placeholder="e.g. 37IB, 57IB" class="f" required>
@@ -2695,18 +2653,7 @@ function renderRidoModalForm(record) {
           <label>Location / Municipality <span class="text-red-500">*</span></label>
           <input id="f_area" value="${esc(savedArea)}" placeholder="e.g. Datu Piang, Pikit, Pagalungan" class="f" required>
         </div>
-        <div>
-          <label>Province</label>
-          <input id="f_province" list="rido_province_list" value="${esc(savedProvince)}" placeholder="e.g. Maguindanao del Sur, Cotabato" class="f">
-          <datalist id="rido_province_list">
-            <option value="Maguindanao del Sur">
-            <option value="Maguindanao del Norte">
-            <option value="Cotabato">
-            <option value="Sultan Kudarat">
-            <option value="South Cotabato">
-            <option value="Sarangani">
-          </datalist>
-        </div>
+        ${renderProvinceDropdownField(savedProvince, false, 'f_province')}
         <div class="sm:col-span-2 lg:col-span-2">
           <label>Status <span class="text-red-500">*</span></label>
           <select id="f_status" class="f" onchange="onSelectWithOtherChange(this, 'f_status_other_wrap', 'f_status_other')">
@@ -3030,7 +2977,9 @@ async function handleFormSubmit(e) {
     const drugsGrams = ($('f_drugs_grams')?.value || '').trim();
     const drugsValue = ($('f_drugs_value')?.value || '').trim();
 
-    const brigadeVal = $('f_brigade')?.value.trim() || '';
+    const brigadeSel = ($('f_brigade')?.value || '').trim();
+    const brigadeOther = ($('f_brigade_other')?.value || '').trim();
+    const brigadeVal = brigadeSel === 'Others' ? (brigadeOther || 'Others') : brigadeSel;
     const unitVal    = $('f_unit')?.value.trim() || '';
     const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
 
@@ -3080,6 +3029,10 @@ async function handleFormSubmit(e) {
     const targetGroupVal = ($('f_target_group')?.value || '').trim();
     const finalTargetGroup = targetGroupVal || finalThreatGroup;
 
+    const provSel = ($('f_province')?.value || '').trim();
+    const provOther = ($('f_province_other')?.value || '').trim();
+    const provinceVal = provSel === 'Others' ? (provOther || 'Others') : provSel;
+
     payload = {
       ...payload,
       control_number: ctrlNum,
@@ -3087,7 +3040,7 @@ async function handleFormSubmit(e) {
       unit: combinedUnit,
       brigade: brigadeVal,
       area: ($('f_area')?.value || '').trim(),
-      province: ($('f_province')?.value || '').trim(),
+      province: provinceVal,
       lead_agency: $('f_lead_agency').value.trim(),
       operation_type: finalOpType,
       threat_group: finalThreatGroup,
@@ -3111,7 +3064,9 @@ async function handleFormSubmit(e) {
       contraband_details: combinedContraband
     };
   } else if (currentTab === 'tolf') {
-    const brigadeVal = ($('f_brigade')?.value || '').trim();
+    const brigadeSel = ($('f_brigade')?.value || '').trim();
+    const brigadeOther = ($('f_brigade_other')?.value || '').trim();
+    const brigadeVal = brigadeSel === 'Others' ? (brigadeOther || 'Others') : brigadeSel;
     const unitVal    = ($('f_unit')?.value || '').trim();
     const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
 
@@ -3140,6 +3095,10 @@ async function handleFormSubmit(e) {
       ammo: wmAmmo
     };
 
+    const provSel = ($('f_province')?.value || '').trim();
+    const provOther = ($('f_province_other')?.value || '').trim();
+    const provinceVal = provSel === 'Others' ? (provOther || 'Others') : provSel;
+
     payload = {
       ...payload,
       control_number: ctrlNum,
@@ -3147,7 +3106,7 @@ async function handleFormSubmit(e) {
       unit: combinedUnit,
       brigade: brigadeVal,
       area: ($('f_area')?.value || '').trim(),
-      province: ($('f_province')?.value || '').trim(),
+      province: provinceVal,
       source_group: ($('f_source_group')?.value || '').trim(),
       fa_csw: csw,
       fa_high_powered: hp,
@@ -3160,13 +3119,19 @@ async function handleFormSubmit(e) {
       war_materiel: warMat
     };
   } else if (currentTab === 'rido') {
-    const brigadeVal = ($('f_brigade')?.value || '').trim();
+    const brigadeSel = ($('f_brigade')?.value || '').trim();
+    const brigadeOther = ($('f_brigade_other')?.value || '').trim();
+    const brigadeVal = brigadeSel === 'Others' ? (brigadeOther || 'Others') : brigadeSel;
     const unitVal    = ($('f_unit')?.value || '').trim();
     const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
 
     const statusSel = $('f_status')?.value || 'Ongoing Mediation';
     const statusOther = ($('f_status_other')?.value || '').trim();
     const finalStatus = statusSel === 'Others' ? (statusOther || 'Others') : statusSel;
+
+    const provSel = ($('f_province')?.value || '').trim();
+    const provOther = ($('f_province_other')?.value || '').trim();
+    const provinceVal = provSel === 'Others' ? (provOther || 'Others') : provSel;
 
     payload = {
       ...payload,
@@ -3175,7 +3140,7 @@ async function handleFormSubmit(e) {
       unit: combinedUnit,
       brigade: brigadeVal,
       area: ($('f_area')?.value || '').trim(),
-      province: ($('f_province')?.value || '').trim(),
+      province: provinceVal,
       parties_involved: ($('f_parties_involved')?.value || '').trim(),
       status: finalStatus,
       casualties_killed: parseInt($('f_casualties_killed')?.value || 0, 10) || 0,
