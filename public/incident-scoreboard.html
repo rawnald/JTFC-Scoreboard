@@ -278,9 +278,9 @@
             <th class="py-2.5 px-2">Date</th>
             <th class="py-2.5 px-2">Ctrl #</th>
             <th class="py-2.5 px-2">Unit / Brigade</th>
+            <th class="py-2.5 px-2">Incident Type</th>
             <th class="py-2.5 px-2">Area / Province</th>
             <th class="py-2.5 px-2">Threat Group</th>
-            <th class="py-2.5 px-2">Incident Type</th>
             <th class="py-2.5 px-2 text-center">Casualties</th>
             <th class="py-2.5 px-2 text-center">Firearms</th>
             <th class="py-2.5 px-2">Remarks</th>
@@ -1154,9 +1154,9 @@ function renderIncidentLogTable() {
         <td class="py-2 px-2 font-mono whitespace-nowrap text-slate-700">${esc(r.op_date || '—')}</td>
         <td class="py-2 px-2 font-mono font-bold text-teal-700 whitespace-nowrap">${esc(r.control_number || '—')}</td>
         <td class="py-2 px-2 font-semibold text-[#0b1b5e] whitespace-nowrap">${esc(r.unit || '—')}</td>
+        <td class="py-2 px-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded font-semibold bg-amber-50 text-amber-800 border border-amber-200">${esc(engType)}</span></td>
         <td class="py-2 px-2 text-slate-600 whitespace-nowrap">${esc(r.area || '')}${r.province ? `, ${esc(r.province)}` : ''}</td>
         <td class="py-2 px-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded font-semibold bg-blue-50 text-blue-700 border border-blue-200">${esc(r.threat_group || '—')}</span></td>
-        <td class="py-2 px-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded font-semibold bg-amber-50 text-amber-800 border border-amber-200">${esc(engType)}</span></td>
         <td class="py-2 px-2 text-center whitespace-nowrap">
           <span class="${govtCas > 0 ? 'text-red-600 font-bold' : 'text-slate-400'}">${govtCas} Govt</span> /
           <span class="${enemyNz > 0 ? 'text-blue-600 font-bold' : 'text-slate-400'}">${enemyNz} Enemy</span>
