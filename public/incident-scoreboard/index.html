@@ -170,15 +170,6 @@
 
   <!-- INCIDENT KPIS GRID (Transferred from Admin Panel) -->
   <section>
-    <div class="flex items-center justify-between mb-3 px-1">
-      <div class="flex items-center gap-2">
-        <span class="ms text-blue-700 !text-xl">dashboard</span>
-        <h2 class="text-sm sm:text-base font-bold text-[#0b1b5e] uppercase tracking-wide">Incident Reports Key Performance Indicators (KPIs)</h2>
-      </div>
-      <div id="incident-kpis-summary-badge" class="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-        Recorded Incidents
-      </div>
-    </div>
     <!-- 10 Primary Incident KPIs -->
     <div id="incident-kpis" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-3.5"></div>
   </section>
@@ -975,7 +966,7 @@ function renderPrimaryIncidentKpis(c, p) {
 
   const totalCur = c.total_incidents || 0;
   const totalPrev = p.total_incidents || 0;
-  $('incident-kpis-summary-badge').textContent = `${fmt(totalCur)} Recorded Incidents`;
+  const badge = $('incident-kpis-summary-badge'); if (badge) badge.textContent = `${fmt(totalCur)} Recorded Incidents`;
 
   const kpis = [
     {
