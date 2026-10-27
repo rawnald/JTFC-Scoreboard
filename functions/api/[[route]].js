@@ -56,18 +56,19 @@ const STANDARD_THREAT_GROUPS = [
 ];
 
 const STANDARD_BRIGADES = [
-  '601st Bde', '602nd Bde', '603rd Bde', '1Mech BDE', '1Mar BDE'
+  '601 BDE', '602 BDE', '603 BDE', '1MAR BDE', '1MECH BDE', '1BCT'
 ];
 
 function cleanBrigadeName(val) {
   if (!val) return '—';
   const str = String(val).trim();
   const lower = str.toLowerCase();
-  if (lower.includes('601')) return '601st Bde';
-  if (lower.includes('602')) return '602nd Bde';
-  if (lower.includes('603')) return '603rd Bde';
-  if (lower.includes('mech')) return '1Mech BDE';
-  if (lower.includes('mar')) return '1Mar BDE';
+  if (lower.includes('601')) return '601 BDE';
+  if (lower.includes('602')) return '602 BDE';
+  if (lower.includes('603')) return '603 BDE';
+  if (lower.includes('mech')) return '1MECH BDE';
+  if (lower.includes('mar')) return '1MAR BDE';
+  if (lower.includes('1bct') || lower.includes('bct')) return '1BCT';
   return str;
 }
 
@@ -101,6 +102,8 @@ function getProvince(r) {
 const PROVINCE_TO_REGION = {
   'Maguindanao del Norte': 'BARMM',
   'Maguindanao del Sur': 'BARMM',
+  'MDN': 'BARMM',
+  'MDS': 'BARMM',
   'SGA-BARMM': 'BARMM',
   'Cotabato City': 'BARMM',
   'Lanao del Sur': 'BARMM',
@@ -112,6 +115,7 @@ const PROVINCE_TO_REGION = {
   'South Cotabato': 'Region XII',
   'Sultan Kudarat': 'Region XII',
   'Sarangani': 'Region XII',
+  'Saranggani': 'Region XII',
   'Sarangani Province': 'Region XII',
   'General Santos City': 'Region XII'
 };
@@ -121,10 +125,10 @@ function getRegionForProvince(provName) {
   const clean = String(provName).trim();
   if (PROVINCE_TO_REGION[clean]) return PROVINCE_TO_REGION[clean];
   const lower = clean.toLowerCase();
-  if (lower.includes('barmm') || lower.includes('maguindanao') || lower.includes('sga') || lower.includes('shariff') || lower.includes('basilan') || lower.includes('sulu') || lower.includes('tawi') || lower.includes('lanao del sur')) {
+  if (lower.includes('barmm') || lower.includes('maguindanao') || lower.includes('sga') || lower.includes('shariff') || lower.includes('basilan') || lower.includes('sulu') || lower.includes('tawi') || lower.includes('lanao del sur') || lower === 'mds' || lower === 'mdn' || lower.includes('mds') || lower.includes('mdn')) {
     return 'BARMM';
   }
-  if (lower.includes('cotabato') || lower.includes('kudarat') || lower.includes('sarangani') || lower.includes('gensan') || lower.includes('general santos') || lower.includes('koronadal') || lower.includes('tacurong') || lower.includes('isulan')) {
+  if (lower.includes('cotabato') || lower.includes('kudarat') || lower.includes('sarangani') || lower.includes('saranggani') || lower.includes('gensan') || lower.includes('general santos') || lower.includes('koronadal') || lower.includes('tacurong') || lower.includes('isulan')) {
     if (lower.includes('cotabato city')) return 'BARMM';
     return 'Region XII';
   }

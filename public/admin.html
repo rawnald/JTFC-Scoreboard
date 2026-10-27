@@ -1253,7 +1253,9 @@ function renderCombatModalForm(record) {
 
   let savedBrigade = '';
   let savedUnit = '';
-  if (warMat && (warMat.brigade || warMat.unit_only)) {
+  if (record && record.brigade) {
+    savedBrigade = record.brigade;
+  } else if (warMat && (warMat.brigade || warMat.unit_only)) {
     savedBrigade = warMat.brigade || '';
     savedUnit = warMat.unit_only || '';
   } else if (record && record.unit) {
@@ -1270,6 +1272,58 @@ function renderCombatModalForm(record) {
     }
   }
 
+  // Brigade selection for incident modal
+  let selectedBrigade = '';
+  let otherBrigadeVal = '';
+  if (savedBrigade) {
+    const sb = savedBrigade.trim();
+    const sbUpper = sb.toUpperCase();
+    if (sbUpper === '601 BDE' || sbUpper === '601ST BDE' || sbUpper.includes('601')) {
+      selectedBrigade = '601 BDE';
+    } else if (sbUpper === '602 BDE' || sbUpper === '602ND BDE' || sbUpper.includes('602')) {
+      selectedBrigade = '602 BDE';
+    } else if (sbUpper === '603 BDE' || sbUpper === '603RD BDE' || sbUpper.includes('603')) {
+      selectedBrigade = '603 BDE';
+    } else if (sbUpper === '1MAR BDE' || sbUpper === '1ST MAR BDE' || sbUpper.includes('1MAR') || sbUpper.includes('MARINE')) {
+      selectedBrigade = '1MAR BDE';
+    } else if (sbUpper === '1MECH BDE' || sbUpper === '1ST MECH BDE' || sbUpper.includes('1MECH') || sbUpper.includes('MECHANIZED')) {
+      selectedBrigade = '1MECH BDE';
+    } else if (sbUpper === '1BCT' || sbUpper.includes('1BCT')) {
+      selectedBrigade = '1BCT';
+    } else {
+      selectedBrigade = 'Others';
+      otherBrigadeVal = sb;
+    }
+  }
+
+  // Province selection for incident modal
+  const savedProv = (record?.province || '').trim();
+  let selectedProvince = '';
+  let otherProvinceVal = '';
+  if (savedProv) {
+    const spUpper = savedProv.toUpperCase();
+    if (spUpper === 'COTABATO CITY' || spUpper.includes('COTABATO CITY')) {
+      selectedProvince = 'Cotabato City';
+    } else if (spUpper === 'MDS' || spUpper.includes('MAGUINDANAO DEL SUR')) {
+      selectedProvince = 'MDS';
+    } else if (spUpper === 'MDN' || spUpper.includes('MAGUINDANAO DEL NORTE')) {
+      selectedProvince = 'MDN';
+    } else if (spUpper === 'SGA-BARMM' || spUpper === 'SGA' || spUpper.includes('SGA')) {
+      selectedProvince = 'SGA-BARMM';
+    } else if (spUpper === 'SULTAN KUDARAT' || spUpper.includes('KUDARAT')) {
+      selectedProvince = 'Sultan Kudarat';
+    } else if (spUpper === 'NORTH COTABATO' || spUpper.includes('NORTH COTABATO')) {
+      selectedProvince = 'North Cotabato';
+    } else if (spUpper === 'SOUTH COTABATO' || spUpper.includes('SOUTH COTABATO')) {
+      selectedProvince = 'South Cotabato';
+    } else if (spUpper === 'SARANGGANI' || spUpper === 'SARANGANI' || spUpper.includes('SARANG')) {
+      selectedProvince = 'Saranggani';
+    } else {
+      selectedProvince = 'Others';
+      otherProvinceVal = savedProv;
+    }
+  }
+
   $('modal-form-content').innerHTML = `
     <!-- SECTION 1: Incident & Location Details -->
     <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
@@ -1278,13 +1332,31 @@ function renderCombatModalForm(record) {
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <div>
-          <label>Date of Operation <span class="text-red-500">*</span></label>
+          <label>${isIncidentReport ? 'Date of Incident' : 'Date of Operation'} <span class="text-red-500">*</span></label>
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
           <label>Control #</label>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
         </div>
+        ${isIncidentReport ? `
+        <div>
+          <label>Brigade <span class="text-red-500">*</span></label>
+          <select id="f_brigade" class="f" onchange="onSelectWithOtherChange(this, 'f_brigade_other_wrap', 'f_brigade_other')" required>
+            <option value="" disabled ${!selectedBrigade ? 'selected' : ''}>-- Select Brigade --</option>
+            <option value="601 BDE" ${selectedBrigade === '601 BDE' ? 'selected' : ''}>601 BDE</option>
+            <option value="602 BDE" ${selectedBrigade === '602 BDE' ? 'selected' : ''}>602 BDE</option>
+            <option value="603 BDE" ${selectedBrigade === '603 BDE' ? 'selected' : ''}>603 BDE</option>
+            <option value="1MAR BDE" ${selectedBrigade === '1MAR BDE' ? 'selected' : ''}>1MAR BDE</option>
+            <option value="1MECH BDE" ${selectedBrigade === '1MECH BDE' ? 'selected' : ''}>1MECH BDE</option>
+            <option value="1BCT" ${selectedBrigade === '1BCT' ? 'selected' : ''}>1BCT</option>
+            <option value="Others" ${selectedBrigade === 'Others' ? 'selected' : ''}>Others</option>
+          </select>
+          <div id="f_brigade_other_wrap" class="${selectedBrigade === 'Others' ? '' : 'hidden'} mt-2">
+            <input id="f_brigade_other" type="text" value="${esc(otherBrigadeVal)}" placeholder="Specify other brigade..." class="f" ${selectedBrigade === 'Others' ? 'required' : ''}>
+          </div>
+        </div>
+        ` : `
         <div>
           <label>Brigade <span class="text-red-500">*</span></label>
           <input id="f_brigade" list="brigade_list" value="${esc(savedBrigade)}" placeholder="e.g. 602nd Bde" class="f" required>
@@ -1295,6 +1367,7 @@ function renderCombatModalForm(record) {
             <option value="1BCT">
           </datalist>
         </div>
+        `}
         <div>
           <label>Unit <span class="text-red-500">*</span></label>
           <input id="f_unit" list="unit_list" value="${esc(savedUnit)}" placeholder="e.g. 7IB, 90IB" class="f" required>
@@ -1315,10 +1388,31 @@ function renderCombatModalForm(record) {
           <label>Area / Municipality</label>
           <input id="f_area" value="${esc(record?.area || '')}" placeholder="e.g. Pikit, Shariff Saydona" class="f">
         </div>
+        ${isIncidentReport ? `
+        <div>
+          <label>Province</label>
+          <select id="f_province" class="f" onchange="onSelectWithOtherChange(this, 'f_province_other_wrap', 'f_province_other')">
+            <option value="" ${!selectedProvince ? 'selected' : ''}>-- Select Province --</option>
+            <option value="Cotabato City" ${selectedProvince === 'Cotabato City' ? 'selected' : ''}>Cotabato City</option>
+            <option value="MDS" ${selectedProvince === 'MDS' ? 'selected' : ''}>MDS</option>
+            <option value="MDN" ${selectedProvince === 'MDN' ? 'selected' : ''}>MDN</option>
+            <option value="SGA-BARMM" ${selectedProvince === 'SGA-BARMM' ? 'selected' : ''}>SGA-BARMM</option>
+            <option value="Sultan Kudarat" ${selectedProvince === 'Sultan Kudarat' ? 'selected' : ''}>Sultan Kudarat</option>
+            <option value="North Cotabato" ${selectedProvince === 'North Cotabato' ? 'selected' : ''}>North Cotabato</option>
+            <option value="South Cotabato" ${selectedProvince === 'South Cotabato' ? 'selected' : ''}>South Cotabato</option>
+            <option value="Saranggani" ${selectedProvince === 'Saranggani' ? 'selected' : ''}>Saranggani</option>
+            <option value="Others" ${selectedProvince === 'Others' ? 'selected' : ''}>Others</option>
+          </select>
+          <div id="f_province_other_wrap" class="${selectedProvince === 'Others' ? '' : 'hidden'} mt-2">
+            <input id="f_province_other" type="text" value="${esc(otherProvinceVal)}" placeholder="Specify other province..." class="f" ${selectedProvince === 'Others' ? 'required' : ''}>
+          </div>
+        </div>
+        ` : `
         <div>
           <label>Province</label>
           <input id="f_province" value="${esc(record?.province || '')}" placeholder="e.g. Cotabato, Maguindanao del Sur" class="f">
         </div>
+        `}
       </div>
     </div>
 
@@ -2872,12 +2966,19 @@ async function handleFormSubmit(e) {
 
     const engTypeStr = activeEngTypes.length > 0 ? activeEngTypes.join(', ') : '—';
 
-    const brigadeVal = $('f_brigade')?.value.trim() || '';
+    const brigadeSel = ($('f_brigade')?.value || '').trim();
+    const brigadeOther = ($('f_brigade_other')?.value || '').trim();
+    const brigadeVal = brigadeSel === 'Others' ? (brigadeOther || 'Others') : brigadeSel;
+
     const unitVal    = $('f_unit')?.value.trim() || '';
     const combinedUnit = unitVal && brigadeVal ? `${unitVal} (${brigadeVal})` : (unitVal || brigadeVal);
 
     warMat.brigade = brigadeVal;
     warMat.unit_only = unitVal;
+
+    const provSel = ($('f_province')?.value || '').trim();
+    const provOther = ($('f_province_other')?.value || '').trim();
+    const provinceVal = provSel === 'Others' ? (provOther || 'Others') : provSel;
 
     payload = {
       ...payload,
@@ -2886,7 +2987,7 @@ async function handleFormSubmit(e) {
       unit: combinedUnit,
       brigade: brigadeVal,
       area: $('f_area').value,
-      province: $('f_province').value,
+      province: provinceVal,
       threat_category: $('f_threat_category').value,
       threat_group: $('f_threat_group').value,
       engagement_type: engTypeStr,
