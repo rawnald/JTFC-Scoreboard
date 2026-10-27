@@ -168,21 +168,6 @@
     </div>
   </header>
 
-  <!-- INCIDENT KPIS GRID (Transferred from Admin Panel) -->
-  <section>
-    <div class="flex items-center justify-between mb-3 px-1">
-      <div class="flex items-center gap-2">
-        <span class="ms text-blue-700 !text-xl">dashboard</span>
-        <h2 class="text-sm sm:text-base font-bold text-[#0b1b5e] uppercase tracking-wide">Incident Reports Key Performance Indicators (KPIs)</h2>
-      </div>
-      <div id="incident-kpis-summary-badge" class="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-        Recorded Incidents
-      </div>
-    </div>
-    <!-- 10 Primary Incident KPIs -->
-    <div id="incident-kpis" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-3.5"></div>
-  </section>
-
   <!-- SECONDARY IMPACT KPIS (Casualties & Firearms Impact) -->
   <section id="secondary-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4"></section>
 
@@ -662,9 +647,6 @@ async function load() {
   updateProvinceDropdownUI();
   updateDateRangeUI();
 
-  // RENDER 10 PRIMARY INCIDENT KPIS (Transferred from Admin Panel)
-  renderPrimaryIncidentKpis(c, p);
-
   // RENDER SECONDARY IMPACT KPIS
   renderSecondaryImpactKpis(c, p);
 
@@ -966,127 +948,6 @@ async function load() {
 
   // RENDER RECENT INCIDENT REPORTS LOG
   renderIncidentLogTable();
-}
-
-// 10 PRIMARY INCIDENT KPIS RENDERING (Transferred from Admin Panel)
-function renderPrimaryIncidentKpis(c, p) {
-  const container = $('incident-kpis');
-  if (!container) return;
-
-  const totalCur = c.total_incidents || 0;
-  const totalPrev = p.total_incidents || 0;
-  $('incident-kpis-summary-badge').textContent = `${fmt(totalCur)} Recorded Incidents`;
-
-  const kpis = [
-    {
-      title: 'Total Incidents',
-      val: fmt(totalCur),
-      sub: `${fmt(c.total_records || totalCur)} Total Recorded`,
-      delta: delta(totalCur, totalPrev),
-      icon: '<span class="ms !text-2xl">description</span>',
-      bg: 'bg-gradient-to-br from-blue-600 to-indigo-700',
-      shadow: 'shadow-blue-500/20'
-    },
-    {
-      title: 'Harassment',
-      val: fmt(c.harassment || 0),
-      sub: 'Enemy Harassment Events',
-      delta: delta(c.harassment || 0, p.harassment || 0),
-      icon: '<span class="ms !text-2xl">campaign</span>',
-      bg: 'bg-gradient-to-br from-amber-500 to-orange-600',
-      shadow: 'shadow-amber-500/20'
-    },
-    {
-      title: 'Ambush',
-      val: fmt(c.ambush || 0),
-      sub: 'Tactical Ambush Incidents',
-      delta: delta(c.ambush || 0, p.ambush || 0),
-      icon: '<span class="ms !text-2xl">crisis_alert</span>',
-      bg: 'bg-gradient-to-br from-red-600 to-rose-700',
-      shadow: 'shadow-red-500/20'
-    },
-    {
-      title: 'Liquidation',
-      val: fmt(c.liquidation || 0),
-      sub: 'Targeted Liquidations',
-      delta: delta(c.liquidation || 0, p.liquidation || 0),
-      icon: '<span class="ms !text-2xl">person_remove</span>',
-      bg: 'bg-gradient-to-br from-purple-600 to-violet-800',
-      shadow: 'shadow-purple-500/20'
-    },
-    {
-      title: 'Shooting',
-      val: fmt(c.shooting || 0),
-      sub: 'Shooting Incidents',
-      delta: delta(c.shooting || 0, p.shooting || 0),
-      icon: kpiPistolIcon,
-      bg: 'bg-gradient-to-br from-slate-600 to-slate-800',
-      shadow: 'shadow-slate-500/20'
-    },
-    {
-      title: 'Armed Clash',
-      val: fmt(c.armed_clash || 0),
-      sub: 'Armed Clash / Encounters',
-      delta: delta(c.armed_clash || 0, p.armed_clash || 0),
-      icon: '<span class="ms !text-2xl">swords</span>',
-      bg: 'bg-gradient-to-br from-orange-600 to-red-700',
-      shadow: 'shadow-orange-500/20'
-    },
-    {
-      title: 'IED Explosion',
-      val: fmt(c.ied_explosion || 0),
-      sub: 'IED Detonations / Blasts',
-      delta: delta(c.ied_explosion || 0, p.ied_explosion || 0),
-      icon: '<span class="ms !text-2xl">bomb</span>',
-      bg: 'bg-gradient-to-br from-yellow-600 to-amber-700',
-      shadow: 'shadow-yellow-500/20'
-    },
-    {
-      title: 'Bus Bombing',
-      val: fmt(c.bus_bombing || 0),
-      sub: 'Transit / Bus Bombings',
-      delta: delta(c.bus_bombing || 0, p.bus_bombing || 0),
-      icon: '<span class="ms !text-2xl">directions_bus</span>',
-      bg: 'bg-gradient-to-br from-pink-600 to-rose-700',
-      shadow: 'shadow-pink-500/20'
-    },
-    {
-      title: 'Carnapping',
-      val: fmt(c.carnapping || 0),
-      sub: 'Vehicle Hijackings',
-      delta: delta(c.carnapping || 0, p.carnapping || 0),
-      icon: '<span class="ms !text-2xl">directions_car</span>',
-      bg: 'bg-gradient-to-br from-teal-600 to-cyan-800',
-      shadow: 'shadow-teal-500/20'
-    },
-    {
-      title: 'Other Incident Reports',
-      val: fmt(c.other_incidents || 0),
-      sub: 'Other Reported Incidents',
-      delta: delta(c.other_incidents || 0, p.other_incidents || 0),
-      icon: '<span class="ms !text-2xl">pending_actions</span>',
-      bg: 'bg-gradient-to-br from-emerald-600 to-teal-700',
-      shadow: 'shadow-emerald-500/20'
-    }
-  ];
-
-  container.innerHTML = kpis.map(card => `
-    <div class="card p-3.5 sm:p-4 border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-shadow">
-      <div class="flex items-center gap-2.5 sm:gap-3">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${card.bg} text-white grid place-items-center shrink-0 shadow-sm ${card.shadow}">
-          ${card.icon}
-        </div>
-        <div class="min-w-0 flex-1">
-          <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="${esc(card.title)}">${esc(card.title)}</div>
-          <div class="text-xl sm:text-2xl font-extrabold text-[#0b1b5e] leading-tight mt-0.5 truncate" title="${esc(String(card.val))}">${esc(String(card.val))}</div>
-        </div>
-      </div>
-      <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] sm:text-[11px] font-medium text-slate-600">
-        <span class="truncate" title="${esc(card.sub)}">${esc(card.sub)}</span>
-        <div class="shrink-0 ml-1.5">${card.delta}</div>
-      </div>
-    </div>
-  `).join('');
 }
 
 // SECONDARY IMPACT KPIS RENDERING (Casualties, Firearms Gained, War Materiel)
