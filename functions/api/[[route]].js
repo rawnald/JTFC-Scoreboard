@@ -52,7 +52,7 @@ const STANDARD_THREAT_CATEGORIES = [
 const STANDARD_THREAT_GROUPS = [
   'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE',
   'SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO',
-  'MILF', 'MNLF'
+  'MILF', 'MNLF', 'MILF vs MILF', 'MILF vs MNLF', 'MILF vs PAGs', 'MNLF vs PAGs', 'PAGs vs PAGs'
 ];
 
 const STANDARD_BRIGADES = [
@@ -617,7 +617,7 @@ export async function onRequest({ request, env, params }) {
       const threatCategoryMap = {
         'Local Terrorist Groups (LTG)': ['BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE'],
         'Communist Terrorist Group (CTG)': ['SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO'],
-        'PIAGs': ['MILF', 'MNLF', 'PIAGs']
+        'PIAGs': ['MILF', 'MNLF', 'MILF vs MILF', 'MILF vs MNLF', 'MILF vs PAGs', 'MNLF vs PAGs', 'PAGs vs PAGs']
       };
 
       (catGroupRows.results || []).forEach(r => {
@@ -828,12 +828,16 @@ export async function onRequest({ request, env, params }) {
           const m = et.match(/carnapping\s*(?:\((\d+)\))?/i);
           return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('carnapping') ? 1 : 0);
         })();
+        const ar = (Number(we.active_rido) || Number(we.rido) || 0) || (()=>{
+          const m = et.match(/(?:active\s*rido|rido)\s*(?:\((\d+)\))?/i);
+          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('rido') ? 1 : 0);
+        })();
         const oCount = (Number(we.other_incidents) || Number(we.other_act) || Number(we.other_activities) || Number(we.grenade) || 0) || (()=>{
           const m = et.match(/(?:other\s*(?:incident[s]?)?(?:\s*report[s]?)?|other\s*act|grenade\s*(?:throwing)?)\s*(?:\((\d+)\))?/i);
           return m ? (m[1] ? Number(m[1]) : 1) : 0;
         })();
 
-        const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && oCount === 0) ? 1 : oCount;
+        const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
 
         return {
           harassment: h,
@@ -844,8 +848,9 @@ export async function onRequest({ request, env, params }) {
           ied_explosion: i,
           bus_bombing: b,
           carnapping: cr,
+          active_rido: ar,
           other_incidents: isOther,
-          total_breakdown: h + a + l + s + c + i + b + cr + isOther
+          total_breakdown: h + a + l + s + c + i + b + cr + ar + isOther
         };
       }
 
@@ -882,6 +887,7 @@ export async function onRequest({ request, env, params }) {
           ied_explosion: 0,
           bus_bombing: 0,
           carnapping: 0,
+          active_rido: 0,
           other_incidents: 0,
           kia: 0,
           wia: 0,
@@ -920,6 +926,7 @@ export async function onRequest({ request, env, params }) {
           a.ied_explosion += eng.ied_explosion;
           a.bus_bombing += eng.bus_bombing;
           a.carnapping += eng.carnapping;
+          a.active_rido += eng.active_rido;
           a.other_incidents += eng.other_incidents;
 
           const rKia = r.kia || 0;
@@ -1015,7 +1022,7 @@ export async function onRequest({ request, env, params }) {
           b.armed_clash += eng.armed_clash;
           b.shooting += eng.shooting;
           b.ied += eng.ied_explosion;
-          b.others += (eng.liquidation + eng.bus_bombing + eng.carnapping + eng.other_incidents);
+          b.others += (eng.liquidation + eng.bus_bombing + eng.carnapping + eng.active_rido + eng.other_incidents);
           b.govt_casualties += rGovtCas;
           b.kia += rKia;
           b.wia += rWia;
@@ -1029,7 +1036,7 @@ export async function onRequest({ request, env, params }) {
           if (provName && provName !== '—') b._provs.add(provName);
         }
 
-        const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.other_incidents;
+        const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.active_rido + a.other_incidents;
         a.total_incidents = Math.max(a.total_incidents, sumAll, a.total_records);
 
         return a;
@@ -1078,7 +1085,7 @@ export async function onRequest({ request, env, params }) {
       const threatCategoryMap = {
         'Local Terrorist Groups (LTG)': ['BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE'],
         'Communist Terrorist Group (CTG)': ['SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO'],
-        'PIAGs': ['MILF', 'MNLF', 'PIAGs']
+        'PIAGs': ['MILF', 'MNLF', 'MILF vs MILF', 'MILF vs MNLF', 'MILF vs PAGs', 'MNLF vs PAGs', 'PAGs vs PAGs']
       };
 
       (catGroupRows.results || []).forEach(r => {

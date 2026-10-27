@@ -316,13 +316,13 @@ const kpiPistolIcon = `<svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 576 512" 
 const THREAT_MAPPING = {
   'Local Terrorist Groups (LTG)': ['BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE'],
   'Communist Terrorist Group (CTG)': ['SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO'],
-  'PIAGs': ['MILF', 'MNLF', 'PIAGs']
+  'PIAGs': ['MILF', 'MNLF', 'MILF vs MILF', 'MILF vs MNLF', 'MILF vs PAGs', 'MNLF vs PAGs', 'PAGs vs PAGs']
 };
 
 const THREAT_GROUPS = [
   'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE',
   'SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO',
-  'MILF', 'MNLF'
+  'MILF', 'MNLF', 'MILF vs MILF', 'MILF vs MNLF', 'MILF vs PAGs', 'MNLF vs PAGs', 'PAGs vs PAGs'
 ];
 
 const STANDARD_BRIGADES = ['601st Bde', '602nd Bde', '603rd Bde', '1Mech BDE', '1Mar BDE'];
@@ -525,12 +525,16 @@ function parseIncidentRow(o) {
     const m = et.match(/carnapping\s*(?:\((\d+)\))?/i);
     return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('carnapping') ? 1 : 0);
   })();
+  const ar = (Number(we.active_rido) || Number(we.rido) || 0) || (()=>{
+    const m = et.match(/(?:active\s*rido|rido)\s*(?:\((\d+)\))?/i);
+    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('rido') ? 1 : 0);
+  })();
   const oCount = (Number(we.other_incidents) || Number(we.other_act) || Number(we.other_activities) || Number(we.grenade) || 0) || (()=>{
     const m = et.match(/(?:other\s*(?:incident[s]?)?(?:\s*report[s]?)?|other\s*act|grenade\s*(?:throwing)?)\s*(?:\((\d+)\))?/i);
     return m ? (m[1] ? Number(m[1]) : 1) : 0;
   })();
 
-  const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && oCount === 0) ? 1 : oCount;
+  const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
 
   return {
     harassment: h,
@@ -541,8 +545,9 @@ function parseIncidentRow(o) {
     ied_explosion: i,
     bus_bombing: b,
     carnapping: cr,
+    active_rido: ar,
     other_incidents: isOther,
-    total: h + a + l + s + c + i + b + cr + isOther
+    total: h + a + l + s + c + i + b + cr + ar + isOther
   };
 }
 
@@ -555,6 +560,7 @@ function getPrimaryEngagementType(eng, fallback) {
   if (eng.ied_explosion > 0) return 'IED Explosion';
   if (eng.bus_bombing > 0) return 'Bus Bombing';
   if (eng.carnapping > 0) return 'Carnapping';
+  if (eng.active_rido > 0) return 'Active Rido';
   if (eng.other_incidents > 0) return 'Other Incident';
   return fallback || 'Incident Report';
 }
@@ -884,6 +890,7 @@ async function load() {
     { label: 'IED Explosion', val: c.ied_explosion || 0, color: '#eab308' },
     { label: 'Bus Bombing', val: c.bus_bombing || 0, color: '#ec4899' },
     { label: 'Carnapping', val: c.carnapping || 0, color: '#0d9488' },
+    { label: 'Active Rido', val: c.active_rido || 0, color: '#6366f1' },
     { label: 'Other Incidents', val: c.other_incidents || 0, color: '#10b981' }
   ].filter(d => d.val > 0);
 
@@ -1201,7 +1208,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       total_incidents: 0,
       harassment: 0, ambush: 0, liquidation: 0, shooting: 0,
       armed_clash: 0, ied_explosion: 0, bus_bombing: 0, carnapping: 0,
-      other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
+      active_rido: 0, other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
       killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, enemy_neutralized: 0,
       firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, war_materiel_count: 0,
       monthly: Array(12).fill(0),
@@ -1227,6 +1234,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       a.ied_explosion += eng.ied_explosion;
       a.bus_bombing += eng.bus_bombing;
       a.carnapping += eng.carnapping;
+      a.active_rido += eng.active_rido;
       a.other_incidents += eng.other_incidents;
 
       a.kia += (r.kia || 0);
@@ -1279,7 +1287,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       b.firearms += fa;
     });
 
-    const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.other_incidents;
+    const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.active_rido + a.other_incidents;
     a.total_incidents = Math.max(a.total_incidents, sumAll, a.total_records);
     return a;
   }
