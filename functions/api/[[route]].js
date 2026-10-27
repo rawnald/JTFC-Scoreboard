@@ -167,14 +167,42 @@ function getOperationsCount(r) {
   return 1;
 }
 
+function getThreatCategoryKey(r) {
+  const cat = (r.threat_category || '').toLowerCase();
+  const grp = (r.threat_group || '').toLowerCase();
+
+  if (cat.includes('ctg') || cat.includes('communist')) return 'ctg';
+  if (cat.includes('ltg') || cat.includes('local terrorist')) return 'ltg';
+  if (cat.includes('piag') || cat.includes('private armed')) return 'piag';
+
+  const ltgTokens = ['biff', 'ditg', 'alg', 'lle', 'psrl', 'npsrl', 'ltg', 'local terrorist'];
+  if (ltgTokens.some(tok => grp.includes(tok))) return 'ltg';
+
+  const ctgTokens = ['daguma', 'musa', 'sroc', 'roc', 'fsmr', 'gf 73', 'gf73', 'milisyang', 'cnt', 'ctg', 'communist', 'npa', 'cpp', 'ugmo'];
+  if (ctgTokens.some(tok => grp.includes(tok))) return 'ctg';
+
+  const piagTokens = ['milf', 'mnlf', 'pag', 'piag', 'rido'];
+  if (piagTokens.some(tok => grp.includes(tok))) return 'piag';
+
+  return '';
+}
+
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
-  const a = { total_ops: 0, enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
+  const a = { total_ops: 0, enc: 0, sur: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
   for (const r of rows) {
     const opCount = getOperationsCount(r);
     a.total_ops += opCount;
-    a.sur += r.surrendered || 0; a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
+    const rSur = r.surrendered || 0;
+    a.sur += rSur;
+    if (rSur > 0) {
+      const tc = getThreatCategoryKey(r);
+      if (tc === 'ctg') a.sur_ctg += rSur;
+      else if (tc === 'ltg') a.sur_ltg += rSur;
+      else if (tc === 'piag') a.sur_piag += rSur;
+    }
+    a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
     a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
 
     let hp = r.fa_high_powered || 0;
@@ -901,6 +929,9 @@ export async function onRequest({ request, env, params }) {
           captured: 0,
           apprehended: 0,
           surrendered: 0,
+          sur_ctg: 0,
+          sur_ltg: 0,
+          sur_piag: 0,
           enemy_neutralized: 0,
           firearms: 0,
           fa_hp: 0,
@@ -951,6 +982,12 @@ export async function onRequest({ request, env, params }) {
           a.captured += rCap;
           a.apprehended += rApp;
           a.surrendered += rSur;
+          if (rSur > 0) {
+            const tc = getThreatCategoryKey(r);
+            if (tc === 'ctg') a.sur_ctg = (a.sur_ctg || 0) + rSur;
+            else if (tc === 'ltg') a.sur_ltg = (a.sur_ltg || 0) + rSur;
+            else if (tc === 'piag') a.sur_piag = (a.sur_piag || 0) + rSur;
+          }
           a.enemy_neutralized += rNz;
 
           let hp = r.fa_high_powered || 0;

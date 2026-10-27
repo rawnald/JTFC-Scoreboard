@@ -1262,7 +1262,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       harassment: 0, ambush: 0, liquidation: 0, shooting: 0,
       armed_clash: 0, ied_explosion: 0, bus_bombing: 0, carnapping: 0,
       active_rido: 0, other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
-      killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, enemy_neutralized: 0,
+      killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, enemy_neutralized: 0,
       firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, war_materiel_count: 0,
       monthly: Array(12).fill(0),
       monthly_harassment: Array(12).fill(0),
@@ -1299,7 +1299,19 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       a.enemy_wounded += (r.enemy_wounded || 0);
       a.captured += (r.captured || 0);
       a.apprehended += (r.apprehended || 0);
-      a.surrendered += (r.surrendered || 0);
+      const rSur = (r.surrendered || 0);
+      a.surrendered += rSur;
+      if (rSur > 0) {
+        const cat = (r.threat_category || '').toLowerCase();
+        const grp = (r.threat_group || '').toLowerCase();
+        if (cat.includes('ctg') || cat.includes('communist') || ['daguma', 'musa', 'sroc', 'roc', 'fsmr', 'gf 73', 'gf73', 'milisyang', 'cnt', 'ctg', 'communist', 'npa', 'cpp', 'ugmo'].some(t => grp.includes(t))) {
+          a.sur_ctg += rSur;
+        } else if (cat.includes('ltg') || cat.includes('local terrorist') || ['biff', 'ditg', 'alg', 'lle', 'psrl', 'npsrl', 'ltg', 'local terrorist'].some(t => grp.includes(t))) {
+          a.sur_ltg += rSur;
+        } else if (cat.includes('piag') || cat.includes('private armed') || ['milf', 'mnlf', 'pag', 'piag', 'rido'].some(t => grp.includes(t))) {
+          a.sur_piag += rSur;
+        }
+      }
       a.enemy_neutralized += nz;
 
       const fa = (r.firearms || 0) || (r.fa_high_powered || 0) + (r.fa_low_powered || 0) + (r.fa_csw || 0);

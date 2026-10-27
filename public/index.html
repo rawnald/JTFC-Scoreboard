@@ -454,13 +454,15 @@ async function load() {
   const curEnc = c.enc || 0;
   const militaryOpsVal = `${curOps} Opns / ${curEnc} Enc`;
 
+  const surSub = `${c.sur_ctg || 0} CTG / ${c.sur_ltg || 0} LTG / ${c.sur_piag || 0} PIAGs`;
+
   $('kpis').innerHTML =
     kpi('groups', '#f97316', 'Military Operations', militaryOpsVal, delta(curOps, prevOps)) +
     kpi('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta((c.kia || 0) + (c.wia || 0), (p.kia || 0) + (p.wia || 0), true)) +
     kpi(pistolIcon, '#16a34a', 'Firearms Gained', c.fa || 0, delta(c.fa, p.fa), faSub) +
     kpi(armaliteIcon, '#0891b2', 'Loose FAs (SALW)', c.tolf || 0, delta(c.tolf, p.tolf), salwSub) +
     kpi('shield', '#2563eb', 'Total Neutralized', totNeutralized, delta(totNeutralized, prevTotNeutralized), nzSub) +
-    kpi('handshake', '#7c3aed', 'Total Surrender', c.sur || 0, delta(c.sur || 0, p.sur || 0)) +
+    kpi('handshake', '#7c3aed', 'Total Surrender', c.sur || 0, delta(c.sur || 0, p.sur || 0), surSub) +
     kpi('policy', '#6366f1', 'Total SLEO', c.sleo || 0, delta(c.sleo, p.sleo));
 
   const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
