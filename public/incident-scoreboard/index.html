@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JTFC Incident Scoreboard</title>
+<link rel="icon" type="image/png" href="/logo.png">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+  body { font-family: Roboto, sans-serif; }
+  .ms { font-family: 'Material Symbols Outlined'; font-size: 24px; line-height: 1; }
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 1px 3px rgba(30,50,120,.12), 0 4px 12px rgba(30,50,120,.06);
+  }
+  select option {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #0b1b5e;
+    background-color: #ffffff;
+  }
+</style>
+</head>
+<body class="bg-[#e8eefc] text-slate-800 min-h-screen">
+<main class="w-full p-4 lg:p-6 space-y-5">
+
+  <!-- HEADER -->
+  <header class="flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3.5">
+      <img src="/logo.png" alt="6ID Kampilan JTFC Logo" class="w-12 h-12 lg:w-16 lg:h-16 object-contain drop-shadow shrink-0">
+      <div>
+        <h1 class="text-2xl lg:text-3xl font-bold text-[#0b1b5e] tracking-tight">JTFC INCIDENT SCOREBOARD</h1>
+        <p class="text-slate-600 text-sm">Summary of Significant Incident Reports & Monitored Engagements</p>
+        <!-- Navigation Pill Switcher -->
+        <div class="mt-2.5 flex items-center gap-2">
+          <a href="/" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white text-slate-700 hover:text-blue-700 hover:border-blue-400 border border-slate-200 transition shadow-sm">
+            <span class="ms !text-sm text-blue-600">military_tech</span> Combat Scoreboard
+          </a>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#0b1b5e] text-white shadow-sm ring-1 ring-[#0b1b5e]">
+            <span class="ms !text-sm text-teal-400">crisis_alert</span> Incident Scoreboard
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Filters (Date Range, Threat Category, Brigade, Region, Province, Year) -->
+    <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+      <!-- Date Range Filter Pill -->
+      <div class="relative" id="date-range-container">
+        <button id="date-range-btn" type="button" class="card px-4 py-2.5 flex items-center gap-3 border border-slate-200/80 bg-white hover:border-blue-400 transition cursor-pointer text-left shadow-sm min-h-[50px]">
+          <span class="ms text-[#0b1b5e] !text-2xl shrink-0">calendar_month</span>
+          <div>
+            <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none">Date</div>
+            <div id="date-range-label" class="text-xs sm:text-sm font-bold text-[#0b1b5e] mt-1 whitespace-nowrap">1 Jan - 31 Dec 2026</div>
+          </div>
+          <span class="ms text-slate-400 !text-lg ml-1 shrink-0">expand_more</span>
+        </button>
+
+        <!-- Date Range Popover Dropdown -->
+        <div id="date-range-popover" class="hidden absolute right-0 sm:left-0 mt-2 z-50 card p-4 w-80 sm:w-88 shadow-2xl border border-slate-200 bg-white">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 mb-3">
+            <div class="text-xs font-bold text-slate-800 uppercase tracking-wide">Select Date Range</div>
+            <button type="button" id="date-popover-close" class="text-slate-400 hover:text-slate-600 text-lg leading-none cursor-pointer">&times;</button>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Presets</div>
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <button type="button" class="date-preset-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition text-center" data-preset="year">Full Year</button>
+            <button type="button" class="date-preset-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition text-center" data-preset="ytd">YTD (Year to Date)</button>
+            <button type="button" class="date-preset-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition text-center" data-preset="q1">Q1 (Jan-Mar)</button>
+            <button type="button" class="date-preset-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition text-center" data-preset="q2">Q2 (Apr-Jun)</button>
+            <button type="button" class="date-preset-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition text-center" data-preset="q3">Q3 (Jul-Sep)</button>
+            <button type="button" class="date-preset-btn px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition text-center" data-preset="q4">Q4 (Oct-Dec)</button>
+          </div>
+
+          <!-- Custom Range Inputs -->
+          <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Custom Range</div>
+          <div class="space-y-2 mb-3">
+            <div>
+              <label class="text-[11px] text-slate-500 font-medium block mb-1">From</label>
+              <input type="date" id="input-start-date" class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:border-blue-500 font-medium">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-500 font-medium block mb-1">To</label>
+              <input type="date" id="input-end-date" class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:border-blue-500 font-medium">
+            </div>
+          </div>
+
+          <!-- Popover Footer Buttons -->
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" id="date-reset-btn" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">Reset</button>
+            <button type="button" id="date-apply-btn" class="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Threat Category Dropdown Pill -->
+      <div class="card px-4 py-2.5 flex items-center gap-3 border border-slate-200/80 bg-white hover:border-blue-400 transition shadow-sm min-h-[50px]">
+        <span class="ms text-[#0b1b5e] !text-2xl shrink-0">groups</span>
+        <div>
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none pl-1.5">Threat Category</div>
+          <div class="relative mt-0.5 flex items-center">
+            <select id="filter-threat-group" class="bg-transparent font-bold text-xs sm:text-sm text-[#0b1b5e] outline-none cursor-pointer py-1 pl-1.5 pr-7 appearance-none max-w-[140px] sm:max-w-[180px] truncate rounded hover:bg-slate-50 transition">
+              <option value="">All Threat Categories</option>
+            </select>
+            <span class="ms text-slate-400 !text-lg absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brigade Dropdown Pill -->
+      <div class="card px-4 py-2.5 flex items-center gap-3 border border-slate-200/80 bg-white hover:border-blue-400 transition shadow-sm min-h-[50px]">
+        <span class="ms text-[#0b1b5e] !text-2xl shrink-0">military_tech</span>
+        <div>
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none pl-1.5">Brigade</div>
+          <div class="relative mt-0.5 flex items-center">
+            <select id="filter-brigade" class="bg-transparent font-bold text-xs sm:text-sm text-[#0b1b5e] outline-none cursor-pointer py-1 pl-1.5 pr-7 appearance-none max-w-[140px] sm:max-w-[180px] truncate rounded hover:bg-slate-50 transition">
+              <option value="">All Brigades</option>
+            </select>
+            <span class="ms text-slate-400 !text-lg absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Region Dropdown Pill -->
+      <div class="card px-4 py-2.5 flex items-center gap-3 border border-slate-200/80 bg-white hover:border-blue-400 transition shadow-sm min-h-[50px]">
+        <span class="ms text-[#0b1b5e] !text-2xl shrink-0">map</span>
+        <div>
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none pl-1.5">Region</div>
+          <div class="relative mt-0.5 flex items-center">
+            <select id="filter-region" class="bg-transparent font-bold text-xs sm:text-sm text-[#0b1b5e] outline-none cursor-pointer py-1 pl-1.5 pr-7 appearance-none max-w-[140px] sm:max-w-[180px] truncate rounded hover:bg-slate-50 transition">
+              <option value="">All Regions</option>
+            </select>
+            <span class="ms text-slate-400 !text-lg absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Province Dropdown Pill -->
+      <div class="card px-4 py-2.5 flex items-center gap-3 border border-slate-200/80 bg-white hover:border-blue-400 transition shadow-sm min-h-[50px]">
+        <span class="ms text-[#0b1b5e] !text-2xl shrink-0">location_on</span>
+        <div>
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none pl-1.5">Province</div>
+          <div class="relative mt-0.5 flex items-center">
+            <select id="filter-province" class="bg-transparent font-bold text-xs sm:text-sm text-[#0b1b5e] outline-none cursor-pointer py-1 pl-1.5 pr-7 appearance-none max-w-[140px] sm:max-w-[180px] truncate rounded hover:bg-slate-50 transition">
+              <option value="">All Provinces</option>
+            </select>
+            <span class="ms text-slate-400 !text-lg absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Year Dropdown Pill -->
+      <div class="card px-4 py-2.5 flex items-center gap-3 border border-slate-200/80 bg-white hover:border-blue-400 transition shadow-sm min-h-[50px]">
+        <span class="ms text-[#0b1b5e] !text-2xl shrink-0">event</span>
+        <div>
+          <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none pl-1.5">Year</div>
+          <div class="relative mt-0.5 flex items-center">
+            <select id="year" class="bg-transparent font-bold text-xs sm:text-sm text-[#0b1b5e] outline-none cursor-pointer py-1 pl-1.5 pr-7 appearance-none min-w-[75px] rounded hover:bg-slate-50 transition"></select>
+            <span class="ms text-slate-400 !text-lg absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- INCIDENT KPIS GRID (Transferred from Admin Panel) -->
+  <section>
+    <div class="flex items-center justify-between mb-3 px-1">
+      <div class="flex items-center gap-2">
+        <span class="ms text-blue-700 !text-xl">dashboard</span>
+        <h2 class="text-sm sm:text-base font-bold text-[#0b1b5e] uppercase tracking-wide">Incident Reports Key Performance Indicators (KPIs)</h2>
+      </div>
+      <div id="incident-kpis-summary-badge" class="text-xs font-semibold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+        Recorded Incidents
+      </div>
+    </div>
+    <!-- 10 Primary Incident KPIs -->
+    <div id="incident-kpis" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-3.5"></div>
+  </section>
+
+  <!-- SECONDARY IMPACT KPIS (Casualties & Firearms Impact) -->
+  <section id="secondary-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4"></section>
+
+  <!-- TREND CHARTS SECTION (3 Columns) -->
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Trend 1: Monthly Incident Reports Trend -->
+    <div class="card p-5 flex flex-col">
+      <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <h2 class="font-bold text-base sm:text-lg text-slate-800">Monthly Incident Reports Trend</h2>
+        <span class="text-xs text-slate-500 font-medium">Current vs Last Year</span>
+      </div>
+      <div class="h-64 sm:h-72 w-full"><canvas id="trend-incidents"></canvas></div>
+    </div>
+
+    <!-- Trend 2: Violent Engagements Breakdown Trend -->
+    <div class="card p-5 flex flex-col">
+      <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <h2 class="font-bold text-base sm:text-lg text-slate-800">Violent Engagements Breakdown</h2>
+        <span class="text-xs text-slate-500 font-medium">Harassment, Ambush, Clash, Shooting</span>
+      </div>
+      <div class="h-64 sm:h-72 w-full"><canvas id="trend-violent"></canvas></div>
+    </div>
+
+    <!-- Trend 3: Casualties & Weapons Impact Trend -->
+    <div class="card p-5 flex flex-col">
+      <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <h2 class="font-bold text-base sm:text-lg text-slate-800">Casualties & Firearms Recovered</h2>
+        <span class="text-xs text-slate-500 font-medium">Impact Comparison</span>
+      </div>
+      <div class="h-64 sm:h-72 w-full"><canvas id="trend-impact"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ANALYTICAL BREAKDOWN SECTION (3 Columns) -->
+  <section class="grid xl:grid-cols-3 gap-4">
+    <!-- Card 1: Incidents by Threat Group -->
+    <div class="card p-5 flex flex-col">
+      <h2 id="groups-chart-title" class="font-bold text-lg mb-2">Incidents by Threat Group</h2>
+      <div class="h-[360px] w-full"><canvas id="groups"></canvas></div>
+    </div>
+
+    <!-- Card 2: Incident Type Distribution (Donut) -->
+    <div class="card p-5 flex flex-col">
+      <h2 class="font-bold text-lg mb-2">Incident Type Breakdown</h2>
+      <div class="h-[360px] flex items-center justify-center">
+        <canvas id="donut"></canvas>
+      </div>
+    </div>
+
+    <!-- Card 3: Brigade Incident Accomplishments Table -->
+    <div class="card p-5 overflow-x-auto flex flex-col">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-bold text-lg">Brigade Incident Matrix</h2>
+        <span class="text-xs text-slate-500 font-medium">Area Operational Distribution</span>
+      </div>
+      <div class="flex-1 overflow-y-auto max-h-[360px]">
+        <table class="w-full text-xs sm:text-sm">
+          <thead>
+            <tr class="text-left border-b sticky top-0 bg-white text-slate-700 font-semibold">
+              <th class="py-2 pr-2">Brigade</th>
+              <th class="py-2 px-1 text-center">Incidents</th>
+              <th class="py-2 px-1 text-center">Harassment</th>
+              <th class="py-2 px-1 text-center">Ambush/Clash</th>
+              <th class="py-2 px-1 text-center">Casualties</th>
+              <th class="py-2 pl-1 text-center">FAs Gained</th>
+            </tr>
+          </thead>
+          <tbody id="matrix"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECENT INCIDENT REPORTS LOG SECTION -->
+  <section class="card p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div>
+        <h2 class="font-bold text-base sm:text-lg text-slate-800">Recent Incident Reports</h2>
+        <p class="text-xs text-slate-500">Log of recorded incidents matching active filters</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="relative">
+          <input type="text" id="incident-search" placeholder="Search incidents..." class="text-xs px-3 py-1.5 pl-8 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 w-48 sm:w-64">
+          <span class="ms text-slate-400 !text-base absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+        </div>
+        <span id="incident-count-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">0 records</span>
+      </div>
+    </div>
+    <div class="overflow-x-auto max-h-[400px]">
+      <table class="w-full text-xs sm:text-sm">
+        <thead>
+          <tr class="text-left border-b sticky top-0 bg-white text-slate-700 font-semibold">
+            <th class="py-2.5 px-2">Date</th>
+            <th class="py-2.5 px-2">Ctrl #</th>
+            <th class="py-2.5 px-2">Unit / Brigade</th>
+            <th class="py-2.5 px-2">Area / Province</th>
+            <th class="py-2.5 px-2">Threat Group</th>
+            <th class="py-2.5 px-2">Incident Type</th>
+            <th class="py-2.5 px-2 text-center">Casualties</th>
+            <th class="py-2.5 px-2 text-center">Firearms</th>
+            <th class="py-2.5 px-2">Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="incident-log-body">
+          <tr><td colspan="9" class="py-6 text-center text-slate-400">Loading incident records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const $ = id => document.getElementById(id), blue = '#1d5bff', charts = {};
+const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+const fmt = val => Number(val || 0).toLocaleString();
+
+const delta = (c, p, inv) => {
+  if (!p) return '<span class="text-slate-400 font-medium">—</span>';
+  const d = ((c - p) / p) * 100;
+  const good = inv ? d <= 0 : d >= 0;
+  return `<span class="${good ? 'text-green-600' : 'text-red-600'} font-bold flex items-center gap-0.5"><span class="ms !text-sm">${d >= 0 ? 'arrow_upward' : 'arrow_downward'}</span>${d >= 0 ? '+' : ''}${d.toFixed(1)}%</span>`;
+};
+
+const draw = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart($(id), cfg); };
+const opt = { responsive: true, maintainAspectRatio: false };
+
+const pistolIcon = `<svg class="w-6 h-6" viewBox="0 0 576 512" fill="currentColor"><path d="M528 56c0-13.3-10.7-24-24-24s-24 10.7-24 24v8H32C14.3 64 0 78.3 0 96v112c0 17.7 14.3 32 32 32h10c20.8 0 36.1 19.6 31 39.8L33 440.2c-2.4 9.6-.2 19.7 5.8 27.5S54.1 480 64 480h96c14.7 0 27.5-10 31-24.2L217 352h104.5c23.7 0 44.8-14.9 52.7-37.2l26.7-74.8H432c8.5 0 16.6-3.4 22.6-9.4l22.7-22.6H544c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32h-16zM321.4 304H229l16-64h105l-21 58.7c-1.1 3.2-4.2 5.3-7.5 5.3zM80 128h384c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16s7.2-16 16-16"/></svg>`;
+const kpiPistolIcon = `<svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 576 512" fill="currentColor"><path d="M528 56c0-13.3-10.7-24-24-24s-24 10.7-24 24v8H32C14.3 64 0 78.3 0 96v112c0 17.7 14.3 32 32 32h10c20.8 0 36.1 19.6 31 39.8L33 440.2c-2.4 9.6-.2 19.7 5.8 27.5S54.1 480 64 480h96c14.7 0 27.5-10 31-24.2L217 352h104.5c23.7 0 44.8-14.9 52.7-37.2l26.7-74.8H432c8.5 0 16.6-3.4 22.6-9.4l22.7-22.6H544c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32h-16zM321.4 304H229l16-64h105l-21 58.7c-1.1 3.2-4.2 5.3-7.5 5.3zM80 128h384c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16s7.2-16 16-16"/></svg>`;
+
+const THREAT_MAPPING = {
+  'Local Terrorist Groups (LTG)': ['BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE'],
+  'Communist Terrorist Group (CTG)': ['SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO'],
+  'PIAGs': ['MILF', 'MNLF', 'PIAGs']
+};
+
+const THREAT_GROUPS = [
+  'BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE',
+  'SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO',
+  'MILF', 'MNLF'
+];
+
+const STANDARD_BRIGADES = ['601st Bde', '602nd Bde', '603rd Bde', '1Mech BDE', '1Mar BDE'];
+
+const barLabelsPlugin = {
+  id: 'barLabelsPlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    chart.data.datasets.forEach((dataset, i) => {
+      const meta = chart.getDatasetMeta(i);
+      meta.data.forEach((bar, index) => {
+        const val = dataset.data[index];
+        const text = String(val);
+        ctx.save();
+        ctx.font = 'bold 11px Roboto, sans-serif';
+        ctx.textBaseline = 'middle';
+        const textWidth = ctx.measureText(text).width;
+        const fitsOutside = (bar.x + textWidth + 8) <= chart.chartArea.right;
+        if (fitsOutside) {
+          ctx.textAlign = 'left';
+          ctx.fillStyle = val > 0 ? '#1d5bff' : '#94a3b8';
+          ctx.fillText(text, bar.x + 6, bar.y);
+        } else {
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(text, bar.x - 6, bar.y);
+        }
+        ctx.restore();
+      });
+    });
+  }
+};
+
+const lineLabelsPlugin = {
+  id: 'lineLabelsPlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta0 = chart.getDatasetMeta(0);
+    const meta1 = chart.getDatasetMeta(1);
+
+    if (meta0 && meta0.visible !== false) {
+      meta0.data.forEach((point, i) => {
+        const val = chart.data.datasets[0].data[i];
+        if (val === undefined || val === null) return;
+        ctx.save();
+        ctx.font = 'bold 11px Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = val > 0 ? (chart.data.datasets[0].borderColor || '#1d5bff') : '#94a3b8';
+        ctx.fillText(String(val), point.x, Math.max(point.y - 7, 12));
+        ctx.restore();
+      });
+    }
+
+    if (meta1 && meta1.visible !== false) {
+      meta1.data.forEach((point, i) => {
+        const val = chart.data.datasets[1].data[i];
+        if (val === undefined || val === null || val <= 0) return;
+        ctx.save();
+        ctx.font = 'bold 10px Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = chart.data.datasets[1].borderColor === '#94a3b8' ? '#64748b' : (chart.data.datasets[1].borderColor || '#64748b');
+        ctx.fillText(String(val), point.x, point.y + 6);
+        ctx.restore();
+      });
+    }
+  }
+};
+
+const donutSlicePlugin = {
+  id: 'donutSlicePlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const dataset = chart.data.datasets[0];
+    if (!dataset) return;
+    const meta = chart.getDatasetMeta(0);
+    const total = dataset.data.reduce((a, b) => a + (Number(b) || 0), 0);
+    if (!total) return;
+
+    meta.data.forEach((arc, i) => {
+      const val = dataset.data[i];
+      if (!val || val <= 0) return;
+
+      const angleSpan = arc.endAngle - arc.startAngle;
+      if (angleSpan < 0.22) return;
+
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+      const innerR = arc.innerRadius || 0;
+      const outerR = arc.outerRadius || 0;
+      const radius = innerR + (outerR - innerR) * 0.52;
+      const x = arc.x + Math.cos(angle) * radius;
+      const y = arc.y + Math.sin(angle) * radius;
+
+      const pct = (val / total * 100).toFixed(1) + '%';
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+      ctx.shadowBlur = 3;
+
+      ctx.font = 'bold 12px Roboto, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(String(val), x, y);
+
+      ctx.font = 'bold 9.5px Roboto, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textBaseline = 'top';
+      ctx.fillText(pct, x, y + 2);
+
+      ctx.restore();
+    });
+  }
+};
+
+let currentYear = new Date().getFullYear();
+let currentStartDate = `${currentYear}-01-01`;
+let currentEndDate = `${currentYear}-12-31`;
+let currentThreatGroup = '';
+let currentBrigade = '';
+let currentRegion = '';
+let currentProvince = '';
+let regionProvinceMap = {};
+let allAvailableProvinces = [];
+let isPopoverOpen = false;
+let allFetchedIncidentRows = [];
+
+function formatDateRangeLabel(s, e) {
+  if (!s || !e) return '';
+  const d1 = new Date(s + 'T00:00:00');
+  const d2 = new Date(e + 'T00:00:00');
+  const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const y1 = d1.getFullYear(), y2 = d2.getFullYear();
+  const m1 = mNames[d1.getMonth()], m2 = mNames[d2.getMonth()];
+  const day1 = d1.getDate(), day2 = d2.getDate();
+  if (y1 === y2) return `${day1} ${m1} - ${day2} ${m2} ${y1}`;
+  return `${day1} ${m1} ${y1} - ${day2} ${m2} ${y2}`;
+}
+
+function updateDateRangeUI() {
+  const lbl = $('date-range-label');
+  if (lbl) lbl.textContent = formatDateRangeLabel(currentStartDate, currentEndDate);
+  if ($('input-start-date')) $('input-start-date').value = currentStartDate;
+  if ($('input-end-date')) $('input-end-date').value = currentEndDate;
+}
+
+function toggleDatePopover(show) {
+  const pop = $('date-range-popover');
+  if (!pop) return;
+  isPopoverOpen = typeof show === 'boolean' ? show : pop.classList.contains('hidden');
+  if (isPopoverOpen) {
+    updateDateRangeUI();
+    pop.classList.remove('hidden');
+  } else {
+    pop.classList.add('hidden');
+  }
+}
+
+// Client-side incident parser helper (mirrors Admin Panel logic)
+function parseIncidentRow(o) {
+  let wm = null;
+  try {
+    wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel;
+  } catch(e) {}
+
+  const we = (wm && wm.engagements) || {};
+  const et = String(o.engagement_type || '').toLowerCase();
+  const rem = String(o.remarks || '').toLowerCase();
+
+  const getCount = (key, regexList) => {
+    if (we[key] !== undefined && we[key] !== null) return Number(we[key]) || 0;
+    for (const rx of regexList) {
+      const m = et.match(rx);
+      if (m) return m[1] ? Number(m[1]) : 1;
+    }
+    for (const rx of regexList) {
+      if (rem.match(rx)) return 1;
+    }
+    return 0;
+  };
+
+  const h = getCount('harassment', [/harassment\s*(?:\((\d+)\))?/i]);
+  const a = getCount('ambush', [/ambush\s*(?:\((\d+)\))?/i]);
+  const l = getCount('liquidation', [/liquidation\s*(?:\((\d+)\))?/i, /liquidate[d]?/i]);
+  const s = getCount('shooting', [/shooting\s*(?:\((\d+)\))?/i, /shot\s+dead/i]);
+  const c = (Number(we.armed_clash) || Number(we.clash) || 0) || (()=>{
+    const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
+    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
+  })();
+  const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
+    const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
+    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
+  })();
+  const b = (Number(we.bus_bombing) || 0) || (()=>{
+    const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
+    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('bus bombing') ? 1 : 0);
+  })();
+  const cr = (Number(we.carnapping) || 0) || (()=>{
+    const m = et.match(/carnapping\s*(?:\((\d+)\))?/i);
+    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('carnapping') ? 1 : 0);
+  })();
+  const oCount = (Number(we.other_incidents) || Number(we.other_act) || Number(we.other_activities) || Number(we.grenade) || 0) || (()=>{
+    const m = et.match(/(?:other\s*(?:incident[s]?)?(?:\s*report[s]?)?|other\s*act|grenade\s*(?:throwing)?)\s*(?:\((\d+)\))?/i);
+    return m ? (m[1] ? Number(m[1]) : 1) : 0;
+  })();
+
+  const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && oCount === 0) ? 1 : oCount;
+
+  return {
+    harassment: h,
+    ambush: a,
+    liquidation: l,
+    shooting: s,
+    armed_clash: c,
+    ied_explosion: i,
+    bus_bombing: b,
+    carnapping: cr,
+    other_incidents: isOther,
+    total: h + a + l + s + c + i + b + cr + isOther
+  };
+}
+
+function getPrimaryEngagementType(eng, fallback) {
+  if (eng.harassment > 0) return 'Harassment';
+  if (eng.ambush > 0) return 'Ambush';
+  if (eng.armed_clash > 0) return 'Armed Clash';
+  if (eng.liquidation > 0) return 'Liquidation';
+  if (eng.shooting > 0) return 'Shooting';
+  if (eng.ied_explosion > 0) return 'IED Explosion';
+  if (eng.bus_bombing > 0) return 'Bus Bombing';
+  if (eng.carnapping > 0) return 'Carnapping';
+  if (eng.other_incidents > 0) return 'Other Incident';
+  return fallback || 'Incident Report';
+}
+
+async function load() {
+  const params = new URLSearchParams();
+  params.set('year', currentYear);
+  if (currentStartDate) params.set('start_date', currentStartDate);
+  if (currentEndDate) params.set('end_date', currentEndDate);
+  if (currentThreatGroup) {
+    params.set('threat_category', currentThreatGroup);
+    params.set('threat_group', currentThreatGroup);
+  }
+  if (currentBrigade) params.set('brigade', currentBrigade);
+  if (currentRegion) params.set('region', currentRegion);
+  if (currentProvince) params.set('province', currentProvince);
+
+  let s = null;
+  try {
+    const res = await fetch('/api/incident_stats?' + params.toString());
+    if (res.ok) {
+      s = await res.json();
+    }
+  } catch(e) {}
+
+  // Fallback if incident_stats is not directly available: query /api/incident_reports
+  if (!s || !s.cur) {
+    try {
+      const res = await fetch('/api/incident_reports?year=' + currentYear);
+      if (res.ok) {
+        const data = await res.json();
+        const rows = data.rows || [];
+        allFetchedIncidentRows = rows;
+        s = processIncidentStatsClient(rows, currentStartDate, currentEndDate, currentThreatGroup, currentBrigade, currentRegion, currentProvince);
+      }
+    } catch(e) {}
+  }
+
+  if (!s) s = { cur: {}, prev: {}, matrix: [], rows: [] };
+  const c = s.cur || {}, p = s.prev || {};
+  allFetchedIncidentRows = s.rows || allFetchedIncidentRows || [];
+
+  // Populate Year options once
+  if (!$('year').options.length) {
+    const years = s.available_years || [s.year || currentYear, (s.year || currentYear) - 1, (s.year || currentYear) - 2];
+    years.forEach(yr => $('year').add(new Option(yr, yr)));
+  }
+  if (s.year) {
+    $('year').value = s.year;
+    currentYear = s.year;
+  }
+
+  // Populate Threat Category dropdown once
+  const availCats = s.available_threat_categories || s.available_threat_groups || ['Local Terrorist Groups (LTG)', 'Communist Terrorist Group (CTG)', 'PIAGs'];
+  if ($('filter-threat-group').options.length <= 1 && availCats) {
+    availCats.forEach(cat => {
+      $('filter-threat-group').add(new Option(cat, cat));
+    });
+  }
+  $('filter-threat-group').value = currentThreatGroup;
+
+  // Populate Brigade dropdown once
+  const availBdes = s.available_brigades || STANDARD_BRIGADES;
+  if ($('filter-brigade').options.length <= 1 && availBdes) {
+    availBdes.forEach(bde => {
+      $('filter-brigade').add(new Option(bde, bde));
+    });
+  }
+  $('filter-brigade').value = currentBrigade;
+
+  if (s.region_province_map) regionProvinceMap = s.region_province_map;
+  if (s.available_provinces) allAvailableProvinces = s.available_provinces;
+
+  // Populate Region dropdown
+  if (s.available_regions) {
+    const curReg = currentRegion;
+    $('filter-region').innerHTML = '<option value="">All Regions</option>';
+    s.available_regions.forEach(reg => {
+      $('filter-region').add(new Option(reg, reg));
+    });
+    $('filter-region').value = curReg;
+  }
+
+  updateProvinceDropdownUI();
+  updateDateRangeUI();
+
+  // RENDER 10 PRIMARY INCIDENT KPIS (Transferred from Admin Panel)
+  renderPrimaryIncidentKpis(c, p);
+
+  // RENDER SECONDARY IMPACT KPIS
+  renderSecondaryImpactKpis(c, p);
+
+  // RENDER 3 TREND CHARTS
+  const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Trend 1: Monthly Incidents Trend (Current vs Previous Year)
+  draw('trend-incidents', {
+    type: 'line',
+    data: {
+      labels: M,
+      datasets: [
+        {
+          label: `Incidents (${currentYear})`,
+          data: c.monthly || Array(12).fill(0),
+          borderColor: blue,
+          backgroundColor: 'rgba(29,91,255,.15)',
+          fill: true,
+          tension: 0,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: blue
+        },
+        {
+          label: `Incidents (${currentYear - 1})`,
+          data: p.monthly || Array(12).fill(0),
+          borderColor: '#94a3b8',
+          borderDash: [5, 5],
+          tension: 0,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#94a3b8'
+        }
+      ]
+    },
+    options: {
+      ...opt,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0 }
+        }
+      }
+    },
+    plugins: [lineLabelsPlugin]
+  });
+
+  // Trend 2: Violent Engagements Breakdown (Harassment, Ambush, Clash, Shooting)
+  draw('trend-violent', {
+    type: 'line',
+    data: {
+      labels: M,
+      datasets: [
+        {
+          label: 'Harassment',
+          data: c.monthly_harassment || Array(12).fill(0),
+          borderColor: '#f59e0b',
+          backgroundColor: '#f59e0b',
+          tension: 0,
+          pointRadius: 3
+        },
+        {
+          label: 'Ambush',
+          data: c.monthly_ambush || Array(12).fill(0),
+          borderColor: '#e11d48',
+          backgroundColor: '#e11d48',
+          tension: 0,
+          pointRadius: 3
+        },
+        {
+          label: 'Armed Clash',
+          data: c.monthly_armed_clash || Array(12).fill(0),
+          borderColor: '#ea580c',
+          backgroundColor: '#ea580c',
+          tension: 0,
+          pointRadius: 3
+        },
+        {
+          label: 'Shooting',
+          data: c.monthly_shooting || Array(12).fill(0),
+          borderColor: '#475569',
+          backgroundColor: '#475569',
+          tension: 0,
+          pointRadius: 3
+        }
+      ]
+    },
+    options: {
+      ...opt,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0 }
+        }
+      }
+    }
+  });
+
+  // Trend 3: Casualties & Weapons Impact Trend
+  draw('trend-impact', {
+    type: 'line',
+    data: {
+      labels: M,
+      datasets: [
+        {
+          label: 'Casualties (Govt + Enemy)',
+          data: c.monthly_casualties || Array(12).fill(0),
+          borderColor: '#e11d48',
+          backgroundColor: 'rgba(225,29,72,.12)',
+          fill: true,
+          tension: 0,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#e11d48'
+        },
+        {
+          label: 'Firearms Recovered',
+          data: c.monthly_firearms || Array(12).fill(0),
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,.12)',
+          fill: false,
+          tension: 0,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#16a34a'
+        }
+      ]
+    },
+    options: {
+      ...opt,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0 }
+        }
+      }
+    },
+    plugins: [lineLabelsPlugin]
+  });
+
+  // RENDER THREAT GROUP BAR CHART
+  if ($('groups-chart-title')) {
+    $('groups-chart-title').textContent = currentThreatGroup
+      ? `Incidents by Threat Group (${currentThreatGroup})`
+      : 'Incidents by Threat Group';
+  }
+
+  const categoryMap = s.threat_category_map || THREAT_MAPPING || {};
+  let groupsToShow = [];
+
+  if (currentThreatGroup) {
+    const selCatLower = currentThreatGroup.toLowerCase();
+    const matchedKey = Object.keys(categoryMap).find(k => {
+      const kl = k.toLowerCase();
+      return kl === selCatLower || kl.includes(selCatLower) || selCatLower.includes(kl);
+    });
+
+    if (matchedKey && Array.isArray(categoryMap[matchedKey])) {
+      groupsToShow = [...categoryMap[matchedKey]];
+    }
+
+    if (c.groups) {
+      Object.keys(c.groups).forEach(k => {
+        if (k && c.groups[k] > 0 && !groupsToShow.includes(k)) {
+          groupsToShow.push(k);
+        }
+      });
+    }
+
+    if (!groupsToShow.length) {
+      groupsToShow = [currentThreatGroup];
+    }
+  } else {
+    const allGroups = [...THREAT_GROUPS];
+    if (c.groups) {
+      Object.keys(c.groups).forEach(k => {
+        if (k && !allGroups.includes(k)) allGroups.push(k);
+      });
+    }
+    groupsToShow = allGroups;
+  }
+
+  let g = groupsToShow.map(name => [name, (c.groups && c.groups[name]) || 0]);
+  g.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+  draw('groups', {
+    type: 'bar',
+    data: {
+      labels: g.map(x => x[0]),
+      datasets: [{
+        data: g.map(x => x[1]),
+        backgroundColor: g.map(x => x[1] > 0 ? '#0b1b5e' : '#e2e8f0'),
+        borderRadius: 4,
+        barThickness: g.length <= 8 ? 16 : 11
+      }]
+    },
+    options: {
+      ...opt,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Recorded Incidents: ${ctx.raw}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0, font: { size: 9.5 } },
+          grid: { color: '#f1f5f9' }
+        },
+        y: {
+          ticks: {
+            autoSkip: false,
+            font: { size: 10, weight: '500' },
+            color: '#334155'
+          },
+          grid: { display: false }
+        }
+      }
+    },
+    plugins: [barLabelsPlugin]
+  });
+
+  // RENDER INCIDENT TYPE BREAKDOWN DONUT
+  const donutData = [
+    { label: 'Harassment', val: c.harassment || 0, color: '#f59e0b' },
+    { label: 'Ambush', val: c.ambush || 0, color: '#e11d48' },
+    { label: 'Armed Clash', val: c.armed_clash || 0, color: '#ea580c' },
+    { label: 'Liquidation', val: c.liquidation || 0, color: '#8b5cf6' },
+    { label: 'Shooting', val: c.shooting || 0, color: '#475569' },
+    { label: 'IED Explosion', val: c.ied_explosion || 0, color: '#eab308' },
+    { label: 'Bus Bombing', val: c.bus_bombing || 0, color: '#ec4899' },
+    { label: 'Carnapping', val: c.carnapping || 0, color: '#0d9488' },
+    { label: 'Other Incidents', val: c.other_incidents || 0, color: '#10b981' }
+  ].filter(d => d.val > 0);
+
+  const activeDonut = donutData.length ? donutData : [
+    { label: 'No Incidents', val: 0, color: '#cbd5e1' }
+  ];
+
+  draw('donut', {
+    type: 'doughnut',
+    data: {
+      labels: activeDonut.map(d => d.label),
+      datasets: [{
+        data: activeDonut.map(d => d.val),
+        backgroundColor: activeDonut.map(d => d.color),
+        borderWidth: 2,
+        borderColor: '#ffffff',
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      ...opt,
+      cutout: '45%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth: 12,
+            font: { size: 10.5, weight: '500' }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const val = ctx.raw || 0;
+              const total = c.total_incidents || 1;
+              const pct = (val / total * 100).toFixed(1);
+              return `${ctx.label}: ${val} (${pct}%)`;
+            }
+          }
+        }
+      }
+    },
+    plugins: [donutSlicePlugin]
+  });
+
+  // RENDER BRIGADE MATRIX TABLE
+  const matrix = s.matrix || [];
+  $('matrix').innerHTML = matrix.map(u => `
+    <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition">
+      <td class="py-2.5 pr-2 font-semibold text-slate-800 whitespace-nowrap">${esc(u.brigade || u.unit || '—')}</td>
+      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-xs">${u.incidents || 0}</span></td>
+      <td class="py-2.5 px-1 text-center font-bold text-amber-700">${u.harassment || 0}</td>
+      <td class="py-2.5 px-1 text-center font-bold text-rose-700">${(u.ambush || 0) + (u.armed_clash || 0)}</td>
+      <td class="py-2.5 px-1 text-center text-xs font-semibold text-slate-700" title="Govt: ${u.govt_casualties || 0} (KIA: ${u.kia || 0}, WIA: ${u.wia || 0}) | Enemy: ${u.neutralized || 0}">${u.govt_casualties || 0} G / ${u.neutralized || 0} E</td>
+      <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-xs" title="HPFAs: ${u.fa_hp || 0}, LPFAs: ${u.fa_lp || 0}, CSW: ${u.fa_csw || 0}">${u.firearms || 0}</span></td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="py-4 text-center text-slate-400">No incident records found for this selection</td></tr>';
+
+  // RENDER RECENT INCIDENT REPORTS LOG
+  renderIncidentLogTable();
+}
+
+// 10 PRIMARY INCIDENT KPIS RENDERING (Transferred from Admin Panel)
+function renderPrimaryIncidentKpis(c, p) {
+  const container = $('incident-kpis');
+  if (!container) return;
+
+  const totalCur = c.total_incidents || 0;
+  const totalPrev = p.total_incidents || 0;
+  $('incident-kpis-summary-badge').textContent = `${fmt(totalCur)} Recorded Incidents`;
+
+  const kpis = [
+    {
+      title: 'Total Incidents',
+      val: fmt(totalCur),
+      sub: `${fmt(c.total_records || totalCur)} Total Recorded`,
+      delta: delta(totalCur, totalPrev),
+      icon: '<span class="ms !text-2xl">description</span>',
+      bg: 'bg-gradient-to-br from-blue-600 to-indigo-700',
+      shadow: 'shadow-blue-500/20'
+    },
+    {
+      title: 'Harassment',
+      val: fmt(c.harassment || 0),
+      sub: 'Enemy Harassment Events',
+      delta: delta(c.harassment || 0, p.harassment || 0),
+      icon: '<span class="ms !text-2xl">campaign</span>',
+      bg: 'bg-gradient-to-br from-amber-500 to-orange-600',
+      shadow: 'shadow-amber-500/20'
+    },
+    {
+      title: 'Ambush',
+      val: fmt(c.ambush || 0),
+      sub: 'Tactical Ambush Incidents',
+      delta: delta(c.ambush || 0, p.ambush || 0),
+      icon: '<span class="ms !text-2xl">crisis_alert</span>',
+      bg: 'bg-gradient-to-br from-red-600 to-rose-700',
+      shadow: 'shadow-red-500/20'
+    },
+    {
+      title: 'Liquidation',
+      val: fmt(c.liquidation || 0),
+      sub: 'Targeted Liquidations',
+      delta: delta(c.liquidation || 0, p.liquidation || 0),
+      icon: '<span class="ms !text-2xl">person_remove</span>',
+      bg: 'bg-gradient-to-br from-purple-600 to-violet-800',
+      shadow: 'shadow-purple-500/20'
+    },
+    {
+      title: 'Shooting',
+      val: fmt(c.shooting || 0),
+      sub: 'Shooting Incidents',
+      delta: delta(c.shooting || 0, p.shooting || 0),
+      icon: kpiPistolIcon,
+      bg: 'bg-gradient-to-br from-slate-600 to-slate-800',
+      shadow: 'shadow-slate-500/20'
+    },
+    {
+      title: 'Armed Clash',
+      val: fmt(c.armed_clash || 0),
+      sub: 'Armed Clash / Encounters',
+      delta: delta(c.armed_clash || 0, p.armed_clash || 0),
+      icon: '<span class="ms !text-2xl">swords</span>',
+      bg: 'bg-gradient-to-br from-orange-600 to-red-700',
+      shadow: 'shadow-orange-500/20'
+    },
+    {
+      title: 'IED Explosion',
+      val: fmt(c.ied_explosion || 0),
+      sub: 'IED Detonations / Blasts',
+      delta: delta(c.ied_explosion || 0, p.ied_explosion || 0),
+      icon: '<span class="ms !text-2xl">bomb</span>',
+      bg: 'bg-gradient-to-br from-yellow-600 to-amber-700',
+      shadow: 'shadow-yellow-500/20'
+    },
+    {
+      title: 'Bus Bombing',
+      val: fmt(c.bus_bombing || 0),
+      sub: 'Transit / Bus Bombings',
+      delta: delta(c.bus_bombing || 0, p.bus_bombing || 0),
+      icon: '<span class="ms !text-2xl">directions_bus</span>',
+      bg: 'bg-gradient-to-br from-pink-600 to-rose-700',
+      shadow: 'shadow-pink-500/20'
+    },
+    {
+      title: 'Carnapping',
+      val: fmt(c.carnapping || 0),
+      sub: 'Vehicle Hijackings',
+      delta: delta(c.carnapping || 0, p.carnapping || 0),
+      icon: '<span class="ms !text-2xl">directions_car</span>',
+      bg: 'bg-gradient-to-br from-teal-600 to-cyan-800',
+      shadow: 'shadow-teal-500/20'
+    },
+    {
+      title: 'Other Incident Reports',
+      val: fmt(c.other_incidents || 0),
+      sub: 'Other Reported Incidents',
+      delta: delta(c.other_incidents || 0, p.other_incidents || 0),
+      icon: '<span class="ms !text-2xl">pending_actions</span>',
+      bg: 'bg-gradient-to-br from-emerald-600 to-teal-700',
+      shadow: 'shadow-emerald-500/20'
+    }
+  ];
+
+  container.innerHTML = kpis.map(card => `
+    <div class="card p-3.5 sm:p-4 border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-shadow">
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${card.bg} text-white grid place-items-center shrink-0 shadow-sm ${card.shadow}">
+          ${card.icon}
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="${esc(card.title)}">${esc(card.title)}</div>
+          <div class="text-xl sm:text-2xl font-extrabold text-[#0b1b5e] leading-tight mt-0.5 truncate" title="${esc(String(card.val))}">${esc(String(card.val))}</div>
+        </div>
+      </div>
+      <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] sm:text-[11px] font-medium text-slate-600">
+        <span class="truncate" title="${esc(card.sub)}">${esc(card.sub)}</span>
+        <div class="shrink-0 ml-1.5">${card.delta}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// SECONDARY IMPACT KPIS RENDERING (Casualties, Firearms Gained, War Materiel)
+function renderSecondaryImpactKpis(c, p) {
+  const container = $('secondary-kpis');
+  if (!container) return;
+
+  const curGovtCas = (c.kia || 0) + (c.wia || 0);
+  const prevGovtCas = (p.kia || 0) + (p.wia || 0);
+
+  const curNz = c.enemy_neutralized || ((c.killed || 0) + (c.captured || 0) + (c.surrendered || 0) + (c.apprehended || 0));
+  const prevNz = p.enemy_neutralized || ((p.killed || 0) + (p.captured || 0) + (p.surrendered || 0) + (p.apprehended || 0));
+
+  const curFa = c.firearms || 0;
+  const prevFa = p.firearms || 0;
+
+  const curWm = c.war_materiel_count || 0;
+  const prevWm = p.war_materiel_count || 0;
+
+  function cardHtml(icon, color, label, val, d, sub) {
+    const iconEl = icon.startsWith('<') ? icon : `<span class="ms">${icon}</span>`;
+    return `
+      <div class="card p-4 flex flex-col justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}">
+            ${iconEl}
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs sm:text-sm font-medium truncate" style="color:${color}">${label}</div>
+            <div class="text-xl sm:text-2xl font-bold leading-tight text-black">${val}</div>
+            ${sub ? `<div class="text-[11px] font-bold text-slate-600 mt-1 leading-snug">${sub}</div>` : ''}
+          </div>
+        </div>
+        <div class="flex justify-between items-center text-xs sm:text-sm mt-3 pt-2 border-t border-slate-100 text-slate-500">
+          <span>vs Last Year</span>
+          <div>${d}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML =
+    cardHtml('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta(curGovtCas, prevGovtCas, true), 'Govt Forces Affected') +
+    cardHtml('shield', '#2563eb', 'Enemy Neutralized', curNz, delta(curNz, prevNz), `${c.killed || 0} KIA, ${c.captured || 0} Cap, ${c.surrendered || 0} Surr`) +
+    cardHtml(pistolIcon, '#16a34a', 'Firearms Gained', curFa, delta(curFa, prevFa), `HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0}`) +
+    cardHtml('warning', '#d97706', 'War Materiel Intercepted', curWm, delta(curWm, prevWm), 'IEDs, UXOs & Explosives');
+}
+
+// RECENT INCIDENT LOG TABLE RENDERING
+function renderIncidentLogTable() {
+  const tbody = $('incident-log-body');
+  if (!tbody) return;
+
+  const searchVal = ($('incident-search')?.value || '').toLowerCase().trim();
+  let rows = allFetchedIncidentRows || [];
+
+  if (searchVal) {
+    rows = rows.filter(r => {
+      const line = `${r.op_date} ${r.control_number} ${r.unit} ${r.area} ${r.province} ${r.threat_group} ${r.threat_category} ${r.engagement_type} ${r.remarks}`.toLowerCase();
+      return line.includes(searchVal);
+    });
+  }
+
+  $('incident-count-badge').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'}`;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-slate-400">No incident reports matching query</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.slice(0, 50).map(r => {
+    const eng = parseIncidentRow(r);
+    const engType = getPrimaryEngagementType(eng, r.engagement_type);
+    const govtCas = (r.kia || 0) + (r.wia || 0);
+    const enemyNz = (r.killed || 0) + (r.captured || 0) + (r.surrendered || 0) + (r.apprehended || 0);
+    const faTot = (r.firearms || 0) || (r.fa_high_powered || 0) + (r.fa_low_powered || 0) + (r.fa_csw || 0);
+
+    return `
+      <tr class="border-b border-slate-100 hover:bg-slate-50/60 transition text-xs">
+        <td class="py-2 px-2 font-mono whitespace-nowrap text-slate-700">${esc(r.op_date || '—')}</td>
+        <td class="py-2 px-2 font-mono font-bold text-teal-700 whitespace-nowrap">${esc(r.control_number || '—')}</td>
+        <td class="py-2 px-2 font-semibold text-[#0b1b5e] whitespace-nowrap">${esc(r.unit || '—')}</td>
+        <td class="py-2 px-2 text-slate-600 whitespace-nowrap">${esc(r.area || '')}${r.province ? `, ${esc(r.province)}` : ''}</td>
+        <td class="py-2 px-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded font-semibold bg-blue-50 text-blue-700 border border-blue-200">${esc(r.threat_group || '—')}</span></td>
+        <td class="py-2 px-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded font-semibold bg-amber-50 text-amber-800 border border-amber-200">${esc(engType)}</span></td>
+        <td class="py-2 px-2 text-center whitespace-nowrap">
+          <span class="${govtCas > 0 ? 'text-red-600 font-bold' : 'text-slate-400'}">${govtCas} Govt</span> /
+          <span class="${enemyNz > 0 ? 'text-blue-600 font-bold' : 'text-slate-400'}">${enemyNz} Enemy</span>
+        </td>
+        <td class="py-2 px-2 text-center whitespace-nowrap">
+          <span class="${faTot > 0 ? 'text-green-700 font-bold' : 'text-slate-400'}">${faTot}</span>
+        </td>
+        <td class="py-2 px-2 text-slate-500 max-w-[240px] truncate" title="${esc(r.remarks || '')}">${esc(r.remarks || '—')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Client-side statistics processor fallback
+function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, prov) {
+  let y = currentYear;
+  if (sDate) y = parseInt(sDate.slice(0, 4), 10) || currentYear;
+  let prevSDate = `${y - 1}-01-01`;
+  let prevEDate = `${y - 1}-12-31`;
+  if (sDate.startsWith(String(y)) && eDate.startsWith(String(y))) {
+    prevSDate = `${y - 1}${sDate.slice(4)}`;
+    prevEDate = `${y - 1}${eDate.slice(4)}`;
+  }
+
+  function filterList(rows, startD, endD) {
+    return rows.filter(r => {
+      if (r.op_date < startD || r.op_date > endD) return false;
+      if (threatCat) {
+        const tc = (r.threat_category || '').toLowerCase();
+        const tg = (r.threat_group || '').toLowerCase();
+        const target = threatCat.toLowerCase();
+        if (!tc.includes(target) && !tg.includes(target)) return false;
+      }
+      if (bde) {
+        const u = (r.unit || '').toLowerCase();
+        if (!u.includes(bde.toLowerCase())) return false;
+      }
+      if (prov) {
+        const p = (r.province || r.area || '').toLowerCase();
+        if (!p.includes(prov.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }
+
+  function aggregate(rows) {
+    const a = {
+      total_records: rows.length,
+      total_incidents: 0,
+      harassment: 0, ambush: 0, liquidation: 0, shooting: 0,
+      armed_clash: 0, ied_explosion: 0, bus_bombing: 0, carnapping: 0,
+      other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
+      killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, enemy_neutralized: 0,
+      firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, war_materiel_count: 0,
+      monthly: Array(12).fill(0),
+      monthly_harassment: Array(12).fill(0),
+      monthly_ambush: Array(12).fill(0),
+      monthly_armed_clash: Array(12).fill(0),
+      monthly_shooting: Array(12).fill(0),
+      monthly_casualties: Array(12).fill(0),
+      monthly_firearms: Array(12).fill(0),
+      groups: {},
+      brigades: {}
+    };
+
+    rows.forEach(r => {
+      const eng = parseIncidentRow(r);
+      const incCount = Math.max(1, eng.total);
+      a.total_incidents += incCount;
+      a.harassment += eng.harassment;
+      a.ambush += eng.ambush;
+      a.liquidation += eng.liquidation;
+      a.shooting += eng.shooting;
+      a.armed_clash += eng.armed_clash;
+      a.ied_explosion += eng.ied_explosion;
+      a.bus_bombing += eng.bus_bombing;
+      a.carnapping += eng.carnapping;
+      a.other_incidents += eng.other_incidents;
+
+      a.kia += (r.kia || 0);
+      a.wia += (r.wia || 0);
+      a.govt_casualties += (r.kia || 0) + (r.wia || 0);
+
+      const nz = (r.killed || 0) + (r.captured || 0) + (r.surrendered || 0) + (r.apprehended || 0);
+      a.killed += (r.killed || 0);
+      a.enemy_wounded += (r.enemy_wounded || 0);
+      a.captured += (r.captured || 0);
+      a.apprehended += (r.apprehended || 0);
+      a.surrendered += (r.surrendered || 0);
+      a.enemy_neutralized += nz;
+
+      const fa = (r.firearms || 0) || (r.fa_high_powered || 0) + (r.fa_low_powered || 0) + (r.fa_csw || 0);
+      a.firearms += fa;
+      a.fa_hp += (r.fa_high_powered || 0);
+      a.fa_lp += (r.fa_low_powered || 0);
+      a.fa_csw += (r.fa_csw || 0);
+
+      if (r.op_date && r.op_date.length >= 7) {
+        const m = parseInt(r.op_date.slice(5, 7), 10) - 1;
+        if (m >= 0 && m < 12) {
+          a.monthly[m] += incCount;
+          a.monthly_harassment[m] += eng.harassment;
+          a.monthly_ambush[m] += eng.ambush;
+          a.monthly_armed_clash[m] += eng.armed_clash;
+          a.monthly_shooting[m] += eng.shooting;
+          a.monthly_casualties[m] += (r.kia || 0) + (r.wia || 0) + (r.killed || 0);
+          a.monthly_firearms[m] += fa;
+        }
+      }
+
+      if (r.threat_group) {
+        a.groups[r.threat_group] = (a.groups[r.threat_group] || 0) + incCount;
+      }
+
+      const bName = r.unit || '—';
+      const b = a.brigades[bName] ||= {
+        brigade: bName, unit: bName, incidents: 0, harassment: 0, ambush: 0,
+        armed_clash: 0, shooting: 0, govt_casualties: 0, neutralized: 0, firearms: 0
+      };
+      b.incidents += incCount;
+      b.harassment += eng.harassment;
+      b.ambush += eng.ambush;
+      b.armed_clash += eng.armed_clash;
+      b.shooting += eng.shooting;
+      b.govt_casualties += (r.kia || 0) + (r.wia || 0);
+      b.neutralized += nz;
+      b.firearms += fa;
+    });
+
+    const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.other_incidents;
+    a.total_incidents = Math.max(a.total_incidents, sumAll, a.total_records);
+    return a;
+  }
+
+  const curRows = filterList(allRows, sDate, eDate);
+  const prevRows = filterList(allRows, prevSDate, prevEDate);
+
+  const cur = aggregate(curRows);
+  const prev = aggregate(prevRows);
+
+  return {
+    year: y,
+    start_date: sDate,
+    end_date: eDate,
+    cur,
+    prev,
+    matrix: Object.values(cur.brigades),
+    rows: curRows.slice(0, 100),
+    available_years: [y, y - 1, y - 2]
+  };
+}
+
+// Date Range Popover and Filter Controls
+$('date-range-btn').onclick = e => { e.stopPropagation(); toggleDatePopover(); };
+$('date-popover-close').onclick = () => toggleDatePopover(false);
+
+document.addEventListener('click', e => {
+  const container = $('date-range-container');
+  if (container && !container.contains(e.target)) {
+    toggleDatePopover(false);
+  }
+});
+
+document.querySelectorAll('.date-preset-btn').forEach(btn => {
+  btn.onclick = e => {
+    e.stopPropagation();
+    const preset = btn.dataset.preset;
+    const y = currentYear;
+    if (preset === 'year') {
+      currentStartDate = `${y}-01-01`;
+      currentEndDate = `${y}-12-31`;
+    } else if (preset === 'ytd') {
+      currentStartDate = `${y}-01-01`;
+      const today = new Date();
+      currentEndDate = (today.getFullYear() === y) ? today.toISOString().slice(0, 10) : `${y}-12-31`;
+    } else if (preset === 'q1') {
+      currentStartDate = `${y}-01-01`;
+      currentEndDate = `${y}-03-31`;
+    } else if (preset === 'q2') {
+      currentStartDate = `${y}-04-01`;
+      currentEndDate = `${y}-06-30`;
+    } else if (preset === 'q3') {
+      currentStartDate = `${y}-07-01`;
+      currentEndDate = `${y}-09-30`;
+    } else if (preset === 'q4') {
+      currentStartDate = `${y}-10-01`;
+      currentEndDate = `${y}-12-31`;
+    }
+    updateDateRangeUI();
+    toggleDatePopover(false);
+    load();
+  };
+});
+
+$('date-apply-btn').onclick = e => {
+  e.stopPropagation();
+  const sVal = $('input-start-date').value;
+  const eVal = $('input-end-date').value;
+  if (!sVal || !eVal) return alert('Please select both start and end dates.');
+  if (sVal > eVal) return alert('Start date must be before end date.');
+  currentStartDate = sVal;
+  currentEndDate = eVal;
+  const sYr = parseInt(sVal.slice(0, 4), 10);
+  if (sYr && sYr !== currentYear) {
+    currentYear = sYr;
+    if ($('year')) $('year').value = sYr;
+  }
+  updateDateRangeUI();
+  toggleDatePopover(false);
+  load();
+};
+
+$('date-reset-btn').onclick = e => {
+  e.stopPropagation();
+  currentStartDate = `${currentYear}-01-01`;
+  currentEndDate = `${currentYear}-12-31`;
+  updateDateRangeUI();
+  toggleDatePopover(false);
+  load();
+};
+
+function updateProvinceDropdownUI() {
+  const curProv = currentProvince;
+  $('filter-province').innerHTML = '<option value="">All Provinces</option>';
+  let list = allAvailableProvinces;
+  if (currentRegion && regionProvinceMap[currentRegion] && regionProvinceMap[currentRegion].length) {
+    list = regionProvinceMap[currentRegion];
+  }
+  list.forEach(prov => {
+    $('filter-province').add(new Option(prov, prov));
+  });
+  if (curProv && list.includes(curProv)) {
+    $('filter-province').value = curProv;
+  } else {
+    $('filter-province').value = '';
+    currentProvince = '';
+  }
+}
+
+$('year').onchange = e => {
+  currentYear = parseInt(e.target.value, 10);
+  currentStartDate = `${currentYear}-01-01`;
+  currentEndDate = `${currentYear}-12-31`;
+  updateDateRangeUI();
+  load();
+};
+
+$('filter-threat-group').onchange = e => {
+  currentThreatGroup = e.target.value;
+  load();
+};
+
+$('filter-brigade').onchange = e => {
+  currentBrigade = e.target.value;
+  load();
+};
+
+$('filter-region').onchange = e => {
+  currentRegion = e.target.value;
+  updateProvinceDropdownUI();
+  load();
+};
+
+$('filter-province').onchange = e => {
+  currentProvince = e.target.value;
+  if (currentProvince && !currentRegion) {
+    for (const [reg, provs] of Object.entries(regionProvinceMap)) {
+      if (provs.includes(currentProvince)) {
+        currentRegion = reg;
+        if ($('filter-region')) $('filter-region').value = reg;
+        break;
+      }
+    }
+  }
+  load();
+};
+
+$('incident-search')?.addEventListener('input', () => {
+  renderIncidentLogTable();
+});
+
+load();
+</script>
+</body>
+</html>

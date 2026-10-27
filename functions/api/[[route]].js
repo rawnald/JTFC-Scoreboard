@@ -686,6 +686,466 @@ export async function onRequest({ request, env, params }) {
       });
     }
 
+    // Public Incident Scoreboard statistics
+    if ((r0 === 'incident_stats' || (r0 === 'incident_reports' && r1 === 'stats')) && method === 'GET') {
+      const url = new URL(request.url);
+      const reqYear = n(url.searchParams.get('year'));
+      const startDate = url.searchParams.get('start_date') || (reqYear ? `${reqYear}-01-01` : `${new Date().getFullYear()}-01-01`);
+      const endDate = url.searchParams.get('end_date') || (reqYear ? `${reqYear}-12-31` : `${new Date().getFullYear()}-12-31`);
+      const threatCategory = (url.searchParams.get('threat_category') || url.searchParams.get('threat_group') || '').trim();
+      const brigade = (url.searchParams.get('brigade') || '').trim();
+      const region = (url.searchParams.get('region') || '').trim();
+      const province = (url.searchParams.get('province') || '').trim();
+
+      const y = reqYear || parseInt(startDate.slice(0, 4), 10) || new Date().getFullYear();
+
+      let prevStartDate = `${y - 1}-01-01`;
+      let prevEndDate = `${y - 1}-12-31`;
+      if (startDate.startsWith(String(y)) && endDate.startsWith(String(y))) {
+        prevStartDate = `${y - 1}${startDate.slice(4)}`;
+        prevEndDate = `${y - 1}${endDate.slice(4)}`;
+      }
+
+      function matchThreatCategory(catOrGroup, target) {
+        if (!target) return true;
+        const t = target.toLowerCase();
+        const cg = (catOrGroup || '').toLowerCase();
+        if (cg === t || cg.includes(t)) return true;
+
+        const isLTG = t.includes('ltg') || t.includes('local terrorist');
+        const isCTG = t.includes('ctg') || t.includes('communist');
+        const isPIAG = t.includes('piag');
+
+        if (isLTG) {
+          const ltgTokens = ['biff', 'ditg', 'alg', 'lle', 'psrl', 'npsrl', 'ltg', 'local terrorist'];
+          if (ltgTokens.some(tok => cg.includes(tok))) return true;
+        }
+        if (isCTG) {
+          const ctgTokens = ['daguma', 'musa', 'sroc', 'roc', 'fsmr', 'gf 73', 'gf73', 'milisyang', 'cnt', 'ctg', 'communist', 'npa', 'cpp'];
+          if (ctgTokens.some(tok => cg.includes(tok))) return true;
+        }
+        if (isPIAG) {
+          if (cg.includes('piag') || cg.includes('private armed')) return true;
+        }
+        return false;
+      }
+
+      function filterIncidentRows(rows) {
+        if (!threatCategory && !brigade && !region && !province) return rows;
+        return rows.filter(r => {
+          if (threatCategory) {
+            const hasCatMatch = r.threat_category && matchThreatCategory(r.threat_category, threatCategory);
+            const hasGroupMatch = r.threat_group && matchThreatCategory(r.threat_group, threatCategory);
+            if (!hasCatMatch && !hasGroupMatch) return false;
+          }
+          if (brigade) {
+            const b = getBrigade(r).toLowerCase();
+            const tb = brigade.toLowerCase();
+            const u = (r.unit || '').toLowerCase();
+            if (b !== tb && !b.includes(tb) && !u.includes(tb)) return false;
+          }
+          if (region) {
+            if (!matchRegion(r, region)) return false;
+          }
+          if (province) {
+            const p = getProvince(r).toLowerCase();
+            const tp = province.toLowerCase();
+            const rp = (r.province || '').toLowerCase();
+            const ra = (r.area || '').toLowerCase();
+            if (p !== tp && !rp.includes(tp) && !ra.includes(tp)) return false;
+          }
+          return true;
+        });
+      }
+
+      function parseEngagements(r) {
+        let wm = null;
+        if (typeof r.war_materiel === 'string') {
+          try { wm = JSON.parse(r.war_materiel); } catch(e){}
+        } else if (typeof r.war_materiel === 'object' && r.war_materiel !== null) {
+          wm = r.war_materiel;
+        }
+        const we = (wm && wm.engagements) || {};
+        const et = String(r.engagement_type || '').toLowerCase();
+        const rem = String(r.remarks || '').toLowerCase();
+
+        const getCount = (key, regexList) => {
+          if (we[key] !== undefined && we[key] !== null) {
+            return Number(we[key]) || 0;
+          }
+          for (const rx of regexList) {
+            const m = et.match(rx);
+            if (m) return m[1] ? Number(m[1]) : 1;
+          }
+          for (const rx of regexList) {
+            if (rem.match(rx)) return 1;
+          }
+          return 0;
+        };
+
+        const h = getCount('harassment', [/harassment\s*(?:\((\d+)\))?/i]);
+        const a = getCount('ambush', [/ambush\s*(?:\((\d+)\))?/i]);
+        const l = getCount('liquidation', [/liquidation\s*(?:\((\d+)\))?/i, /liquidate[d]?/i]);
+        const s = getCount('shooting', [/shooting\s*(?:\((\d+)\))?/i, /shot\s+dead/i]);
+        const c = (Number(we.armed_clash) || Number(we.clash) || 0) || (()=>{
+          const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
+          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
+        })();
+        const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
+          const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
+          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
+        })();
+        const b = (Number(we.bus_bombing) || 0) || (()=>{
+          const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
+          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('bus bombing') ? 1 : 0);
+        })();
+        const cr = (Number(we.carnapping) || 0) || (()=>{
+          const m = et.match(/carnapping\s*(?:\((\d+)\))?/i);
+          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('carnapping') ? 1 : 0);
+        })();
+        const oCount = (Number(we.other_incidents) || Number(we.other_act) || Number(we.other_activities) || Number(we.grenade) || 0) || (()=>{
+          const m = et.match(/(?:other\s*(?:incident[s]?)?(?:\s*report[s]?)?|other\s*act|grenade\s*(?:throwing)?)\s*(?:\((\d+)\))?/i);
+          return m ? (m[1] ? Number(m[1]) : 1) : 0;
+        })();
+
+        const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && oCount === 0) ? 1 : oCount;
+
+        return {
+          harassment: h,
+          ambush: a,
+          liquidation: l,
+          shooting: s,
+          armed_clash: c,
+          ied_explosion: i,
+          bus_bombing: b,
+          carnapping: cr,
+          other_incidents: isOther,
+          total_breakdown: h + a + l + s + c + i + b + cr + isOther
+        };
+      }
+
+      function getWarMaterielCount(r) {
+        let count = 0;
+        if (r.war_materiel) {
+          if (typeof r.war_materiel === 'object' && r.war_materiel !== null) {
+            const wm = r.war_materiel;
+            count = (+wm.ied || 0) + (+wm.uxo || 0) + (+wm.explosives || 0) + (+wm.ammo || 0) + (+wm.magazine || 0);
+          } else if (typeof r.war_materiel === 'string') {
+            try {
+              const wm = JSON.parse(r.war_materiel);
+              if (wm && typeof wm === 'object') {
+                count = (+wm.ied || 0) + (+wm.uxo || 0) + (+wm.explosives || 0) + (+wm.ammo || 0) + (+wm.magazine || 0);
+              }
+            } catch(e) {}
+          }
+        }
+        return count;
+      }
+
+      function aggIncidents(rows) {
+        const initGroups = {};
+        for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
+
+        const a = {
+          total_records: rows.length,
+          total_incidents: 0,
+          harassment: 0,
+          ambush: 0,
+          liquidation: 0,
+          shooting: 0,
+          armed_clash: 0,
+          ied_explosion: 0,
+          bus_bombing: 0,
+          carnapping: 0,
+          other_incidents: 0,
+          kia: 0,
+          wia: 0,
+          govt_casualties: 0,
+          killed: 0,
+          enemy_wounded: 0,
+          captured: 0,
+          apprehended: 0,
+          surrendered: 0,
+          enemy_neutralized: 0,
+          firearms: 0,
+          fa_hp: 0,
+          fa_lp: 0,
+          fa_csw: 0,
+          war_materiel_count: 0,
+          monthly: Array(12).fill(0),
+          monthly_harassment: Array(12).fill(0),
+          monthly_ambush: Array(12).fill(0),
+          monthly_armed_clash: Array(12).fill(0),
+          monthly_shooting: Array(12).fill(0),
+          monthly_casualties: Array(12).fill(0),
+          monthly_firearms: Array(12).fill(0),
+          groups: initGroups,
+          brigades: {}
+        };
+
+        for (const r of rows) {
+          const eng = parseEngagements(r);
+          const rowIncidents = Math.max(1, eng.total_breakdown);
+          a.total_incidents += rowIncidents;
+          a.harassment += eng.harassment;
+          a.ambush += eng.ambush;
+          a.liquidation += eng.liquidation;
+          a.shooting += eng.shooting;
+          a.armed_clash += eng.armed_clash;
+          a.ied_explosion += eng.ied_explosion;
+          a.bus_bombing += eng.bus_bombing;
+          a.carnapping += eng.carnapping;
+          a.other_incidents += eng.other_incidents;
+
+          const rKia = r.kia || 0;
+          const rWia = r.wia || 0;
+          const rGovtCas = rKia + rWia;
+          a.kia += rKia;
+          a.wia += rWia;
+          a.govt_casualties += rGovtCas;
+
+          const rKil = r.killed || 0;
+          const rEw = r.enemy_wounded || 0;
+          const rCap = r.captured || 0;
+          const rApp = r.apprehended || 0;
+          const rSur = r.surrendered || 0;
+          const rNz = rKil + rCap + rApp + rSur;
+          a.killed += rKil;
+          a.enemy_wounded += rEw;
+          a.captured += rCap;
+          a.apprehended += rApp;
+          a.surrendered += rSur;
+          a.enemy_neutralized += rNz;
+
+          let hp = r.fa_high_powered || 0;
+          let lp = r.fa_low_powered || 0;
+          let csw = r.fa_csw || 0;
+          if (!hp && !lp && !csw && r.war_materiel) {
+            try {
+              const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+              if (wm?.fa_breakdown) {
+                const bd = wm.fa_breakdown;
+                const cap = bd.captured || {}, conf = bd.confiscated || {}, sur = bd.surrendered || {}, rec = bd.recovered || {};
+                csw = (+cap.csw || 0) + (+conf.csw || 0) + (+sur.csw || 0) + (+rec.csw || 0);
+                hp = (+cap.hp || 0) + (+conf.hp || 0) + (+sur.hp || 0) + (+rec.hp || 0);
+                lp = (+cap.lp || 0) + (+conf.lp || 0) + (+sur.lp || 0) + (+rec.lp || 0);
+              }
+            } catch(e) {}
+          }
+          const rFa = (r.firearms || 0) || (hp + lp + csw);
+          a.firearms += rFa;
+          a.fa_hp += hp;
+          a.fa_lp += lp;
+          a.fa_csw += csw;
+
+          const wmCount = getWarMaterielCount(r);
+          a.war_materiel_count += wmCount;
+
+          if (r.op_date && r.op_date.length >= 7) {
+            const mIdx = +r.op_date.slice(5, 7) - 1;
+            if (mIdx >= 0 && mIdx < 12) {
+              a.monthly[mIdx] += rowIncidents;
+              a.monthly_harassment[mIdx] += eng.harassment;
+              a.monthly_ambush[mIdx] += eng.ambush;
+              a.monthly_armed_clash[mIdx] += eng.armed_clash;
+              a.monthly_shooting[mIdx] += eng.shooting;
+              a.monthly_casualties[mIdx] += (rGovtCas + rKil + rEw);
+              a.monthly_firearms[mIdx] += rFa;
+            }
+          }
+
+          if (r.threat_group) {
+            a.groups[r.threat_group] = (a.groups[r.threat_group] || 0) + rowIncidents;
+          }
+
+          const bName = getBrigade(r);
+          const provName = getProvince(r);
+          const b = a.brigades[bName] ||= {
+            brigade: bName,
+            unit: bName,
+            province: provName,
+            area: provName,
+            incidents: 0,
+            harassment: 0,
+            ambush: 0,
+            armed_clash: 0,
+            shooting: 0,
+            ied: 0,
+            others: 0,
+            govt_casualties: 0,
+            kia: 0,
+            wia: 0,
+            neutralized: 0,
+            killed: 0,
+            surrendered: 0,
+            firearms: 0,
+            fa_hp: 0,
+            fa_lp: 0,
+            fa_csw: 0,
+            _provs: new Set()
+          };
+          b.incidents += rowIncidents;
+          b.harassment += eng.harassment;
+          b.ambush += eng.ambush;
+          b.armed_clash += eng.armed_clash;
+          b.shooting += eng.shooting;
+          b.ied += eng.ied_explosion;
+          b.others += (eng.liquidation + eng.bus_bombing + eng.carnapping + eng.other_incidents);
+          b.govt_casualties += rGovtCas;
+          b.kia += rKia;
+          b.wia += rWia;
+          b.neutralized += rNz;
+          b.killed += rKil;
+          b.surrendered += rSur;
+          b.firearms += rFa;
+          b.fa_hp += hp;
+          b.fa_lp += lp;
+          b.fa_csw += csw;
+          if (provName && provName !== '—') b._provs.add(provName);
+        }
+
+        const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.other_incidents;
+        a.total_incidents = Math.max(a.total_incidents, sumAll, a.total_records);
+
+        return a;
+      }
+
+      const qIncident = (sDate, eDate) => db.prepare('SELECT * FROM incident_reports WHERE op_date BETWEEN ? AND ?')
+        .bind(sDate, eDate).all()
+        .then(x => filterIncidentRows(x.results || []))
+        .catch(() => []);
+
+      const [curRows, prevRows, catRows, catGroupRows, provRows, bdeRows, yrRows] = await Promise.all([
+        qIncident(startDate, endDate),
+        qIncident(prevStartDate, prevEndDate),
+        db.prepare("SELECT DISTINCT threat_category FROM incident_reports WHERE threat_category IS NOT NULL AND threat_category != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT threat_category, threat_group FROM incident_reports WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT province FROM incident_reports WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT area FROM incident_reports WHERE area IS NOT NULL AND area != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT unit, war_materiel FROM incident_reports WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM incident_reports WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
+      ]);
+
+      const cur = aggIncidents(curRows);
+      const prev = aggIncidents(prevRows);
+
+      STANDARD_BRIGADES.forEach(bName => {
+        if (!brigade || bName.toLowerCase().includes(brigade.toLowerCase())) {
+          cur.brigades[bName] ||= {
+            brigade: bName, unit: bName, province: '', area: '',
+            incidents: 0, harassment: 0, ambush: 0, armed_clash: 0, shooting: 0, ied: 0, others: 0,
+            govt_casualties: 0, kia: 0, wia: 0, neutralized: 0, killed: 0, surrendered: 0,
+            firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, _provs: new Set()
+          };
+        }
+      });
+
+      Object.values(cur.brigades).forEach(b => {
+        if (b._provs && b._provs.size > 0) {
+          b.province = Array.from(b._provs).join(', ');
+          b.area = b.province;
+        }
+        delete b._provs;
+      });
+
+      const catSet = new Set(STANDARD_THREAT_CATEGORIES);
+      (catRows.results || []).forEach(r => { if (r.threat_category && r.threat_category.trim()) catSet.add(r.threat_category.trim()); });
+
+      const threatCategoryMap = {
+        'Local Terrorist Groups (LTG)': ['BIFF-PSRL', 'BIFF-NPSRL', 'DITG-PSRL', 'DITG-NPSRL', 'ALG', 'LLE'],
+        'Communist Terrorist Group (CTG)': ['SRC Daguma', 'GF Musa', 'SROC', 'ROC', 'FSMR', 'GF 73', 'Milisyang Bayan', 'UGMO'],
+        'PIAGs': ['MILF', 'MNLF', 'PIAGs']
+      };
+
+      (catGroupRows.results || []).forEach(r => {
+        const cat = (r.threat_category || '').trim();
+        const grp = (r.threat_group || '').trim();
+        if (cat && grp) {
+          threatCategoryMap[cat] ||= [];
+          if (!threatCategoryMap[cat].includes(grp)) threatCategoryMap[cat].push(grp);
+        } else if (grp) {
+          if (matchThreatCategory(grp, 'ltg')) {
+            if (!threatCategoryMap['Local Terrorist Groups (LTG)'].includes(grp)) threatCategoryMap['Local Terrorist Groups (LTG)'].push(grp);
+          } else if (matchThreatCategory(grp, 'ctg')) {
+            if (!threatCategoryMap['Communist Terrorist Group (CTG)'].includes(grp)) threatCategoryMap['Communist Terrorist Group (CTG)'].push(grp);
+          } else if (matchThreatCategory(grp, 'piag')) {
+            if (!threatCategoryMap['PIAGs'].includes(grp)) threatCategoryMap['PIAGs'].push(grp);
+          }
+        }
+      });
+
+      const bdeSet = new Set(STANDARD_BRIGADES);
+      (bdeRows.results || []).forEach(r => {
+        const b = getBrigade(r);
+        if (b && b !== '—') bdeSet.add(b);
+      });
+
+      const provSet = new Set();
+      const regionSet = new Set(['BARMM', 'Region XII']);
+      (provRows.results || []).forEach(r => {
+        if (r.province && r.province.trim()) {
+          const p = r.province.trim();
+          if (p.includes(',')) {
+            p.split(',').forEach(sub => {
+              const sp = sub.trim();
+              if (sp) {
+                provSet.add(sp);
+                const reg = getRegionForProvince(sp);
+                if (reg) regionSet.add(reg);
+              }
+            });
+          } else {
+            provSet.add(p);
+            const reg = getRegionForProvince(p);
+            if (reg) regionSet.add(reg);
+          }
+        }
+      });
+
+      const regionProvinceMap = {};
+      Array.from(regionSet).forEach(reg => {
+        regionProvinceMap[reg] = [];
+      });
+      Array.from(provSet).filter(Boolean).sort().forEach(p => {
+        const reg = getRegionForProvince(p);
+        if (reg && regionProvinceMap[reg]) {
+          regionProvinceMap[reg].push(p);
+        }
+      });
+
+      const availableYears = Array.from(new Set([y, new Date().getFullYear(), ...(yrRows.results || []).map(r => +r.yr).filter(Boolean)])).sort((a, b) => b - a);
+      const availCategories = Array.from(catSet).filter(Boolean).sort();
+
+      let matrixList = Object.values(cur.brigades);
+      if (brigade) {
+        matrixList = matrixList.filter(b => b.brigade.toLowerCase().includes(brigade.toLowerCase()));
+      }
+      matrixList.sort((a, b) => (b.incidents - a.incidents) || (b.armed_clash - a.armed_clash) || (b.shooting - a.shooting) || (b.harassment - a.harassment));
+
+      return json({
+        year: y,
+        start_date: startDate,
+        end_date: endDate,
+        threat_category: threatCategory,
+        threat_group: threatCategory,
+        brigade: brigade,
+        region: region,
+        province: province,
+        latest_control_number: await getLatestControlNumber(db),
+        cur,
+        prev,
+        matrix: matrixList,
+        rows: curRows.slice(0, 100),
+        available_threat_categories: availCategories,
+        available_threat_groups: availCategories,
+        threat_category_map: threatCategoryMap,
+        available_brigades: Array.from(bdeSet).filter(Boolean).sort(),
+        available_regions: Array.from(regionSet).filter(Boolean).sort(),
+        available_provinces: Array.from(provSet).filter(Boolean).sort(),
+        region_province_map: regionProvinceMap,
+        available_years: availableYears
+      });
+    }
+
     // Latest Control Number endpoint (publicly readable for displays & admin)
     if (r0 === 'latest_control_number') {
       if (method === 'GET') {
@@ -1271,13 +1731,18 @@ export async function onRequest({ request, env, params }) {
       if (method === 'GET') {
         const url = new URL(request.url);
         const y = url.searchParams.get('year');
+        const sDate = url.searchParams.get('start_date');
+        const eDate = url.searchParams.get('end_date');
         let sql = 'SELECT * FROM incident_reports';
         const params = [];
-        if (y) {
+        if (sDate && eDate) {
+          sql += ' WHERE op_date BETWEEN ? AND ?';
+          params.push(sDate, eDate);
+        } else if (y) {
           sql += ' WHERE op_date LIKE ?';
           params.push(`${y}-%`);
         }
-        sql += ' ORDER BY op_date DESC, id DESC LIMIT 500';
+        sql += ' ORDER BY op_date DESC, id DESC LIMIT 1000';
         const q = params.length ? db.prepare(sql).bind(...params) : db.prepare(sql);
         const x = await q.all();
         return json({ rows: x.results });
