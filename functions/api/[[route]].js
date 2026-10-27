@@ -144,11 +144,32 @@ function matchRegion(r, targetRegion) {
   return false;
 }
 
+function getOperationsCount(r) {
+  let wm = null;
+  if (typeof r.war_materiel === 'string') {
+    try { wm = JSON.parse(r.war_materiel); } catch(e){}
+  } else if (typeof r.war_materiel === 'object' && r.war_materiel !== null) {
+    wm = r.war_materiel;
+  }
+  if (wm && wm.operations !== undefined && Number(wm.operations) > 0) {
+    return Number(wm.operations);
+  }
+  if (wm && wm.total_ops !== undefined && Number(wm.total_ops) > 0) {
+    return Number(wm.total_ops);
+  }
+  if (r.operations && Number(r.operations) > 0) {
+    return Number(r.operations);
+  }
+  return 1;
+}
+
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
-  const a = { enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
+  const a = { total_ops: 0, enc: 0, sur: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
   for (const r of rows) {
+    const opCount = getOperationsCount(r);
+    a.total_ops += opCount;
     a.sur += r.surrendered || 0; a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
     a.fa += r.firearms || 0; a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
 
@@ -178,6 +199,7 @@ function agg(rows) {
       const mIdx = +r.op_date.slice(5, 7) - 1;
       if (mIdx >= 0 && mIdx < 12) {
         a.monthly[mIdx] += encCount;
+        a.monthly_ops[mIdx] += opCount;
       }
     }
 
@@ -188,7 +210,8 @@ function agg(rows) {
 
     const bName = getBrigade(r);
     const provName = getProvince(r);
-    const b = a.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
+    const b = a.brigades[bName] ||= { brigade: bName, unit: bName, province: provName, area: provName, enc: 0, total_ops: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
+    b.total_ops = (b.total_ops || 0) + opCount;
     b.enc += encCount;
     b.neutralized += nz;
     b.firearms += (r.firearms || 0);
@@ -198,7 +221,8 @@ function agg(rows) {
     b.sur += (r.surrendered || 0);
     if (provName && provName !== '—') b._provs.add(provName);
 
-    const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0 };
+    const u = a.units[r.unit] ||= { unit: r.unit, area: r.area, enc: 0, total_ops: 0, neutralized: 0, firearms: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0 };
+    u.total_ops = (u.total_ops || 0) + opCount;
     u.enc += encCount; u.neutralized += nz; u.firearms += (r.firearms || 0);
     u.fa_hp += hp; u.fa_lp += lp; u.fa_csw += csw;
   }
@@ -569,7 +593,7 @@ export async function onRequest({ request, env, params }) {
 
       STANDARD_BRIGADES.forEach(bName => {
         if (!brigade || bName.toLowerCase().includes(brigade.toLowerCase())) {
-          cur.brigades[bName] ||= { brigade: bName, unit: bName, province: '', area: '', enc: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
+          cur.brigades[bName] ||= { brigade: bName, unit: bName, province: '', area: '', enc: 0, total_ops: 0, neutralized: 0, firearms: 0, sur: 0, sleo: 0, salw: 0, _provs: new Set() };
         }
       });
 
@@ -578,6 +602,7 @@ export async function onRequest({ request, env, params }) {
         b.salw = b.salw || 0;
         b.firearms = b.firearms || 0;
         b.enc = b.enc || 0;
+        b.total_ops = b.total_ops || 0;
         b.sur = b.sur || 0;
         if (b._provs && b._provs.size > 0) {
           b.province = Array.from(b._provs).join(', ');

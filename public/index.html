@@ -195,7 +195,12 @@ const opt={responsive:true,maintainAspectRatio:false};
 const pistolIcon = `<svg class="w-6 h-6" viewBox="0 0 576 512" fill="currentColor"><path d="M528 56c0-13.3-10.7-24-24-24s-24 10.7-24 24v8H32C14.3 64 0 78.3 0 96v112c0 17.7 14.3 32 32 32h10c20.8 0 36.1 19.6 31 39.8L33 440.2c-2.4 9.6-.2 19.7 5.8 27.5S54.1 480 64 480h96c14.7 0 27.5-10 31-24.2L217 352h104.5c23.7 0 44.8-14.9 52.7-37.2l26.7-74.8H432c8.5 0 16.6-3.4 22.6-9.4l22.7-22.6H544c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32h-16zM321.4 304H229l16-64h105l-21 58.7c-1.1 3.2-4.2 5.3-7.5 5.3zM80 128h384c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16s7.2-16 16-16"/></svg>`;
 const armaliteIcon = `<svg class="w-7 h-7" viewBox="0 1 32 16" fill="currentColor"><path d="M1 5 L8 6.5 L10.5 6.5 L10.8 3.5 L15 3.5 L16 6.5 L23 6.5 L23.5 3 L24.2 3 L24.5 6.8 L29.5 7.2 L29.5 6.8 L31 6.8 L31 8.3 L29.5 8.3 L29.5 8 L24.5 8 L24.2 9.6 L23.2 9.6 L23 8.8 L16 8.8 L15.5 9.5 L15.5 14.8 L14 15.2 L13.5 9.5 L13 10.8 L11.5 10.8 L11.5 9.5 L10.6 14.5 L9 14.2 L9.8 9 L8 9 L1.5 11 Z M11.8 4.5 L14.2 4.5 L14.8 5.7 L11.4 5.7 Z"/></svg>`;
 
-function kpi(icon,color,label,val,d,sub){const iconEl=icon.startsWith('<')?icon:`<span class="ms">${icon}</span>`;return `<div class="card p-4 flex flex-col justify-between"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}">${iconEl}</div><div class="min-w-0"><div class="text-sm font-medium truncate" style="color:${color}">${label}</div><div class="text-2xl font-bold leading-tight text-black">${val}</div>${sub?`<div class="text-[11px] font-bold text-black mt-1 leading-snug">${sub}</div>`:''}</div></div><div class="flex justify-between text-sm mt-3 text-slate-500">vs Last Year ${d}</div></div>`}
+function kpi(icon,color,label,val,d,sub){
+  const iconEl=icon.startsWith('<')?icon:`<span class="ms">${icon}</span>`;
+  const valStr = String(val);
+  const textSize = valStr.length > 15 ? 'text-lg sm:text-xl' : (valStr.length > 10 ? 'text-xl sm:text-2xl' : 'text-2xl');
+  return `<div class="card p-4 flex flex-col justify-between"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full grid place-items-center text-white shrink-0" style="background:${color}">${iconEl}</div><div class="min-w-0"><div class="text-sm font-medium truncate" style="color:${color}">${label}</div><div class="${textSize} font-bold leading-tight text-black">${val}</div>${sub?`<div class="text-[11px] font-bold text-black mt-1 leading-snug">${sub}</div>`:''}</div></div><div class="flex justify-between text-sm mt-3 text-slate-500">vs Last Year ${d}</div></div>`;
+}
 
 const THREAT_MAPPING = {
   'Local Terrorist Groups (LTG)': [
@@ -443,8 +448,14 @@ async function load() {
 
   const faSub = `(HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0})`;
   const salwSub = `(HPFAs: ${c.tolf_hp || 0}, LPFAs: ${c.tolf_lp || 0}, CSW: ${c.tolf_csw || 0})`;
+
+  const curOps = c.total_ops !== undefined ? c.total_ops : (c.enc || 0);
+  const prevOps = p.total_ops !== undefined ? p.total_ops : (p.enc || 0);
+  const curEnc = c.enc || 0;
+  const militaryOpsVal = `${curOps} Opns / ${curEnc} Encounter`;
+
   $('kpis').innerHTML =
-    kpi('groups', '#f97316', 'Military Operations', c.enc || 0, delta(c.enc, p.enc)) +
+    kpi('groups', '#f97316', 'Military Operations', militaryOpsVal, delta(curOps, prevOps)) +
     kpi('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta((c.kia || 0) + (c.wia || 0), (p.kia || 0) + (p.wia || 0), true)) +
     kpi(pistolIcon, '#16a34a', 'Firearms Gained', c.fa || 0, delta(c.fa, p.fa), faSub) +
     kpi(armaliteIcon, '#0891b2', 'Loose FAs (SALW)', c.tolf || 0, delta(c.tolf, p.tolf), salwSub) +
