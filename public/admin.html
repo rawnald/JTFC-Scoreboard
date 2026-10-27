@@ -187,9 +187,6 @@
       </div>
     </section>
 
-    <!-- KPI STATS SECTION FOR INCIDENT REPORTS -->
-    <section id="incident-kpis" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-3.5"></section>
-
     <!-- RESPONSIVE DATA TABLE CARD -->
     <section class="card overflow-hidden border border-slate-200/80">
       <!-- MONTH & YEAR FILTER BAR (Combat Operations & SLEO) -->
@@ -944,16 +941,6 @@ async function switchTab(tabKey) {
     renderOpsMonthButtons();
   }
 
-  // Manage Incident Reports KPI container visibility
-  const kpiEl = $('incident-kpis');
-  if (kpiEl) {
-    if (tabKey === 'incident_reports') {
-      kpiEl.classList.remove('hidden');
-    } else {
-      kpiEl.classList.add('hidden');
-    }
-  }
-
   // Build table headers
   let thHtml = `<tr class="border-b border-slate-200">`;
   cat.columns.forEach(col => {
@@ -1008,11 +995,6 @@ function renderTable() {
   $('record-count').textContent = `${rows.length} ${rows.length === 1 ? 'record' : 'records'} (${mLabel} ${selY})`;
 
   if (!rows.length) {
-    if (currentTab === 'incident_reports') {
-      renderIncidentKpis([]);
-    } else {
-      $('incident-kpis')?.classList.add('hidden');
-    }
     const entities = {
       ops: 'operations',
       sleo: 'SLEO records',
@@ -1056,205 +1038,6 @@ function renderTable() {
   });
 
   $('tbl-body').innerHTML = html;
-
-  if (currentTab === 'incident_reports') {
-    renderIncidentKpis(rows);
-  } else {
-    $('incident-kpis')?.classList.add('hidden');
-  }
-}
-
-const kpiPistolIcon = `<svg class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 576 512" fill="currentColor"><path d="M528 56c0-13.3-10.7-24-24-24s-24 10.7-24 24v8H32C14.3 64 0 78.3 0 96v112c0 17.7 14.3 32 32 32h10c20.8 0 36.1 19.6 31 39.8L33 440.2c-2.4 9.6-.2 19.7 5.8 27.5S54.1 480 64 480h96c14.7 0 27.5-10 31-24.2L217 352h104.5c23.7 0 44.8-14.9 52.7-37.2l26.7-74.8H432c8.5 0 16.6-3.4 22.6-9.4l22.7-22.6H544c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32h-16zM321.4 304H229l16-64h105l-21 58.7c-1.1 3.2-4.2 5.3-7.5 5.3zM80 128h384c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16s7.2-16 16-16"/></svg>`;
-
-function renderIncidentKpis(rows) {
-  const container = $('incident-kpis');
-  if (!container) return;
-  if (currentTab !== 'incident_reports') {
-    container.classList.add('hidden');
-    return;
-  }
-  container.classList.remove('hidden');
-
-  const fmt = val => Number(val || 0).toLocaleString();
-
-  let totalIncidents = rows.length;
-  let harassment = 0;
-  let ambush = 0;
-  let liquidation = 0;
-  let shooting = 0;
-  let armedClash = 0;
-  let iedExplosion = 0;
-  let busBombing = 0;
-  let carnapping = 0;
-  let otherIncidents = 0;
-
-  rows.forEach(o => {
-    let wm = null;
-    try {
-      wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel;
-    } catch(e) {}
-
-    const we = (wm && wm.engagements) || {};
-    const et = String(o.engagement_type || '').toLowerCase();
-    const rem = String(o.remarks || '').toLowerCase();
-
-    const getCount = (key, regexList) => {
-      if (we[key] !== undefined && we[key] !== null) {
-        return Number(we[key]) || 0;
-      }
-      for (const rx of regexList) {
-        const m = et.match(rx);
-        if (m) return m[1] ? Number(m[1]) : 1;
-      }
-      for (const rx of regexList) {
-        if (rem.match(rx)) return 1;
-      }
-      return 0;
-    };
-
-    const h = getCount('harassment', [/harassment\s*(?:\((\d+)\))?/i]);
-    const a = getCount('ambush', [/ambush\s*(?:\((\d+)\))?/i]);
-    const l = getCount('liquidation', [/liquidation\s*(?:\((\d+)\))?/i, /liquidate[d]?/i]);
-    const s = getCount('shooting', [/shooting\s*(?:\((\d+)\))?/i, /shot\s+dead/i]);
-    const c = (Number(we.armed_clash) || Number(we.clash) || 0) || (()=>{
-      const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
-      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
-    })();
-    const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
-      const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
-      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
-    })();
-    const b = (Number(we.bus_bombing) || 0) || (()=>{
-      const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
-      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('bus bombing') ? 1 : 0);
-    })();
-    const cr = (Number(we.carnapping) || 0) || (()=>{
-      const m = et.match(/carnapping\s*(?:\((\d+)\))?/i);
-      return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('carnapping') ? 1 : 0);
-    })();
-    const oCount = (Number(we.other_incidents) || Number(we.other_act) || Number(we.other_activities) || Number(we.grenade) || 0) || (()=>{
-      const m = et.match(/(?:other\s*(?:incident[s]?)?(?:\s*report[s]?)?|other\s*act|grenade\s*(?:throwing)?)\s*(?:\((\d+)\))?/i);
-      return m ? (m[1] ? Number(m[1]) : 1) : 0;
-    })();
-
-    harassment += h;
-    ambush += a;
-    liquidation += l;
-    shooting += s;
-    armedClash += c;
-    iedExplosion += i;
-    busBombing += b;
-    carnapping += cr;
-    otherIncidents += oCount;
-
-    // If an incident report has none of the 9 types marked, count as Other Incident Reports
-    if (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && oCount === 0) {
-      otherIncidents += 1;
-    }
-  });
-
-  const sumAllBreakdowns = harassment + ambush + liquidation + shooting + armedClash + iedExplosion + busBombing + carnapping + otherIncidents;
-  const displayTotal = Math.max(totalIncidents, sumAllBreakdowns);
-
-  const kpis = [
-    {
-      title: 'Total Incidents',
-      val: fmt(displayTotal),
-      sub: `${fmt(totalIncidents)} Total Recorded`,
-      icon: '<span class="ms !text-2xl">description</span>',
-      bg: 'bg-gradient-to-br from-blue-600 to-indigo-700',
-      shadow: 'shadow-blue-500/20'
-    },
-    {
-      title: 'Harassment',
-      val: fmt(harassment),
-      sub: 'Enemy Harassment Events',
-      icon: '<span class="ms !text-2xl">campaign</span>',
-      bg: 'bg-gradient-to-br from-amber-500 to-orange-600',
-      shadow: 'shadow-amber-500/20'
-    },
-    {
-      title: 'Ambush',
-      val: fmt(ambush),
-      sub: 'Tactical Ambush Incidents',
-      icon: '<span class="ms !text-2xl">crisis_alert</span>',
-      bg: 'bg-gradient-to-br from-red-600 to-rose-700',
-      shadow: 'shadow-red-500/20'
-    },
-    {
-      title: 'Liquidation',
-      val: fmt(liquidation),
-      sub: 'Targeted Liquidations',
-      icon: '<span class="ms !text-2xl">person_remove</span>',
-      bg: 'bg-gradient-to-br from-purple-600 to-violet-800',
-      shadow: 'shadow-purple-500/20'
-    },
-    {
-      title: 'Shooting',
-      val: fmt(shooting),
-      sub: 'Shooting Incidents',
-      icon: kpiPistolIcon,
-      bg: 'bg-gradient-to-br from-slate-600 to-slate-800',
-      shadow: 'shadow-slate-500/20'
-    },
-    {
-      title: 'Armed Clash',
-      val: fmt(armedClash),
-      sub: 'Armed Clash / Encounters',
-      icon: '<span class="ms !text-2xl">swords</span>',
-      bg: 'bg-gradient-to-br from-orange-600 to-red-700',
-      shadow: 'shadow-orange-500/20'
-    },
-    {
-      title: 'IED Explosion',
-      val: fmt(iedExplosion),
-      sub: 'IED Detonations / Blasts',
-      icon: '<span class="ms !text-2xl">bomb</span>',
-      bg: 'bg-gradient-to-br from-yellow-600 to-amber-700',
-      shadow: 'shadow-yellow-500/20'
-    },
-    {
-      title: 'Bus Bombing',
-      val: fmt(busBombing),
-      sub: 'Transit / Bus Bombings',
-      icon: '<span class="ms !text-2xl">directions_bus</span>',
-      bg: 'bg-gradient-to-br from-pink-600 to-rose-700',
-      shadow: 'shadow-pink-500/20'
-    },
-    {
-      title: 'Carnapping',
-      val: fmt(carnapping),
-      sub: 'Vehicle Hijackings',
-      icon: '<span class="ms !text-2xl">directions_car</span>',
-      bg: 'bg-gradient-to-br from-teal-600 to-cyan-800',
-      shadow: 'shadow-teal-500/20'
-    },
-    {
-      title: 'Other Incident Reports',
-      val: fmt(otherIncidents),
-      sub: 'Other Reported Incidents',
-      icon: '<span class="ms !text-2xl">pending_actions</span>',
-      bg: 'bg-gradient-to-br from-emerald-600 to-teal-700',
-      shadow: 'shadow-emerald-500/20'
-    }
-  ];
-
-  container.innerHTML = kpis.map(card => `
-    <div class="card p-3.5 sm:p-4 border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-shadow">
-      <div class="flex items-center gap-2.5 sm:gap-3">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${card.bg} text-white grid place-items-center shrink-0 shadow-sm ${card.shadow}">
-          ${card.icon}
-        </div>
-        <div class="min-w-0 flex-1">
-          <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="${esc(card.title)}">${esc(card.title)}</div>
-          <div class="text-xl sm:text-2xl font-extrabold text-[#0b1b5e] leading-tight mt-0.5 truncate" title="${esc(String(card.val))}">${esc(String(card.val))}</div>
-        </div>
-      </div>
-      <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] sm:text-[11px] font-medium text-slate-600">
-        <span class="truncate" title="${esc(card.sub)}">${esc(card.sub)}</span>
-      </div>
-    </div>
-  `).join('');
 }
 
 // Dynamic Threat Category to Threat Group dropdown for Combat Operations
