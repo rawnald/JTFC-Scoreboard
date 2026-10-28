@@ -500,13 +500,22 @@ function parseIncidentRow(o) {
   const a = getCount('ambush', [/ambush\s*(?:\((\d+)\))?/i]);
   const l = getCount('liquidation', [/liquidation\s*(?:\((\d+)\))?/i, /liquidate[d]?/i]);
   const s = getCount('shooting', [/shooting\s*(?:\((\d+)\))?/i, /shot\s+dead/i]);
+  const str = getCount('strafing', [/strafing\s*(?:\((\d+)\))?/i]);
   const c = (Number(we.armed_clash) || Number(we.clash) || 0) || (()=>{
     const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
     return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
   })();
   const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
-    const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
-    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
+    if (et.includes('loud explosion') && !et.includes('ied')) return 0;
+    const m = et.match(/(?:ied\s*explosion|\bied\b)\s*(?:\((\d+)\))?/i);
+    if (m) return m[1] ? Number(m[1]) : 1;
+    if (rem.includes('ied explosion') || rem.includes('ied')) return 1;
+    if (et.includes('explosion') && !et.includes('loud')) return 1;
+    return 0;
+  })();
+  const le = (Number(we.loud_explosion) || 0) || (()=>{
+    const m = et.match(/loud\s*explosion\s*(?:\((\d+)\))?/i);
+    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('loud explosion') ? 1 : 0);
   })();
   const b = (Number(we.bus_bombing) || 0) || (()=>{
     const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
@@ -525,20 +534,22 @@ function parseIncidentRow(o) {
     return m ? (m[1] ? Number(m[1]) : 1) : 0;
   })();
 
-  const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
+  const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && str === 0 && c === 0 && i === 0 && le === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
 
   return {
     harassment: h,
     ambush: a,
     liquidation: l,
     shooting: s,
+    strafing: str,
     armed_clash: c,
     ied_explosion: i,
+    loud_explosion: le,
     bus_bombing: b,
     carnapping: cr,
     active_rido: ar,
     other_incidents: isOther,
-    total: h + a + l + s + c + i + b + cr + ar + isOther
+    total: h + a + l + s + str + c + i + le + b + cr + ar + isOther
   };
 }
 
@@ -548,7 +559,9 @@ function getPrimaryEngagementType(eng, fallback) {
   if (eng.armed_clash > 0) return 'Armed Clash';
   if (eng.liquidation > 0) return 'Liquidation';
   if (eng.shooting > 0) return 'Shooting';
+  if (eng.strafing > 0) return 'Strafing';
   if (eng.ied_explosion > 0) return 'IED Explosion';
+  if (eng.loud_explosion > 0) return 'Loud Explosion';
   if (eng.bus_bombing > 0) return 'Bus Bombing';
   if (eng.carnapping > 0) return 'Carnapping';
   if (eng.active_rido > 0) return 'Active Rido';
@@ -893,7 +906,9 @@ async function load() {
     { label: 'Armed Clash', val: c.armed_clash || 0, color: '#ea580c' },
     { label: 'Liquidation', val: c.liquidation || 0, color: '#8b5cf6' },
     { label: 'Shooting', val: c.shooting || 0, color: '#475569' },
+    { label: 'Strafing', val: c.strafing || 0, color: '#64748b' },
     { label: 'IED Explosion', val: c.ied_explosion || 0, color: '#eab308' },
+    { label: 'Loud Explosion', val: c.loud_explosion || 0, color: '#f97316' },
     { label: 'Bus Bombing', val: c.bus_bombing || 0, color: '#ec4899' },
     { label: 'Carnapping', val: c.carnapping || 0, color: '#0d9488' },
     { label: 'Active Rido', val: c.active_rido || 0, color: '#6366f1' },
@@ -1024,10 +1039,10 @@ function renderPrimaryIncidentKpis(c, p) {
       shadow: 'shadow-orange-500/20'
     },
     {
-      title: 'IED Explosion',
-      val: fmt(c.ied_explosion || 0),
-      sub: 'IED Detonations / Blasts',
-      delta: delta(c.ied_explosion || 0, p.ied_explosion || 0),
+      title: 'Explosion',
+      val: fmt((c.ied_explosion || 0) + (c.loud_explosion || 0)),
+      sub: `${fmt(c.ied_explosion || 0)} IED Explosion / ${fmt(c.loud_explosion || 0)} Loud Explosion`,
+      delta: delta((c.ied_explosion || 0) + (c.loud_explosion || 0), (p.ied_explosion || 0) + (p.loud_explosion || 0)),
       icon: '<span class="ms !text-2xl">bomb</span>',
       bg: 'bg-gradient-to-br from-yellow-600 to-amber-700',
       shadow: 'shadow-yellow-500/20'
@@ -1253,8 +1268,8 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
     const a = {
       total_records: rows.length,
       total_incidents: 0,
-      harassment: 0, ambush: 0, liquidation: 0, shooting: 0,
-      armed_clash: 0, ied_explosion: 0, bus_bombing: 0, carnapping: 0,
+      harassment: 0, ambush: 0, liquidation: 0, shooting: 0, strafing: 0,
+      armed_clash: 0, ied_explosion: 0, loud_explosion: 0, bus_bombing: 0, carnapping: 0,
       active_rido: 0, other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
       govt_afp: 0, govt_caa: 0, govt_pnp: 0,
       killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, enemy_neutralized: 0,
@@ -1278,8 +1293,10 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       a.ambush += eng.ambush;
       a.liquidation += eng.liquidation;
       a.shooting += eng.shooting;
+      a.strafing = (a.strafing || 0) + eng.strafing;
       a.armed_clash += eng.armed_clash;
       a.ied_explosion += eng.ied_explosion;
+      a.loud_explosion = (a.loud_explosion || 0) + eng.loud_explosion;
       a.bus_bombing += eng.bus_bombing;
       a.carnapping += eng.carnapping;
       a.active_rido += eng.active_rido;
@@ -1375,7 +1392,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       b.firearms += fa;
     });
 
-    const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.active_rido + a.other_incidents;
+    const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + (a.strafing || 0) + a.armed_clash + a.ied_explosion + (a.loud_explosion || 0) + a.bus_bombing + a.carnapping + a.active_rido + a.other_incidents;
     a.total_incidents = Math.max(a.total_incidents, sumAll, a.total_records);
     return a;
   }
