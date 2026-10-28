@@ -236,7 +236,8 @@
               <th class="py-2 pr-2">Brigade</th>
               <th class="py-2 px-1 text-center">Incidents</th>
               <th class="py-2 px-1 text-center">Harassment</th>
-              <th class="py-2 px-1 text-center">Ambush/Clash</th>
+              <th class="py-2 px-1 text-center">Armed Clash</th>
+              <th class="py-2 px-1 text-center">Ambush</th>
               <th class="py-2 px-1 text-center">Casualties</th>
               <th class="py-2 pl-1 text-center">FAs Gained</th>
             </tr>
@@ -965,11 +966,12 @@ async function load() {
       <td class="py-2.5 pr-2 font-semibold text-slate-800 whitespace-nowrap">${esc(u.brigade || u.unit || '—')}</td>
       <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-xs">${u.incidents || 0}</span></td>
       <td class="py-2.5 px-1 text-center font-bold text-amber-700">${u.harassment || 0}</td>
-      <td class="py-2.5 px-1 text-center font-bold text-rose-700">${(u.ambush || 0) + (u.armed_clash || 0)}</td>
+      <td class="py-2.5 px-1 text-center font-bold text-orange-700">${u.armed_clash || 0}</td>
+      <td class="py-2.5 px-1 text-center font-bold text-rose-700">${u.ambush || 0}</td>
       <td class="py-2.5 px-1 text-center text-xs font-semibold text-slate-700" title="Govt: ${u.govt_casualties || 0} (KIA: ${u.kia || 0}, WIA: ${u.wia || 0}) | Enemy: ${u.neutralized || 0}">${u.govt_casualties || 0} G / ${u.neutralized || 0} E</td>
       <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-xs" title="HPFAs: ${u.fa_hp || 0}, LPFAs: ${u.fa_lp || 0}, CSW: ${u.fa_csw || 0}">${u.firearms || 0}</span></td>
     </tr>
-  `).join('') || '<tr><td colspan="6" class="py-4 text-center text-slate-400">No incident records found for this selection</td></tr>';
+  `).join('') || '<tr><td colspan="7" class="py-4 text-center text-slate-400">No incident records found for this selection</td></tr>';
 
   // RENDER RECENT INCIDENT REPORTS LOG
   renderIncidentLogTable();
