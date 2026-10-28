@@ -883,13 +883,18 @@ export async function onRequest({ request, env, params }) {
           const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
           return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
         })();
-        const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
-          const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
-          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
+        const i = (Number(we.ied_explosion) || Number(we.ied) || 0) || (()=>{
+          if (et.includes('loud explosion') && !et.includes('ied')) return 0;
+          const m = et.match(/(?:ied\s*explosion|\bied\b)\s*(?:\((\d+)\))?/i);
+          if (m) return m[1] ? Number(m[1]) : 1;
+          if (et.includes('explosion') && !et.includes('loud')) return 1;
+          return 0;
         })();
         const le = (Number(we.loud_explosion) || 0) || (()=>{
           const m = et.match(/loud\s*explosion\s*(?:\((\d+)\))?/i);
-          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('loud explosion') ? 1 : 0);
+          if (m) return m[1] ? Number(m[1]) : 1;
+          if (et.includes('loud explosion')) return 1;
+          return 0;
         })();
         const b = (Number(we.bus_bombing) || 0) || (()=>{
           const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
