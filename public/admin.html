@@ -1068,10 +1068,41 @@ function renderTable() {
 function onThreatCategoryChange(selectedCategory, preselectedGroup) {
   const groupSelect = $('f_threat_group');
   if (!groupSelect) return;
-  const groups = THREAT_MAPPING[selectedCategory] || [];
-  groupSelect.innerHTML = groups.map(g => `<option value="${g}" ${g === preselectedGroup ? 'selected' : ''}>${g}</option>`).join('');
-  if (!groups.length) {
-    groupSelect.innerHTML = `<option value="">-- Select Threat Category First --</option>`;
+  const baseGroups = THREAT_MAPPING[selectedCategory] || [];
+  const groups = baseGroups.filter(g => g !== 'Others');
+
+  const isKnown = groups.includes(preselectedGroup);
+  let selectedVal = '';
+  let otherVal = '';
+
+  if (preselectedGroup) {
+    if (isKnown) {
+      selectedVal = preselectedGroup;
+    } else {
+      selectedVal = 'Others';
+      otherVal = preselectedGroup;
+    }
+  } else if (groups.length) {
+    selectedVal = groups[0];
+  }
+
+  let optionsHtml = groups.map(g => `<option value="${g}" ${g === selectedVal ? 'selected' : ''}>${g}</option>`).join('');
+  optionsHtml += `<option value="Others" ${selectedVal === 'Others' ? 'selected' : ''}>Others</option>`;
+
+  groupSelect.innerHTML = optionsHtml;
+
+  const otherWrap = $('f_threat_group_other_wrap');
+  const otherInput = $('f_threat_group_other');
+  if (otherWrap && otherInput) {
+    if (selectedVal === 'Others') {
+      otherWrap.classList.remove('hidden');
+      otherInput.required = true;
+      if (otherVal) otherInput.value = otherVal;
+    } else {
+      otherWrap.classList.add('hidden');
+      otherInput.required = false;
+      otherInput.value = '';
+    }
   }
 }
 
@@ -1507,7 +1538,10 @@ function renderCombatModalForm(record) {
         </div>
         <div>
           <label>Threat Group <span class="text-red-500">*</span></label>
-          <select id="f_threat_group" class="f" required></select>
+          <select id="f_threat_group" class="f" onchange="onSelectWithOtherChange(this, 'f_threat_group_other_wrap', 'f_threat_group_other')" required></select>
+          <div id="f_threat_group_other_wrap" class="hidden mt-2">
+            <input id="f_threat_group_other" type="text" placeholder="Specify other threat group..." class="f">
+          </div>
         </div>
       </div>
 
@@ -3087,6 +3121,11 @@ async function handleFormSubmit(e) {
     const provOther = ($('f_province_other')?.value || '').trim();
     const provinceVal = provSel === 'Others' ? (provOther || 'Others') : provSel;
 
+    const tgSel = ($('f_threat_group')?.value || '').trim();
+    const tgOther = ($('f_threat_group_other')?.value || '').trim();
+    const threatGroupVal = tgSel === 'Others' ? (tgOther || 'Others') : tgSel;
+    warMat.threat_group = threatGroupVal;
+
     payload = {
       ...payload,
       control_number: ctrlNum,
@@ -3096,7 +3135,7 @@ async function handleFormSubmit(e) {
       area: $('f_area').value,
       province: provinceVal,
       threat_category: $('f_threat_category').value,
-      threat_group: $('f_threat_group').value,
+      threat_group: threatGroupVal,
       engagement_type: engTypeStr,
       kia: parseInt($('f_kia')?.value || 0, 10) || 0,
       wia: parseInt($('f_wia')?.value || 0, 10) || 0,
