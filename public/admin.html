@@ -93,13 +93,32 @@
 
     <!-- Sidebar Footer -->
     <div class="pt-6 border-t border-white/10 space-y-2">
-      <!-- Latest Control # Display -->
-      <div class="rounded-xl p-3 bg-white/5 border border-white/10 flex items-center justify-between gap-2 text-xs">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="ms text-teal-400 text-base shrink-0">tag</span>
-          <span class="text-[11px] text-blue-200 font-semibold truncate">Latest Control # Input</span>
+      <!-- Latest Control # Input -->
+      <div class="rounded-xl p-3 bg-white/5 border border-white/10 space-y-1.5 text-xs">
+        <div class="flex items-center justify-between gap-1 min-w-0">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="ms text-teal-400 text-base shrink-0">tag</span>
+            <span class="text-[11px] text-blue-200 font-semibold truncate">Latest Control # Input</span>
+          </div>
+          <span id="ctrl-save-indicator" class="text-[10px] text-emerald-400 font-bold hidden flex items-center gap-0.5 shrink-0">
+            <span class="ms !text-xs">check_circle</span> Saved
+          </span>
         </div>
-        <span id="sidebar-latest-ctrl" class="font-mono font-bold text-teal-300 text-xs shrink-0 bg-teal-950/70 border border-teal-500/30 px-2 py-0.5 rounded shadow-sm" title="Latest Control # Input">—</span>
+        <div class="flex items-center gap-1.5">
+          <input id="sidebar-latest-ctrl-input"
+                 type="text"
+                 placeholder="Enter control #..."
+                 onchange="saveCustomLatestControlNumber(this.value)"
+                 onkeydown="if(event.key==='Enter'){this.blur();}"
+                 class="w-full bg-teal-950/70 border border-teal-500/40 rounded-lg px-2.5 py-1 text-teal-200 font-mono text-xs font-bold focus:outline-none focus:border-teal-400 focus:bg-teal-900/90 transition placeholder-teal-600/60 shadow-inner"
+                 title="Type and press Enter to save Latest Control Number">
+          <button type="button"
+                  onclick="saveCustomLatestControlNumber($('sidebar-latest-ctrl-input').value)"
+                  class="px-2 py-1 bg-teal-600/30 hover:bg-teal-600/50 border border-teal-500/50 text-teal-200 rounded-lg text-[10px] font-bold transition flex items-center gap-0.5 shrink-0"
+                  title="Save Control #">
+            <span class="ms !text-xs">save</span>
+          </button>
+        </div>
       </div>
 
       <a href="/" target="_blank" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-white/10 text-xs text-blue-200 font-medium transition">
@@ -835,16 +854,27 @@ const api = (path, method = 'GET', body) => fetch('/api/' + path, {
   body: body ? JSON.stringify(body) : undefined
 });
 
+function getLatestCachedCtrl() {
+  const inputEl = $('sidebar-latest-ctrl-input');
+  if (inputEl && inputEl.value && inputEl.value.trim()) return inputEl.value.trim();
+  const cached = localStorage.getItem('jtfc_latest_control_number');
+  return (cached && cached.trim()) ? cached.trim() : '';
+}
+
 function setLatestControlNumberUI(val) {
-  const displayVal = (val && String(val).trim()) ? String(val).trim() : '—';
+  const displayVal = (val && String(val).trim()) ? String(val).trim() : '';
+  const inputEl = $('sidebar-latest-ctrl-input');
+  if (inputEl && document.activeElement !== inputEl) {
+    inputEl.value = displayVal;
+  }
   const el = $('sidebar-latest-ctrl');
   if (el) {
-    el.textContent = displayVal;
-    el.title = `Latest Control # Input: ${displayVal}`;
+    el.textContent = displayVal || '—';
+    el.title = `Latest Control # Input: ${displayVal || '—'}`;
   }
   const mobEl = $('mob-sidebar-latest-ctrl');
   if (mobEl) {
-    if (displayVal !== '—') {
+    if (displayVal) {
       mobEl.textContent = `(${displayVal})`;
       mobEl.classList.remove('hidden');
     } else {
@@ -852,6 +882,32 @@ function setLatestControlNumberUI(val) {
       mobEl.classList.add('hidden');
     }
   }
+}
+
+async function saveCustomLatestControlNumber(val) {
+  const clean = (val || '').trim();
+  if (clean) {
+    localStorage.setItem('jtfc_latest_control_number', clean);
+  } else {
+    localStorage.removeItem('jtfc_latest_control_number');
+  }
+  setLatestControlNumberUI(clean);
+
+  // Show "Saved" indicator
+  const indicator = $('ctrl-save-indicator');
+  if (indicator) {
+    indicator.classList.remove('hidden');
+    setTimeout(() => { if (indicator) indicator.classList.add('hidden'); }, 2000);
+  }
+
+  // Persist to server database
+  try {
+    await fetch('/api/latest_control_number', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ control_number: clean })
+    });
+  } catch(e) {}
 }
 
 async function updateLatestControlNumber() {
@@ -889,7 +945,7 @@ async function updateLatestControlNumber() {
     localStorage.setItem('jtfc_latest_control_number', latest);
     setLatestControlNumberUI(latest);
   } else if (!cached) {
-    setLatestControlNumberUI('—');
+    setLatestControlNumberUI('');
   }
 }
 
@@ -1492,8 +1548,11 @@ function renderCombatModalForm(record) {
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
-          <label>Control #</label>
-          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
+          <div class="flex items-center justify-between mb-1">
+            <label class="!mb-0">Control #</label>
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+          </div>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -2158,8 +2217,11 @@ function renderSleoModalForm(record) {
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
-          <label>Control #</label>
-          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
+          <div class="flex items-center justify-between mb-1">
+            <label class="!mb-0">Control #</label>
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+          </div>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -2548,8 +2610,11 @@ function renderTolfModalForm(record) {
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
-          <label>Control #</label>
-          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
+          <div class="flex items-center justify-between mb-1">
+            <label class="!mb-0">Control #</label>
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+          </div>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -2785,8 +2850,11 @@ function renderRidoModalForm(record) {
           <input id="f_case_date" type="date" value="${esc(caseDate)}" class="f" required>
         </div>
         <div>
-          <label>Control #</label>
-          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="e.g. CTRL-2026-001" class="f">
+          <div class="flex items-center justify-between mb-1">
+            <label class="!mb-0">Control #</label>
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+          </div>
+          <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -3374,10 +3442,18 @@ async function handleFormSubmit(e) {
   if (r.ok) {
     $('modal-msg').textContent = 'Saved successfully! ✓';
     $('modal-msg').className = 'text-xs font-medium text-green-600';
-    if (payload.control_number) {
-      localStorage.setItem('jtfc_latest_control_number', payload.control_number);
-      setLatestControlNumberUI(payload.control_number);
-      if (ctrlBroadcast) ctrlBroadcast.postMessage({ control_number: payload.control_number });
+    if (payload.control_number && String(payload.control_number).trim()) {
+      const cleanCtrl = String(payload.control_number).trim();
+      localStorage.setItem('jtfc_latest_control_number', cleanCtrl);
+      setLatestControlNumberUI(cleanCtrl);
+      if (ctrlBroadcast) ctrlBroadcast.postMessage({ control_number: cleanCtrl });
+      try {
+        fetch('/api/latest_control_number', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ control_number: cleanCtrl })
+        }).catch(() => {});
+      } catch(e) {}
     }
     const recDate = payload.op_date || payload.case_date;
     if (recDate && recDate.length >= 7) {
