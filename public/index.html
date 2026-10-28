@@ -444,7 +444,7 @@ async function load() {
   const sleoNz = c.sleo_neutralized || 0;
   const totNeutralized = c.total_neutralized !== undefined ? c.total_neutralized : (cmoNz + sleoNz);
   const prevTotNeutralized = p.total_neutralized !== undefined ? p.total_neutralized : ((p.cmo_neutralized || p.neutralized || 0) + (p.sleo_neutralized || 0));
-  const nzSub = `${cmoNz} CMO / ${sleoNz} SLEO`;
+  const nzSub = `${cmoNz} MO / ${sleoNz} SLEO`;
 
   const faThreatSub = `${c.fa_ctg || 0} CTG / ${c.fa_ltg || 0} LTG / ${c.fa_piag || 0} PIAGs`;
   const faSub = `<div>${faThreatSub}</div><div class="text-[10px] text-slate-500 font-medium mt-0.5">(HPFAs: ${c.fa_hp || 0}, LPFAs: ${c.fa_lp || 0}, CSW: ${c.fa_csw || 0})</div>`;
@@ -464,7 +464,7 @@ async function load() {
     kpi(armaliteIcon, '#0891b2', 'Loose FAs (SALW)', c.tolf || 0, delta(c.tolf, p.tolf), salwSub) +
     kpi('shield', '#2563eb', 'Total Neutralized', totNeutralized, delta(totNeutralized, prevTotNeutralized), nzSub) +
     kpi('handshake', '#7c3aed', 'Total Surrender', c.sur || 0, delta(c.sur || 0, p.sur || 0), surSub) +
-    kpi('policy', '#6366f1', 'Total SLEO', c.sleo || 0, delta(c.sleo, p.sleo));
+    kpi('policy', '#6366f1', 'Nr SLEO Conducted', c.sleo || 0, delta(c.sleo, p.sleo));
 
   const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   draw('trend', {
