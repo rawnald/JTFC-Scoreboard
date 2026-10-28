@@ -1087,6 +1087,7 @@ function renderSecondaryImpactKpis(c, p) {
 
   const curGovtCas = (c.kia || 0) + (c.wia || 0);
   const prevGovtCas = (p.kia || 0) + (p.wia || 0);
+  const govtCasSub = `${c.govt_afp || 0} Regular Forces / ${c.govt_caa || 0} CAA / ${c.govt_pnp || 0} PNP`;
 
   const curNz = c.enemy_neutralized || ((c.killed || 0) + (c.captured || 0) + (c.surrendered || 0) + (c.apprehended || 0));
   const prevNz = p.enemy_neutralized || ((p.killed || 0) + (p.captured || 0) + (p.surrendered || 0) + (p.apprehended || 0));
@@ -1122,7 +1123,7 @@ function renderSecondaryImpactKpis(c, p) {
   }
 
   container.innerHTML =
-    cardHtml('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta(curGovtCas, prevGovtCas, true), 'Govt Forces Affected') +
+    cardHtml('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta(curGovtCas, prevGovtCas, true), govtCasSub) +
     cardHtml('shield', '#2563eb', 'Enemy Neutralized', curNz, delta(curNz, prevNz), `${c.killed || 0} KIA, ${c.captured || 0} Cap, ${c.surrendered || 0} Surr`) +
     cardHtml(pistolIcon, '#16a34a', 'Firearms Gained', curFa, delta(curFa, prevFa), faSub) +
     cardHtml('warning', '#d97706', 'War Materiel Intercepted', curWm, delta(curWm, prevWm), 'IEDs, UXOs & Explosives');
@@ -1255,6 +1256,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       harassment: 0, ambush: 0, liquidation: 0, shooting: 0,
       armed_clash: 0, ied_explosion: 0, bus_bombing: 0, carnapping: 0,
       active_rido: 0, other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
+      govt_afp: 0, govt_caa: 0, govt_pnp: 0,
       killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, enemy_neutralized: 0,
       firearms: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, war_materiel_count: 0,
       monthly: Array(12).fill(0),
@@ -1283,9 +1285,26 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       a.active_rido += eng.active_rido;
       a.other_incidents += eng.other_incidents;
 
+      const rGovtCas = (r.kia || 0) + (r.wia || 0);
       a.kia += (r.kia || 0);
       a.wia += (r.wia || 0);
-      a.govt_casualties += (r.kia || 0) + (r.wia || 0);
+      a.govt_casualties += rGovtCas;
+
+      let rAfp = 0, rCaa = 0, rPnp = 0;
+      if (r.war_materiel) {
+        try {
+          const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+          rAfp = wm?.govt_casualties?.afp ?? wm?.cas_afp ?? wm?.afp ?? ((wm?.govt_casualties?.afp_kia || 0) + (wm?.govt_casualties?.afp_wia || 0));
+          rCaa = wm?.govt_casualties?.caa ?? wm?.cas_caa ?? wm?.caa ?? ((wm?.govt_casualties?.caa_kia || 0) + (wm?.govt_casualties?.caa_wia || 0));
+          rPnp = wm?.govt_casualties?.pnp ?? wm?.cas_pnp ?? wm?.pnp ?? ((wm?.govt_casualties?.pnp_kia || 0) + (wm?.govt_casualties?.pnp_wia || 0));
+        } catch(e) {}
+      }
+      if ((rAfp + rCaa + rPnp) < rGovtCas) {
+        rAfp += (rGovtCas - (rAfp + rCaa + rPnp));
+      }
+      a.govt_afp += Number(rAfp || 0);
+      a.govt_caa += Number(rCaa || 0);
+      a.govt_pnp += Number(rPnp || 0);
 
       const nz = (r.killed || 0) + (r.captured || 0) + (r.surrendered || 0) + (r.apprehended || 0);
       a.killed += (r.killed || 0);

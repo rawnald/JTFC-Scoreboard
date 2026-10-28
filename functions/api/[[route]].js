@@ -1031,6 +1031,9 @@ export async function onRequest({ request, env, params }) {
               rPnp = wm?.govt_casualties?.pnp ?? wm?.cas_pnp ?? wm?.pnp ?? ((wm?.govt_casualties?.pnp_kia || 0) + (wm?.govt_casualties?.pnp_wia || 0));
             } catch(e) {}
           }
+          if ((rAfp + rCaa + rPnp) < rGovtCas) {
+            rAfp += (rGovtCas - (rAfp + rCaa + rPnp));
+          }
           a.govt_afp = (a.govt_afp || 0) + Number(rAfp);
           a.govt_caa = (a.govt_caa || 0) + Number(rCaa);
           a.govt_pnp = (a.govt_pnp || 0) + Number(rPnp);
