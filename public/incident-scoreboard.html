@@ -32,7 +32,7 @@
     <div class="flex items-center gap-3.5">
       <img src="/logo.png" alt="6ID Kampilan JTFC Logo" class="w-12 h-12 lg:w-16 lg:h-16 object-contain drop-shadow shrink-0">
       <div>
-        <h1 class="text-2xl lg:text-3xl font-bold text-[#0b1b5e] tracking-tight">JTFC INCIDENT SCOREBOARD</h1>
+        <h1 class="text-2xl lg:text-3xl font-bold text-[#0b1b5e] tracking-tight">JTFC INCIDENT MONITORING</h1>
         <p class="text-slate-600 text-sm">Summary of Significant Incident Reports & Monitored Engagements</p>
         <!-- Navigation Pill Switcher -->
         <div class="mt-2.5 flex items-center gap-2">
@@ -40,7 +40,7 @@
             <span class="ms !text-sm text-blue-600">military_tech</span> Combat Scoreboard
           </a>
           <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#0b1b5e] text-white shadow-sm ring-1 ring-[#0b1b5e]">
-            <span class="ms !text-sm text-teal-400">crisis_alert</span> Incident Scoreboard
+            <span class="ms !text-sm text-teal-400">crisis_alert</span> Incident Monitoring
           </span>
         </div>
       </div>
@@ -1140,7 +1140,7 @@ function renderSecondaryImpactKpis(c, p) {
 
   container.innerHTML =
     cardHtml('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta(curGovtCas, prevGovtCas, true), govtCasSub) +
-    cardHtml('shield', '#2563eb', 'Enemy Neutralized', curNz, delta(curNz, prevNz), `${c.killed || 0} KIA, ${c.captured || 0} Cap, ${c.surrendered || 0} Surr`) +
+    cardHtml('shield', '#2563eb', 'Enemy Neutralized', curNz, delta(curNz, prevNz), `${c.killed || 0} Killed, ${c.captured || 0} Cap, ${c.surrendered || 0} Surr`) +
     cardHtml(pistolIcon, '#16a34a', 'Firearms Gained', curFa, delta(curFa, prevFa), faSub) +
     cardHtml('warning', '#d97706', 'War Materiel Intercepted', curWm, delta(curWm, prevWm), 'IEDs, UXOs & Explosives');
 }
