@@ -394,7 +394,21 @@ const CATEGORIES = {
         } catch(e) {}
         return `<div title="${esc(details)}" class="max-w-[95px] sm:max-w-[125px] whitespace-nowrap"><span class="font-bold text-green-700 text-xs">+${tot}</span> <span class="text-[10px] text-slate-500 font-mono">(${csw}C/${hp}H/${lp}L)</span></div>`;
       }},
-      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium text-[10px] px-1.5 py-0 whitespace-nowrap">${o.kia}K / ${o.wia}W</span>` : '<span class="text-slate-400 text-[10px]">0</span>' },
+      { key: 'friendly', label: 'Friendly KIA/WIA', render: o => {
+        let casDetails = `${o.kia || 0} KIA / ${o.wia || 0} WIA`;
+        try {
+          const wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel;
+          if (wm) {
+            const afp = wm.govt_casualties?.afp ?? wm.cas_afp ?? wm.afp ?? 0;
+            const caa = wm.govt_casualties?.caa ?? wm.cas_caa ?? wm.caa ?? 0;
+            const pnp = wm.govt_casualties?.pnp ?? wm.cas_pnp ?? wm.pnp ?? 0;
+            if (afp || caa || pnp) {
+              casDetails += ` (AFP: ${afp}, CAA: ${caa}, PNP: ${pnp})`;
+            }
+          }
+        } catch(e) {}
+        return (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium text-[10px] px-1.5 py-0 whitespace-nowrap" title="${esc(casDetails)}">${o.kia}K / ${o.wia}W</span>` : '<span class="text-slate-400 text-[10px]">0</span>';
+      }},
       { key: 'war_mat', label: 'War Materiel', render: o => {
         let parsed = null;
         try { parsed = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
@@ -1268,6 +1282,10 @@ function renderCombatModalForm(record) {
     }
   }
 
+  const casAfp = warMat?.govt_casualties?.afp ?? warMat?.cas_afp ?? warMat?.afp ?? 0;
+  const casCaa = warMat?.govt_casualties?.caa ?? warMat?.cas_caa ?? warMat?.caa ?? 0;
+  const casPnp = warMat?.govt_casualties?.pnp ?? warMat?.cas_pnp ?? warMat?.pnp ?? 0;
+
   // Firearms Breakdown (Captured, Confiscated, Surrendered, Recovered - each in CSW, HP, LP)
   let fa = {
     captured: { csw: 0, hp: 0, lp: 0 },
@@ -1595,7 +1613,7 @@ function renderCombatModalForm(record) {
         <div class="text-xs font-bold text-red-900 uppercase tracking-wider flex items-center gap-1.5">
           <span class="ms !text-lg text-red-600">shield</span> Government Casualties (Friendly)
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
           <div>
             <label>Friendly KIA</label>
             <input id="f_kia" type="number" min="0" value="${record?.kia ?? 0}" class="f">
@@ -1603,6 +1621,18 @@ function renderCombatModalForm(record) {
           <div>
             <label>Friendly WIA</label>
             <input id="f_wia" type="number" min="0" value="${record?.wia ?? 0}" class="f">
+          </div>
+          <div>
+            <label>Regular AFP</label>
+            <input id="f_cas_afp" type="number" min="0" value="${casAfp}" class="f">
+          </div>
+          <div>
+            <label>CAA</label>
+            <input id="f_cas_caa" type="number" min="0" value="${casCaa}" class="f">
+          </div>
+          <div>
+            <label>PNP</label>
+            <input id="f_cas_pnp" type="number" min="0" value="${casPnp}" class="f">
           </div>
         </div>
       </div>
@@ -2841,6 +2871,19 @@ async function handleFormSubmit(e) {
       isis_flag: parseInt($('wm_isis_flag')?.value || 0, 10) || 0,
       subversive_docs: parseInt($('wm_subversive_docs')?.value || 0, 10) || 0,
       other: $('wm_other')?.value || ''
+    };
+
+    const casAfp = parseInt($('f_cas_afp')?.value || 0, 10) || 0;
+    const casCaa = parseInt($('f_cas_caa')?.value || 0, 10) || 0;
+    const casPnp = parseInt($('f_cas_pnp')?.value || 0, 10) || 0;
+
+    warMat.cas_afp = casAfp;
+    warMat.cas_caa = casCaa;
+    warMat.cas_pnp = casPnp;
+    warMat.govt_casualties = {
+      afp: casAfp,
+      caa: casCaa,
+      pnp: casPnp
     };
 
     const capCSW = parseInt($('f_cap_csw')?.value || 0, 10) || 0;

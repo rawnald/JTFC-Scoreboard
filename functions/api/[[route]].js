@@ -967,6 +967,9 @@ export async function onRequest({ request, env, params }) {
           kia: 0,
           wia: 0,
           govt_casualties: 0,
+          govt_afp: 0,
+          govt_caa: 0,
+          govt_pnp: 0,
           killed: 0,
           enemy_wounded: 0,
           captured: 0,
@@ -1018,6 +1021,19 @@ export async function onRequest({ request, env, params }) {
           a.kia += rKia;
           a.wia += rWia;
           a.govt_casualties += rGovtCas;
+
+          let rAfp = 0, rCaa = 0, rPnp = 0;
+          if (r.war_materiel) {
+            try {
+              const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+              rAfp = wm?.govt_casualties?.afp ?? wm?.cas_afp ?? wm?.afp ?? 0;
+              rCaa = wm?.govt_casualties?.caa ?? wm?.cas_caa ?? wm?.caa ?? 0;
+              rPnp = wm?.govt_casualties?.pnp ?? wm?.cas_pnp ?? wm?.pnp ?? 0;
+            } catch(e) {}
+          }
+          a.govt_afp = (a.govt_afp || 0) + Number(rAfp);
+          a.govt_caa = (a.govt_caa || 0) + Number(rCaa);
+          a.govt_pnp = (a.govt_pnp || 0) + Number(rPnp);
 
           const rKil = r.killed || 0;
           const rEw = r.enemy_wounded || 0;
