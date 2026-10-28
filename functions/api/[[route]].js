@@ -878,6 +878,7 @@ export async function onRequest({ request, env, params }) {
         const a = getCount('ambush', [/ambush\s*(?:\((\d+)\))?/i]);
         const l = getCount('liquidation', [/liquidation\s*(?:\((\d+)\))?/i, /liquidate[d]?/i]);
         const s = getCount('shooting', [/shooting\s*(?:\((\d+)\))?/i, /shot\s+dead/i]);
+        const str = getCount('strafing', [/strafing\s*(?:\((\d+)\))?/i]);
         const c = (Number(we.armed_clash) || Number(we.clash) || 0) || (()=>{
           const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
           return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
@@ -885,6 +886,10 @@ export async function onRequest({ request, env, params }) {
         const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
           const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
           return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
+        })();
+        const le = (Number(we.loud_explosion) || 0) || (()=>{
+          const m = et.match(/loud\s*explosion\s*(?:\((\d+)\))?/i);
+          return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('loud explosion') ? 1 : 0);
         })();
         const b = (Number(we.bus_bombing) || 0) || (()=>{
           const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
@@ -903,20 +908,22 @@ export async function onRequest({ request, env, params }) {
           return m ? (m[1] ? Number(m[1]) : 1) : 0;
         })();
 
-        const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
+        const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && str === 0 && c === 0 && i === 0 && le === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
 
         return {
           harassment: h,
           ambush: a,
           liquidation: l,
           shooting: s,
+          strafing: str,
           armed_clash: c,
           ied_explosion: i,
+          loud_explosion: le,
           bus_bombing: b,
           carnapping: cr,
           active_rido: ar,
           other_incidents: isOther,
-          total_breakdown: h + a + l + s + c + i + b + cr + ar + isOther
+          total_breakdown: h + a + l + s + str + c + i + le + b + cr + ar + isOther
         };
       }
 
@@ -949,8 +956,10 @@ export async function onRequest({ request, env, params }) {
           ambush: 0,
           liquidation: 0,
           shooting: 0,
+          strafing: 0,
           armed_clash: 0,
           ied_explosion: 0,
+          loud_explosion: 0,
           bus_bombing: 0,
           carnapping: 0,
           active_rido: 0,
@@ -994,8 +1003,10 @@ export async function onRequest({ request, env, params }) {
           a.ambush += eng.ambush;
           a.liquidation += eng.liquidation;
           a.shooting += eng.shooting;
+          a.strafing = (a.strafing || 0) + eng.strafing;
           a.armed_clash += eng.armed_clash;
           a.ied_explosion += eng.ied_explosion;
+          a.loud_explosion = (a.loud_explosion || 0) + eng.loud_explosion;
           a.bus_bombing += eng.bus_bombing;
           a.carnapping += eng.carnapping;
           a.active_rido += eng.active_rido;
