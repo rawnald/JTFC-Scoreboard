@@ -1026,9 +1026,9 @@ export async function onRequest({ request, env, params }) {
           if (r.war_materiel) {
             try {
               const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
-              rAfp = wm?.govt_casualties?.afp ?? wm?.cas_afp ?? wm?.afp ?? 0;
-              rCaa = wm?.govt_casualties?.caa ?? wm?.cas_caa ?? wm?.caa ?? 0;
-              rPnp = wm?.govt_casualties?.pnp ?? wm?.cas_pnp ?? wm?.pnp ?? 0;
+              rAfp = wm?.govt_casualties?.afp ?? wm?.cas_afp ?? wm?.afp ?? ((wm?.govt_casualties?.afp_kia || 0) + (wm?.govt_casualties?.afp_wia || 0));
+              rCaa = wm?.govt_casualties?.caa ?? wm?.cas_caa ?? wm?.caa ?? ((wm?.govt_casualties?.caa_kia || 0) + (wm?.govt_casualties?.caa_wia || 0));
+              rPnp = wm?.govt_casualties?.pnp ?? wm?.cas_pnp ?? wm?.pnp ?? ((wm?.govt_casualties?.pnp_kia || 0) + (wm?.govt_casualties?.pnp_wia || 0));
             } catch(e) {}
           }
           a.govt_afp = (a.govt_afp || 0) + Number(rAfp);

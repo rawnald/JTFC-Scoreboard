@@ -399,11 +399,21 @@ const CATEGORIES = {
         try {
           const wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel;
           if (wm) {
-            const afp = wm.govt_casualties?.afp ?? wm.cas_afp ?? wm.afp ?? 0;
-            const caa = wm.govt_casualties?.caa ?? wm.cas_caa ?? wm.caa ?? 0;
-            const pnp = wm.govt_casualties?.pnp ?? wm.cas_pnp ?? wm.pnp ?? 0;
+            const gc = wm.govt_casualties || {};
+            const afpKia = gc.afp_kia ?? wm.afp_kia ?? 0;
+            const afpWia = gc.afp_wia ?? wm.afp_wia ?? 0;
+            const caaKia = gc.caa_kia ?? wm.caa_kia ?? 0;
+            const caaWia = gc.caa_wia ?? wm.caa_wia ?? 0;
+            const pnpKia = gc.pnp_kia ?? wm.pnp_kia ?? 0;
+            const pnpWia = gc.pnp_wia ?? wm.pnp_wia ?? 0;
+            const afp = gc.afp ?? wm.cas_afp ?? wm.afp ?? (afpKia + afpWia);
+            const caa = gc.caa ?? wm.cas_caa ?? wm.caa ?? (caaKia + caaWia);
+            const pnp = gc.pnp ?? wm.cas_pnp ?? wm.pnp ?? (pnpKia + pnpWia);
             if (afp || caa || pnp) {
-              casDetails += ` (AFP: ${afp}, CAA: ${caa}, PNP: ${pnp})`;
+              const afpTxt = (afpKia || afpWia) ? `AFP: ${afpKia}K/${afpWia}W` : `AFP: ${afp}`;
+              const caaTxt = (caaKia || caaWia) ? `CAA: ${caaKia}K/${caaWia}W` : `CAA: ${caa}`;
+              const pnpTxt = (pnpKia || pnpWia) ? `PNP: ${pnpKia}K/${pnpWia}W` : `PNP: ${pnp}`;
+              casDetails += ` (${afpTxt}, ${caaTxt}, ${pnpTxt})`;
             }
           }
         } catch(e) {}
@@ -1131,6 +1141,24 @@ function calcCombatFirearms() {
   if ($('sum-rec')) $('sum-rec').textContent = recTot;
 }
 
+// Auto-sum Friendly Casualties (Regular AFP, CAA, PNP KIA/WIA into Total Friendly KIA/WIA)
+function calcFriendlyCas() {
+  const afpKia = parseInt($('f_afp_kia')?.value || 0, 10) || 0;
+  const caaKia = parseInt($('f_caa_kia')?.value || 0, 10) || 0;
+  const pnpKia = parseInt($('f_pnp_kia')?.value || 0, 10) || 0;
+  const totKia = afpKia + caaKia + pnpKia;
+
+  const afpWia = parseInt($('f_afp_wia')?.value || 0, 10) || 0;
+  const caaWia = parseInt($('f_caa_wia')?.value || 0, 10) || 0;
+  const pnpWia = parseInt($('f_pnp_wia')?.value || 0, 10) || 0;
+  const totWia = afpWia + caaWia + pnpWia;
+
+  if ($('f_kia')) $('f_kia').value = totKia;
+  if ($('f_wia')) $('f_wia').value = totWia;
+  if ($('lbl_tot_kia')) $('lbl_tot_kia').textContent = totKia;
+  if ($('lbl_tot_wia')) $('lbl_tot_wia').textContent = totWia;
+}
+
 const STANDARD_MODAL_BRIGADES = [
   '601 BDE', '602 BDE', '603 BDE', '1MAR BDE', '1MECH BDE', '1BCT'
 ];
@@ -1282,9 +1310,26 @@ function renderCombatModalForm(record) {
     }
   }
 
-  const casAfp = warMat?.govt_casualties?.afp ?? warMat?.cas_afp ?? warMat?.afp ?? 0;
-  const casCaa = warMat?.govt_casualties?.caa ?? warMat?.cas_caa ?? warMat?.caa ?? 0;
-  const casPnp = warMat?.govt_casualties?.pnp ?? warMat?.cas_pnp ?? warMat?.pnp ?? 0;
+  const gc = warMat?.govt_casualties || {};
+  let afpKia = gc.afp_kia ?? warMat?.afp_kia ?? 0;
+  let afpWia = gc.afp_wia ?? warMat?.afp_wia ?? 0;
+  let caaKia = gc.caa_kia ?? warMat?.caa_kia ?? 0;
+  let caaWia = gc.caa_wia ?? warMat?.caa_wia ?? 0;
+  let pnpKia = gc.pnp_kia ?? warMat?.pnp_kia ?? 0;
+  let pnpWia = gc.pnp_wia ?? warMat?.pnp_wia ?? 0;
+
+  if (!afpKia && !afpWia && (gc.afp || warMat?.cas_afp || warMat?.afp)) {
+    if (record?.kia) afpKia = Number(gc.afp || warMat.cas_afp || warMat.afp);
+    else if (record?.wia) afpWia = Number(gc.afp || warMat.cas_afp || warMat.afp);
+  }
+  if (!caaKia && !caaWia && (gc.caa || warMat?.cas_caa || warMat?.caa)) {
+    if (record?.kia) caaKia = Number(gc.caa || warMat.cas_caa || warMat.caa);
+    else if (record?.wia) caaWia = Number(gc.caa || warMat.cas_caa || warMat.caa);
+  }
+  if (!pnpKia && !pnpWia && (gc.pnp || warMat?.cas_pnp || warMat?.pnp)) {
+    if (record?.kia) pnpKia = Number(gc.pnp || warMat.cas_pnp || warMat.pnp);
+    else if (record?.wia) pnpWia = Number(gc.pnp || warMat.cas_pnp || warMat.pnp);
+  }
 
   // Firearms Breakdown (Captured, Confiscated, Surrendered, Recovered - each in CSW, HP, LP)
   let fa = {
@@ -1610,30 +1655,64 @@ function renderCombatModalForm(record) {
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Friendly Casualties -->
       <div class="card p-4 sm:p-5 border border-red-200/80 bg-red-50/20 space-y-3">
-        <div class="text-xs font-bold text-red-900 uppercase tracking-wider flex items-center gap-1.5">
-          <span class="ms !text-lg text-red-600">shield</span> Government Casualties (Friendly)
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="text-xs font-bold text-red-900 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms !text-lg text-red-600">shield</span> Government Casualties (Friendly)
+          </div>
+          <div class="flex items-center gap-1.5 text-xs font-bold">
+            <span class="bg-red-100 border border-red-300 text-red-800 rounded px-2 py-0.5">Total KIA: <span id="lbl_tot_kia" class="font-black">${record?.kia ?? (afpKia + caaKia + pnpKia)}</span></span>
+            <span class="bg-amber-100 border border-amber-300 text-amber-800 rounded px-2 py-0.5">Total WIA: <span id="lbl_tot_wia" class="font-black">${record?.wia ?? (afpWia + caaWia + pnpWia)}</span></span>
+          </div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-          <div>
-            <label>Friendly KIA</label>
-            <input id="f_kia" type="number" min="0" value="${record?.kia ?? 0}" class="f">
-          </div>
-          <div>
-            <label>Friendly WIA</label>
-            <input id="f_wia" type="number" min="0" value="${record?.wia ?? 0}" class="f">
-          </div>
-          <div>
-            <label>Regular AFP</label>
-            <input id="f_cas_afp" type="number" min="0" value="${casAfp}" class="f">
-          </div>
-          <div>
-            <label>CAA</label>
-            <input id="f_cas_caa" type="number" min="0" value="${casCaa}" class="f">
-          </div>
-          <div>
-            <label>PNP</label>
-            <input id="f_cas_pnp" type="number" min="0" value="${casPnp}" class="f">
-          </div>
+        <div class="border-2 border-red-300 rounded-lg overflow-x-auto bg-white shadow-sm">
+          <table class="w-full text-center border-collapse min-w-[520px]">
+            <thead>
+              <tr class="bg-red-800 text-white font-extrabold uppercase text-[11px] tracking-wider">
+                <th colspan="2" class="py-2 px-1 border-r border-red-700">REGULAR AFP</th>
+                <th colspan="2" class="py-2 px-1 border-r border-red-700">CAA</th>
+                <th colspan="2" class="py-2 px-1 border-r border-red-700">PNP</th>
+                <th colspan="2" class="py-2 px-1 bg-red-900">TOTAL FRIENDLY</th>
+              </tr>
+              <tr class="font-bold text-[11px] text-red-950 bg-red-100">
+                <th class="py-1 px-1 border-r border-b border-red-200 w-[12.5%]">KIA</th>
+                <th class="py-1 px-1 border-r border-b border-red-200 w-[12.5%]">WIA</th>
+                <th class="py-1 px-1 border-r border-b border-red-200 w-[12.5%]">KIA</th>
+                <th class="py-1 px-1 border-r border-b border-red-200 w-[12.5%]">WIA</th>
+                <th class="py-1 px-1 border-r border-b border-red-200 w-[12.5%]">KIA</th>
+                <th class="py-1 px-1 border-r border-b border-red-200 w-[12.5%]">WIA</th>
+                <th class="py-1 px-1 border-r border-b border-red-300 w-[12.5%] bg-red-200 font-black">KIA</th>
+                <th class="py-1 px-1 border-b border-red-300 w-[12.5%] bg-red-200 font-black">WIA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white">
+                <td class="p-0 border-r border-b border-red-200">
+                  <input id="f_afp_kia" type="number" min="0" value="${afpKia}" oninput="calcFriendlyCas()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-b border-red-200">
+                  <input id="f_afp_wia" type="number" min="0" value="${afpWia}" oninput="calcFriendlyCas()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-b border-red-200">
+                  <input id="f_caa_kia" type="number" min="0" value="${caaKia}" oninput="calcFriendlyCas()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-b border-red-200">
+                  <input id="f_caa_wia" type="number" min="0" value="${caaWia}" oninput="calcFriendlyCas()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-b border-red-200">
+                  <input id="f_pnp_kia" type="number" min="0" value="${pnpKia}" oninput="calcFriendlyCas()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-b border-red-200">
+                  <input id="f_pnp_wia" type="number" min="0" value="${pnpWia}" oninput="calcFriendlyCas()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-sm outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-r border-b border-red-200 bg-red-50/70">
+                  <input id="f_kia" type="number" min="0" value="${record?.kia ?? (afpKia + caaKia + pnpKia)}" oninput="if($('lbl_tot_kia'))$('lbl_tot_kia').textContent=this.value" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-black text-red-700 text-sm outline-none py-2 bg-transparent hover:bg-red-100 focus:bg-yellow-100 transition">
+                </td>
+                <td class="p-0 border-b border-red-200 bg-red-50/70">
+                  <input id="f_wia" type="number" min="0" value="${record?.wia ?? (afpWia + caaWia + pnpWia)}" oninput="if($('lbl_tot_wia'))$('lbl_tot_wia').textContent=this.value" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-black text-amber-700 text-sm outline-none py-2 bg-transparent hover:bg-red-100 focus:bg-yellow-100 transition">
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -2873,17 +2952,36 @@ async function handleFormSubmit(e) {
       other: $('wm_other')?.value || ''
     };
 
-    const casAfp = parseInt($('f_cas_afp')?.value || 0, 10) || 0;
-    const casCaa = parseInt($('f_cas_caa')?.value || 0, 10) || 0;
-    const casPnp = parseInt($('f_cas_pnp')?.value || 0, 10) || 0;
+    const afpKia = parseInt($('f_afp_kia')?.value || 0, 10) || 0;
+    const afpWia = parseInt($('f_afp_wia')?.value || 0, 10) || 0;
+    const caaKia = parseInt($('f_caa_kia')?.value || 0, 10) || 0;
+    const caaWia = parseInt($('f_caa_wia')?.value || 0, 10) || 0;
+    const pnpKia = parseInt($('f_pnp_kia')?.value || 0, 10) || 0;
+    const pnpWia = parseInt($('f_pnp_wia')?.value || 0, 10) || 0;
+
+    const casAfp = afpKia + afpWia;
+    const casCaa = caaKia + caaWia;
+    const casPnp = pnpKia + pnpWia;
 
     warMat.cas_afp = casAfp;
     warMat.cas_caa = casCaa;
     warMat.cas_pnp = casPnp;
+    warMat.afp_kia = afpKia;
+    warMat.afp_wia = afpWia;
+    warMat.caa_kia = caaKia;
+    warMat.caa_wia = caaWia;
+    warMat.pnp_kia = pnpKia;
+    warMat.pnp_wia = pnpWia;
     warMat.govt_casualties = {
       afp: casAfp,
       caa: casCaa,
-      pnp: casPnp
+      pnp: casPnp,
+      afp_kia: afpKia,
+      afp_wia: afpWia,
+      caa_kia: caaKia,
+      caa_wia: caaWia,
+      pnp_kia: pnpKia,
+      pnp_wia: pnpWia
     };
 
     const capCSW = parseInt($('f_cap_csw')?.value || 0, 10) || 0;
