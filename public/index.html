@@ -146,7 +146,7 @@
       </div>
     </div>
   </header>
-  <section id="kpis" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4"></section>
+  <section id="kpis" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3.5 sm:gap-4"></section>
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <!-- Trend 1: Monthly Operational Trend (Combat) -->
     <div class="card p-5 flex flex-col">
@@ -456,6 +456,7 @@ async function load() {
   const militaryOpsVal = `${curOps} Opns / ${curEnc} Enc`;
 
   const surSub = `${c.sur_ctg || 0} CTG / ${c.sur_ltg || 0} LTG / ${c.sur_piag || 0} PIAGs`;
+  const campSub = `${c.camps_ctg || 0} CTG / ${c.camps_ltg || 0} LTG`;
 
   $('kpis').innerHTML =
     kpi('groups', '#f97316', 'Military Operations', militaryOpsVal, delta(curOps, prevOps)) +
@@ -464,7 +465,8 @@ async function load() {
     kpi(armaliteIcon, '#0891b2', 'Loose FAs (SALW)', c.tolf || 0, delta(c.tolf, p.tolf), salwSub) +
     kpi('shield', '#2563eb', 'Total Neutralized', totNeutralized, delta(totNeutralized, prevTotNeutralized), nzSub) +
     kpi('handshake', '#7c3aed', 'Total Surrender', c.sur || 0, delta(c.sur || 0, p.sur || 0), surSub) +
-    kpi('policy', '#6366f1', 'Nr SLEO Conducted', c.sleo || 0, delta(c.sleo, p.sleo));
+    kpi('policy', '#6366f1', 'Nr SLEO Conducted', c.sleo || 0, delta(c.sleo, p.sleo)) +
+    kpi('camping', '#0d9488', 'Discovered EN Camp', c.camps || 0, delta(c.camps, p.camps), campSub);
 
   const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   draw('trend', {

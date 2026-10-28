@@ -190,7 +190,7 @@ function getThreatCategoryKey(r) {
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
-  const a = { total_ops: 0, enc: 0, sur: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
+  const a = { total_ops: 0, enc: 0, sur: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, camps: 0, camps_ctg: 0, camps_ltg: 0, camps_piag: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
   for (const r of rows) {
     const opCount = getOperationsCount(r);
     a.total_ops += opCount;
@@ -208,7 +208,9 @@ function agg(rows) {
     let hp = r.fa_high_powered || 0;
     let lp = r.fa_low_powered || 0;
     let csw = r.fa_csw || 0;
-    if (!hp && !lp && !csw && r.war_materiel) {
+    let campCount = 0;
+
+    if (r.war_materiel) {
       try {
         const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
         if (wm?.fa_breakdown) {
@@ -218,8 +220,31 @@ function agg(rows) {
           hp = (+cap.hp || 0) + (+conf.hp || 0) + (+sur.hp || 0) + (+rec.hp || 0);
           lp = (+cap.lp || 0) + (+conf.lp || 0) + (+sur.lp || 0) + (+rec.lp || 0);
         }
+        if (wm?.enemy_camp) {
+          campCount = Number(wm.enemy_camp) || 0;
+        }
       } catch(e) {}
     }
+    if (!campCount && r.enemy_camp) {
+      campCount = Number(r.enemy_camp) || 0;
+    }
+    if (!campCount && r.war_materiel && typeof r.war_materiel === 'string') {
+      const m = r.war_materiel.match(/(\d+)\s*(?:enemy\s*)?camp/i);
+      if (m) campCount = parseInt(m[1], 10) || 1;
+    }
+    if (!campCount && r.remarks && typeof r.remarks === 'string') {
+      const m = r.remarks.match(/(\d+)\s*(?:enemy\s*)?camp/i);
+      if (m) campCount = parseInt(m[1], 10) || 1;
+    }
+
+    a.camps += campCount;
+    if (campCount > 0) {
+      const tc = getThreatCategoryKey(r);
+      if (tc === 'ctg') a.camps_ctg += campCount;
+      else if (tc === 'ltg') a.camps_ltg += campCount;
+      else if (tc === 'piag') a.camps_piag += campCount;
+    }
+
     a.fa_hp += hp;
     a.fa_lp += lp;
     a.fa_csw += csw;
