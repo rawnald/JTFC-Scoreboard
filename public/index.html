@@ -150,7 +150,7 @@
     </div>
   </header>
   <section id="kpis" class="space-y-4 sm:space-y-5"></section>
-  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
     <!-- Trend 1: Monthly Operational Trend (Combat) -->
     <div class="card p-5 flex flex-col">
       <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
@@ -179,6 +179,16 @@
         </h2>
       </div>
       <div class="h-64 sm:h-72 w-full"><canvas id="trend-tolf"></canvas></div>
+    </div>
+
+    <!-- Trend 4: Surrendered LTG/CTG -->
+    <div class="card p-5 flex flex-col">
+      <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
+        <h2 class="font-bold text-base sm:text-lg text-slate-800 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full shrink-0" style="background-color: #023047;"></span> Surrendered LTG/CTG
+        </h2>
+      </div>
+      <div class="h-64 sm:h-72 w-full"><canvas id="trend-surrendered"></canvas></div>
     </div>
   </section>
   <section class="grid xl:grid-cols-3 gap-4">
@@ -782,6 +792,48 @@ async function load() {
           pointRadius: 4,
           pointHoverRadius: 6,
           pointBackgroundColor: '#15803d'
+        }
+      ]
+    },
+    options: {
+      ...opt,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grace: '15%',
+          ticks: { precision: 0 }
+        }
+      }
+    },
+    plugins: [lineLabelsPlugin]
+  });
+
+  // Surrendered LTG/CTG Trend (#023047)
+  draw('trend-surrendered', {
+    type: 'line',
+    data: {
+      labels: M,
+      datasets: [
+        {
+          label: `Surrendered (${currentYear})`,
+          data: c.sur_monthly || c.monthly_sur || Array(12).fill(0),
+          borderColor: '#023047',
+          backgroundColor: 'rgba(2,48,71,.18)',
+          fill: true,
+          tension: 0,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#023047'
+        },
+        {
+          label: `Surrendered (${currentYear - 1})`,
+          data: p.sur_monthly || p.monthly_sur || Array(12).fill(0),
+          borderColor: '#94a3b8',
+          borderDash: [5, 5],
+          tension: 0,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: '#94a3b8'
         }
       ]
     },

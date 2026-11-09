@@ -208,6 +208,8 @@ function agg(rows) {
     sur_ied: 0, sur_uxo: 0, sur_expl: 0,
     tolf: 0, kia: 0, wia: 0,
     monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0),
+    monthly_sur: Array(12).fill(0), sur_monthly: Array(12).fill(0),
+    monthly_sur_fa: Array(12).fill(0),
     groups: initGroups, brigades: {}, units: {}
   };
   for (const r of rows) {
@@ -319,10 +321,11 @@ function agg(rows) {
     }
 
     // Surrendered records breakdown
+    let surFa = 0;
+    let sHp = 0, sLp = 0, sCsw = 0;
     const isSurRow = (r.engagement_type && String(r.engagement_type).toLowerCase().includes('surrender')) || rSur > 0 || (r.fa_surrendered && r.fa_surrendered > 0);
     if (isSurRow) {
-      let surFa = r.fa_surrendered || 0;
-      let sHp = 0, sLp = 0, sCsw = 0;
+      surFa = r.fa_surrendered || 0;
       if (r.war_materiel) {
         try {
           const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
@@ -363,6 +366,9 @@ function agg(rows) {
       if (mIdx >= 0 && mIdx < 12) {
         a.monthly[mIdx] += encCount;
         a.monthly_ops[mIdx] += opCount;
+        a.monthly_sur[mIdx] += rSur;
+        a.sur_monthly[mIdx] += rSur;
+        a.monthly_sur_fa[mIdx] += surFa;
       }
     }
 
@@ -849,6 +855,11 @@ export async function onRequest({ request, env, params }) {
       prev.tolf_monthly = prevTolf.monthly || Array(12).fill(0);
       cur.tolf_wm_monthly = curTolf.wm_monthly || Array(12).fill(0);
       prev.tolf_wm_monthly = prevTolf.wm_monthly || Array(12).fill(0);
+
+      cur.sur_monthly = cur.sur_monthly || cur.monthly_sur || Array(12).fill(0);
+      prev.sur_monthly = prev.sur_monthly || prev.monthly_sur || Array(12).fill(0);
+      cur.monthly_sur = cur.sur_monthly;
+      prev.monthly_sur = prev.sur_monthly;
 
       cur.sleo = curSleo.total || 0;
       cur.sleo_neutralized = curSleo.neutralized || 0;
