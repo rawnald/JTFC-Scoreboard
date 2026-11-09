@@ -146,7 +146,7 @@
       </div>
     </div>
   </header>
-  <section id="kpis" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3.5 sm:gap-4"></section>
+  <section id="kpis" class="space-y-4 sm:space-y-5"></section>
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <!-- Trend 1: Monthly Operational Trend (Combat) -->
     <div class="card p-5 flex flex-col">
@@ -194,6 +194,33 @@ const draw=(id,cfg)=>{charts[id]?.destroy();charts[id]=new Chart($(id),cfg)};
 const opt={responsive:true,maintainAspectRatio:false};
 const pistolIcon = `<svg class="w-6 h-6" viewBox="0 0 576 512" fill="currentColor"><path d="M528 56c0-13.3-10.7-24-24-24s-24 10.7-24 24v8H32C14.3 64 0 78.3 0 96v112c0 17.7 14.3 32 32 32h10c20.8 0 36.1 19.6 31 39.8L33 440.2c-2.4 9.6-.2 19.7 5.8 27.5S54.1 480 64 480h96c14.7 0 27.5-10 31-24.2L217 352h104.5c23.7 0 44.8-14.9 52.7-37.2l26.7-74.8H432c8.5 0 16.6-3.4 22.6-9.4l22.7-22.6H544c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32h-16zM321.4 304H229l16-64h105l-21 58.7c-1.1 3.2-4.2 5.3-7.5 5.3zM80 128h384c8.8 0 16 7.2 16 16s-7.2 16-16 16H80c-8.8 0-16-7.2-16-16s7.2-16 16-16"/></svg>`;
 const armaliteIcon = `<svg class="w-7 h-7" viewBox="0 1 32 16" fill="currentColor"><path d="M1 5 L8 6.5 L10.5 6.5 L10.8 3.5 L15 3.5 L16 6.5 L23 6.5 L23.5 3 L24.2 3 L24.5 6.8 L29.5 7.2 L29.5 6.8 L31 6.8 L31 8.3 L29.5 8.3 L29.5 8 L24.5 8 L24.2 9.6 L23.2 9.6 L23 8.8 L16 8.8 L15.5 9.5 L15.5 14.8 L14 15.2 L13.5 9.5 L13 10.8 L11.5 10.8 L11.5 9.5 L10.6 14.5 L9 14.2 L9.8 9 L8 9 L1.5 11 Z M11.8 4.5 L14.2 4.5 L14.8 5.7 L11.4 5.7 Z"/></svg>`;
+
+function kpiCard({ title, subtitle, val, subHtml, deltaHtml, borderColor = '#219ebc', titleColor = '#0b1b5e' }) {
+  const valStr = String(val ?? 0);
+  const valSize = valStr.length > 7 ? 'text-lg sm:text-xl' : (valStr.length > 4 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl');
+  return `
+    <div class="card p-2.5 sm:p-3 flex flex-col justify-between shadow-sm transition hover:shadow-md bg-white" style="border: 2px solid ${borderColor};">
+      <div>
+        <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-tight truncate leading-tight" style="color: ${titleColor};">
+          ${title}
+        </div>
+        ${subtitle ? `<div class="text-[8.5px] font-extrabold uppercase tracking-tight text-amber-600 leading-none mt-0.5">${subtitle}</div>` : ''}
+        <div class="flex items-center justify-between gap-1.5 mt-2 pt-0.5">
+          <div class="${valSize} font-black text-[#0b1b5e] leading-none shrink-0">
+            ${val}
+          </div>
+          <div class="text-[9.5px] sm:text-[10px] font-bold text-slate-800 leading-snug border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap overflow-hidden">
+            ${subHtml}
+          </div>
+        </div>
+      </div>
+      <div class="mt-2.5 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-medium">
+        <span class="text-slate-400">vs Last Year</span>
+        <span>${deltaHtml}</span>
+      </div>
+    </div>
+  `;
+}
 
 function kpi(icon,color,label,val,d,sub){
   const iconEl=icon.startsWith('<')?icon:`<span class="ms">${icon}</span>`;
@@ -458,15 +485,207 @@ async function load() {
   const surSub = `${c.sur_ctg || 0} CTG / ${c.sur_ltg || 0} LTG / ${c.sur_piag || 0} PIAGs`;
   const campSub = `${c.camps_ctg || 0} CTG / ${c.camps_ltg || 0} LTG`;
 
-  $('kpis').innerHTML =
-    kpi('groups', '#f97316', 'Military Operations', militaryOpsVal, delta(curOps, prevOps)) +
-    kpi('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta((c.kia || 0) + (c.wia || 0), (p.kia || 0) + (p.wia || 0), true)) +
-    kpi(pistolIcon, '#16a34a', 'Firearms Gained', c.fa || 0, delta(c.fa, p.fa), faSub) +
-    kpi(armaliteIcon, '#0891b2', 'Loose FAs (SALW)', c.tolf || 0, delta(c.tolf, p.tolf), salwSub) +
-    kpi('shield', '#2563eb', 'Total Neutralized', totNeutralized, delta(totNeutralized, prevTotNeutralized), nzSub) +
-    kpi('handshake', '#7c3aed', 'Surrendered Personality', c.sur || 0, delta(c.sur || 0, p.sur || 0), surSub) +
-    kpi('policy', '#6366f1', 'Nr SLEO Conducted', c.sleo || 0, delta(c.sleo, p.sleo)) +
-    kpi('camping', '#0d9488', 'Discovered EN Camp', c.camps || 0, delta(c.camps, p.camps), campSub);
+  $('kpis').innerHTML = `
+    <!-- SECTION 1: Decisive Military Operations (#219ebc) -->
+    <div class="space-y-2">
+      <div class="flex items-center gap-2">
+        <div class="px-3 py-1 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #219ebc;">
+          <span class="ms !text-base">military_tech</span> Decisive Military Operations
+        </div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2.5 sm:gap-3">
+        ${kpiCard({
+          title: 'Nr of Encounters',
+          subtitle: "GOV'T ENCOUNTERS",
+          val: c.enc || 0,
+          subHtml: `<div>${c.enc_ltg || 0} LTG</div><div>${c.enc_ctg || 0} CTG</div>`,
+          deltaHtml: delta(c.enc, p.enc),
+          borderColor: '#219ebc'
+        })}
+        ${kpiCard({
+          title: 'Government Casualties',
+          val: (c.kia || 0) + (c.wia || 0),
+          subHtml: `<div>${c.kia || 0} KIA</div><div>${c.wia || 0} WIA</div>`,
+          deltaHtml: delta((c.kia || 0) + (c.wia || 0), (p.kia || 0) + (p.wia || 0), true),
+          borderColor: '#219ebc'
+        })}
+        ${kpiCard({
+          title: 'Enemy Casualties <span class="text-rose-600 font-extrabold">(LTGs)</span>',
+          val: (c.kil_ltg || 0) + (c.wnd_ltg || 0),
+          subHtml: `<div>${c.kil_ltg || 0} KLD</div><div>${c.wnd_ltg || 0} WND</div>`,
+          deltaHtml: delta((c.kil_ltg || 0) + (c.wnd_ltg || 0), (p.kil_ltg || 0) + (p.wnd_ltg || 0)),
+          borderColor: '#219ebc'
+        })}
+        ${kpiCard({
+          title: 'Enemy Casualties <span class="text-rose-600 font-extrabold">(CTGs)</span>',
+          val: (c.kil_ctg || 0) + (c.wnd_ctg || 0),
+          subHtml: `<div>${c.kil_ctg || 0} KLD</div><div>${c.wnd_ctg || 0} WND</div>`,
+          deltaHtml: delta((c.kil_ctg || 0) + (c.wnd_ctg || 0), (p.kil_ctg || 0) + (p.wnd_ctg || 0)),
+          borderColor: '#219ebc'
+        })}
+        ${kpiCard({
+          title: 'FAs Gained (LTGs)',
+          val: c.fa_ltg || 0,
+          subHtml: `<div>${c.fa_ltg_hp || 0} HPFAs</div><div>${c.fa_ltg_lp || 0} LPFAs</div><div>${c.fa_ltg_csw || 0} CSW</div>`,
+          deltaHtml: delta(c.fa_ltg, p.fa_ltg),
+          borderColor: '#219ebc'
+        })}
+        ${kpiCard({
+          title: 'FAs Gained (CTGs)',
+          val: c.fa_ctg || 0,
+          subHtml: `<div>${c.fa_ctg_hp || 0} HPFAs</div><div>${c.fa_ctg_lp || 0} LPFAs</div><div>${c.fa_ctg_csw || 0} CSW</div>`,
+          deltaHtml: delta(c.fa_ctg, p.fa_ctg),
+          borderColor: '#219ebc'
+        })}
+        ${kpiCard({
+          title: 'Discovered EN Encampment',
+          val: c.camps || 0,
+          subHtml: `<div>${c.camps_ltg || 0} LTG</div><div>${c.camps_ctg || 0} CTG</div>`,
+          deltaHtml: delta(c.camps, p.camps),
+          borderColor: '#219ebc'
+        })}
+        ${kpiCard({
+          title: 'Recovered IED/UXO',
+          val: (c.ied || 0) + (c.uxo || 0),
+          subHtml: `<div>${(c.ied_ltg || 0) + (c.uxo_ltg || 0)} LTG</div><div>${(c.ied_ctg || 0) + (c.uxo_ctg || 0)} CTG</div>`,
+          deltaHtml: delta((c.ied || 0) + (c.uxo || 0), (p.ied || 0) + (p.uxo || 0)),
+          borderColor: '#219ebc'
+        })}
+      </div>
+    </div>
+
+    <!-- SECTION 2 & 3: Surrendered LTG/CTG (#023047) and SALW (#ffb703) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
+      <div class="lg:col-span-7 flex flex-col justify-between space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #023047;">
+            <span class="ms !text-base">handshake</span> Surrendered LTG/CTG
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 flex-1">
+          ${kpiCard({
+            title: 'Nr of Surrendered LTGs/CTGs',
+            val: c.sur || 0,
+            subHtml: `<div>${c.sur_ltg || 0} LTGs</div><div>${c.sur_ctg || 0} CTGs</div><div>${c.sur_piag || 0} PAGs</div>`,
+            deltaHtml: delta(c.sur, p.sur),
+            borderColor: '#023047'
+          })}
+          ${kpiCard({
+            title: 'Nr of Surrendered Firearms',
+            val: c.sur_fa || 0,
+            subHtml: `<div>${c.sur_fa_hp || 0} HPFAs</div><div>${c.sur_fa_lp || 0} LPFAs</div><div>${c.sur_fa_csw || 0} CSW</div>`,
+            deltaHtml: delta(c.sur_fa, p.sur_fa),
+            borderColor: '#023047'
+          })}
+          ${kpiCard({
+            title: 'Nr of Surr IED/UXO/EPLSV',
+            val: (c.sur_ied || 0) + (c.sur_uxo || 0) + (c.sur_expl || 0),
+            subHtml: `<div>${c.sur_ied || 0} IED</div><div>${c.sur_uxo || 0} UXO</div><div>${c.sur_expl || 0} Explosives</div>`,
+            deltaHtml: delta((c.sur_ied || 0) + (c.sur_uxo || 0) + (c.sur_expl || 0), (p.sur_ied || 0) + (p.sur_uxo || 0) + (p.sur_expl || 0)),
+            borderColor: '#023047'
+          })}
+        </div>
+      </div>
+
+      <div class="lg:col-span-5 flex flex-col justify-between space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1 text-slate-900 font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #ffb703;">
+            <span class="ms !text-base">inventory_2</span> Small Arms and Light Weapons (SALW) Management Program
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 flex-1">
+          ${kpiCard({
+            title: 'Nr of FAs Surrendered',
+            val: c.tolf || 0,
+            subHtml: `<div>${c.tolf_hp || 0} HPFAs</div><div>${c.tolf_lp || 0} LPFAs</div><div>${c.tolf_csw || 0} CSW</div>`,
+            deltaHtml: delta(c.tolf, p.tolf),
+            borderColor: '#ffb703'
+          })}
+          ${kpiCard({
+            title: 'Surrendered IED/UXO/Explosive',
+            val: (c.tolf_ied || 0) + (c.tolf_uxo || 0) + (c.tolf_expl || 0),
+            subHtml: `<div>${c.tolf_ied || 0} IED</div><div>${c.tolf_uxo || 0} UXO</div><div>${c.tolf_expl || 0} Explosives</div>`,
+            deltaHtml: delta((c.tolf_ied || 0) + (c.tolf_uxo || 0) + (c.tolf_expl || 0), (p.tolf_ied || 0) + (p.tolf_uxo || 0) + (p.tolf_expl || 0)),
+            borderColor: '#ffb703'
+          })}
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Support to Law Enforcement Operation (SLEO) (#fb8500) -->
+    <div class="space-y-2">
+      <div class="flex items-center gap-2">
+        <div class="px-3 py-1 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #fb8500;">
+          <span class="ms !text-base">local_police</span> Support to Law Enforcement Operation (SLEO)
+        </div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-2.5 sm:gap-3">
+        ${kpiCard({
+          title: 'Nr Operations Conducted',
+          val: c.sleo || 0,
+          subHtml: `<div>${c.sleo_buybust || 0} Buy Bust Opns</div><div>${c.sleo_anticrim || 0} Anti-Crim</div><div>${c.sleo_logging || 0} Logging</div><div>${c.sleo_smuggling || 0} Smuggling</div>`,
+          deltaHtml: delta(c.sleo, p.sleo),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Neutralized Personalities',
+          val: c.sleo_neutralized || 0,
+          subHtml: `<div>${c.sleo_kil || 0} KLD</div><div>${c.sleo_wnd || 0} WND</div><div>${c.sleo_sur || 0} Surrendered</div><div>${c.sleo_app || 0} Apprehended</div>`,
+          deltaHtml: delta(c.sleo_neutralized, p.sleo_neutralized),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Neutralized Firearms',
+          val: c.sleo_fa || 0,
+          subHtml: `<div>${c.sleo_fa_hp || 0} HPFAs</div><div>${c.sleo_fa_lp || 0} LPFAs</div><div>${c.sleo_fa_csw || 0} CSW</div>`,
+          deltaHtml: delta(c.sleo_fa, p.sleo_fa),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Recovered IED/UXO/Explosive',
+          val: (c.sleo_ied || 0) + (c.sleo_uxo || 0) + (c.sleo_expl || 0),
+          subHtml: `<div>${c.sleo_ied || 0} IED</div><div>${c.sleo_uxo || 0} UXO</div><div>${c.sleo_expl || 0} Explosives</div>`,
+          deltaHtml: delta((c.sleo_ied || 0) + (c.sleo_uxo || 0) + (c.sleo_expl || 0), (p.sleo_ied || 0) + (p.sleo_uxo || 0) + (p.sleo_expl || 0)),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Other Recovered/War Materials',
+          val: (c.sleo_ammo || 0) + (c.sleo_war_mat || 0),
+          subHtml: `<div>${c.sleo_ammo || 0} Ammunition</div><div>${c.sleo_war_mat || 0} War Materials</div>`,
+          deltaHtml: delta((c.sleo_ammo || 0) + (c.sleo_war_mat || 0), (p.sleo_ammo || 0) + (p.sleo_war_mat || 0)),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Confiscated Machines/Equipment',
+          val: c.sleo_machines || 0,
+          subHtml: `<div>Nr of Machine/Equipment</div>`,
+          deltaHtml: delta(c.sleo_machines, p.sleo_machines),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Confiscated Illegal Drugs',
+          val: c.sleo_drugs_count || 0,
+          subHtml: `<div>₱${(c.sleo_drugs_val || 0).toLocaleString()} Est Amount</div><div>${c.sleo_drugs_grams || 0} Grams</div>`,
+          deltaHtml: delta(c.sleo_drugs_count, p.sleo_drugs_count),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Confiscated Logging',
+          val: c.sleo_logging_count || 0,
+          subHtml: `<div>₱${(c.sleo_logging_val || 0).toLocaleString()} Est Amount</div><div>${(c.sleo_logging_bf || 0).toLocaleString()} Est Board feet</div>`,
+          deltaHtml: delta(c.sleo_logging_count, p.sleo_logging_count),
+          borderColor: '#fb8500'
+        })}
+        ${kpiCard({
+          title: 'Smuggling (Cigarettes)',
+          val: c.sleo_smuggling_count || 0,
+          subHtml: `<div>₱${(c.sleo_smuggling_val || 0).toLocaleString()} Est Amount</div><div>${(c.sleo_smuggling_boxes || 0).toLocaleString()} Boxes</div>`,
+          deltaHtml: delta(c.sleo_smuggling_count, p.sleo_smuggling_count),
+          borderColor: '#fb8500'
+        })}
+      </div>
+    </div>
+  `;
 
   const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   draw('trend', {

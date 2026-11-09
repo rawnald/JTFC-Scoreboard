@@ -190,25 +190,63 @@ function getThreatCategoryKey(r) {
 function agg(rows) {
   const initGroups = {};
   for (const g of STANDARD_THREAT_GROUPS) initGroups[g] = 0;
-  const a = { total_ops: 0, enc: 0, sur: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, kil: 0, cap: 0, app: 0, fa: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, camps: 0, camps_ctg: 0, camps_ltg: 0, camps_piag: 0, tolf: 0, kia: 0, wia: 0, monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0), groups: initGroups, brigades: {}, units: {} };
+  const a = {
+    total_ops: 0,
+    enc: 0, enc_ltg: 0, enc_ctg: 0, enc_piag: 0,
+    sur: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0,
+    kil: 0, kil_ltg: 0, kil_ctg: 0, kil_piag: 0,
+    wnd_enemy: 0, wnd_ltg: 0, wnd_ctg: 0, wnd_piag: 0,
+    cap: 0, app: 0,
+    fa: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0,
+    fa_ltg_hp: 0, fa_ltg_lp: 0, fa_ltg_csw: 0,
+    fa_ctg_hp: 0, fa_ctg_lp: 0, fa_ctg_csw: 0,
+    camps: 0, camps_ctg: 0, camps_ltg: 0, camps_piag: 0,
+    ied: 0, uxo: 0, expl: 0,
+    ied_ltg: 0, uxo_ltg: 0,
+    ied_ctg: 0, uxo_ctg: 0,
+    sur_fa: 0, sur_fa_hp: 0, sur_fa_lp: 0, sur_fa_csw: 0,
+    sur_ied: 0, sur_uxo: 0, sur_expl: 0,
+    tolf: 0, kia: 0, wia: 0,
+    monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0),
+    groups: initGroups, brigades: {}, units: {}
+  };
   for (const r of rows) {
+    const tc = getThreatCategoryKey(r);
     const opCount = getOperationsCount(r);
     a.total_ops += opCount;
     const rSur = r.surrendered || 0;
     a.sur += rSur;
     if (rSur > 0) {
-      const tc = getThreatCategoryKey(r);
       if (tc === 'ctg') a.sur_ctg += rSur;
       else if (tc === 'ltg') a.sur_ltg += rSur;
       else if (tc === 'piag') a.sur_piag += rSur;
     }
-    a.kil += r.killed || 0; a.cap += r.captured || 0; a.app += r.apprehended || 0;
-    a.tolf += r.tolf || 0; a.kia += r.kia || 0; a.wia += r.wia || 0;
+    const rKil = r.killed || 0;
+    const rWnd = r.enemy_wounded || r.wounded || 0;
+    a.kil += rKil;
+    a.wnd_enemy += rWnd;
+    a.cap += r.captured || 0;
+    a.app += r.apprehended || 0;
+    if (tc === 'ltg') {
+      a.kil_ltg += rKil;
+      a.wnd_ltg += rWnd;
+    } else if (tc === 'ctg') {
+      a.kil_ctg += rKil;
+      a.wnd_ctg += rWnd;
+    } else if (tc === 'piag') {
+      a.kil_piag += rKil;
+      a.wnd_piag += rWnd;
+    }
+
+    a.tolf += r.tolf || 0;
+    a.kia += r.kia || 0;
+    a.wia += r.wia || 0;
 
     let hp = r.fa_high_powered || 0;
     let lp = r.fa_low_powered || 0;
     let csw = r.fa_csw || 0;
     let campCount = 0;
+    let rIed = 0, rUxo = 0, rExpl = 0;
 
     if (r.war_materiel) {
       try {
@@ -223,6 +261,9 @@ function agg(rows) {
         if (wm?.enemy_camp) {
           campCount = Number(wm.enemy_camp) || 0;
         }
+        if (wm?.ied) rIed = Number(wm.ied) || 0;
+        if (wm?.uxo) rUxo = Number(wm.uxo) || 0;
+        if (wm?.explosives) rExpl = Number(wm.explosives) || 0;
       } catch(e) {}
     }
     if (!campCount && r.enemy_camp) {
@@ -239,10 +280,20 @@ function agg(rows) {
 
     a.camps += campCount;
     if (campCount > 0) {
-      const tc = getThreatCategoryKey(r);
       if (tc === 'ctg') a.camps_ctg += campCount;
       else if (tc === 'ltg') a.camps_ltg += campCount;
       else if (tc === 'piag') a.camps_piag += campCount;
+    }
+
+    a.ied += rIed;
+    a.uxo += rUxo;
+    a.expl += rExpl;
+    if (tc === 'ltg') {
+      a.ied_ltg += rIed;
+      a.uxo_ltg += rUxo;
+    } else if (tc === 'ctg') {
+      a.ied_ctg += rIed;
+      a.uxo_ctg += rUxo;
     }
 
     a.fa_hp += hp;
@@ -252,14 +303,60 @@ function agg(rows) {
     const rFa = (r.firearms || 0) || (hp + lp + csw);
     a.fa += rFa;
     if (rFa > 0) {
-      const tc = getThreatCategoryKey(r);
-      if (tc === 'ctg') a.fa_ctg += rFa;
-      else if (tc === 'ltg') a.fa_ltg += rFa;
-      else if (tc === 'piag') a.fa_piag += rFa;
+      if (tc === 'ctg') {
+        a.fa_ctg += rFa;
+        a.fa_ctg_hp += hp;
+        a.fa_ctg_lp += lp;
+        a.fa_ctg_csw += csw;
+      } else if (tc === 'ltg') {
+        a.fa_ltg += rFa;
+        a.fa_ltg_hp += hp;
+        a.fa_ltg_lp += lp;
+        a.fa_ltg_csw += csw;
+      } else if (tc === 'piag') {
+        a.fa_piag += rFa;
+      }
+    }
+
+    // Surrendered records breakdown
+    const isSurRow = (r.engagement_type && String(r.engagement_type).toLowerCase().includes('surrender')) || rSur > 0 || (r.fa_surrendered && r.fa_surrendered > 0);
+    if (isSurRow) {
+      let surFa = r.fa_surrendered || 0;
+      let sHp = 0, sLp = 0, sCsw = 0;
+      if (r.war_materiel) {
+        try {
+          const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+          if (wm?.fa_breakdown?.surrendered) {
+            const sBd = wm.fa_breakdown.surrendered;
+            sCsw = +sBd.csw || 0;
+            sHp = +sBd.hp || 0;
+            sLp = +sBd.lp || 0;
+            surFa = sCsw + sHp + sLp;
+          }
+        } catch(e) {}
+      }
+      if (!surFa && (r.engagement_type && String(r.engagement_type).toLowerCase().includes('surrender'))) {
+        surFa = rFa;
+        sHp = hp;
+        sLp = lp;
+        sCsw = csw;
+      }
+      a.sur_fa += surFa;
+      a.sur_fa_hp += sHp;
+      a.sur_fa_lp += sLp;
+      a.sur_fa_csw += sCsw;
+      a.sur_ied += rIed;
+      a.sur_uxo += rUxo;
+      a.sur_expl += rExpl;
     }
 
     const encCount = getEncounterCount(r);
     a.enc += encCount;
+    if (encCount > 0) {
+      if (tc === 'ctg') a.enc_ctg += encCount;
+      else if (tc === 'ltg') a.enc_ltg += encCount;
+      else if (tc === 'piag') a.enc_piag += encCount;
+    }
 
     if (r.op_date && r.op_date.length >= 7) {
       const mIdx = +r.op_date.slice(5, 7) - 1;
@@ -546,53 +643,176 @@ export async function onRequest({ request, env, params }) {
         .bind(sDate, eDate).all()
         .then(x => {
           const filtered = filterTolfRows(x.results || []);
-          let csw = 0, hp = 0, lp = 0;
+          let csw = 0, hp = 0, lp = 0, ied = 0, uxo = 0, explosives = 0;
           for (const r of filtered) {
             let rCsw = (r.fa_csw || r.crew_served || 0);
             let rHp  = (r.fa_high_powered || r.light_weapons || 0);
             let rLp  = (r.fa_low_powered || r.small_arms || 0);
-            if (!rCsw && !rHp && !rLp && r.war_materiel) {
+            let rIed = 0, rUxo = 0, rExpl = (r.explosives_count || 0);
+            if (r.war_materiel) {
               try {
                 const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
                 if (wm) {
-                  rCsw = +(wm.csw || wm.crew_served || 0);
-                  rHp  = +(wm.hp || wm.light_weapons || wm.fa_high_powered || 0);
-                  rLp  = +(wm.lp || wm.small_arms || wm.fa_low_powered || 0);
+                  if (!rCsw && !rHp && !rLp) {
+                    rCsw = +(wm.csw || wm.crew_served || 0);
+                    rHp  = +(wm.hp || wm.light_weapons || wm.fa_high_powered || 0);
+                    rLp  = +(wm.lp || wm.small_arms || wm.fa_low_powered || 0);
+                  }
+                  rIed = +(wm.ied || 0);
+                  rUxo = +(wm.uxo || 0);
+                  rExpl = +(wm.explosives || rExpl || 0);
                 }
               } catch(e) {}
             }
             csw += rCsw;
             hp  += rHp;
             lp  += rLp;
+            ied += rIed;
+            uxo += rUxo;
+            explosives += rExpl;
           }
           return {
-            firearms: filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0),
+            firearms: filtered.reduce((sum, r) => sum + (r.firearms_count || 0), 0) || (csw + hp + lp),
             fa_csw: csw,
             fa_hp: hp,
             fa_lp: lp,
+            ied,
+            uxo,
+            explosives,
             monthly: getMonthlyFirearms(filtered),
             wm_monthly: getMonthlyTolfWM(filtered),
             rows: filtered
           };
         })
-        .catch(() => ({ firearms: 0, fa_csw: 0, fa_hp: 0, fa_lp: 0, monthly: Array(12).fill(0), wm_monthly: Array(12).fill(0), rows: [] }));
+        .catch(() => ({ firearms: 0, fa_csw: 0, fa_hp: 0, fa_lp: 0, ied: 0, uxo: 0, explosives: 0, monthly: Array(12).fill(0), wm_monthly: Array(12).fill(0), rows: [] }));
 
       const qSleo = (sDate, eDate) => db.prepare('SELECT * FROM sleo WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
         .then(x => {
           const filtered = filterSleoRows(x.results || []);
           let neutralized = 0;
+          let kil = 0, wnd = 0, sur = 0, app = 0;
+          let fa_csw = 0, fa_hp = 0, fa_lp = 0;
+          let ied = 0, uxo = 0, explosives = 0;
+          let ammo = 0, war_mat = 0, machines = 0;
+          let buybust = 0, anticrim = 0, logging_ops = 0, smuggling_ops = 0;
+          let drugs_grams = 0, drugs_val = 0, drugs_count = 0;
+          let logging_val = 0, logging_bf = 0, logging_count = 0;
+          let smuggling_val = 0, smuggling_boxes = 0, smuggling_count = 0;
+
           for (const r of filtered) {
-            neutralized += (r.killed || 0) + (r.surrendered || 0) + (r.captured || 0) + (r.apprehended || r.arrested || 0);
+            const rKil = r.killed || 0;
+            const rWnd = r.enemy_wounded || r.wounded || 0;
+            const rSur = r.surrendered || 0;
+            const rApp = r.apprehended || r.arrested || 0;
+            kil += rKil;
+            wnd += rWnd;
+            sur += rSur;
+            app += rApp;
+            neutralized += (rKil + rWnd + rSur + rApp + (r.captured || 0));
+
+            const rCsw = r.fa_csw || 0;
+            const rHp  = r.fa_high_powered || 0;
+            const rLp  = r.fa_low_powered || 0;
+            fa_csw += rCsw;
+            fa_hp  += rHp;
+            fa_lp  += rLp;
+
+            const opType = String(r.operation_type || '').toLowerCase();
+            const lead = String(r.lead_agency || '').toLowerCase();
+            const target = String(r.target_group || r.threat_group || '').toLowerCase();
+            const contra = String(r.contraband_details || '').toLowerCase();
+
+            if (opType.includes('drug') || opType.includes('buy bust') || lead.includes('pdea') || target.includes('drug')) {
+              buybust++;
+            } else if (opType.includes('log') || contra.includes('log') || contra.includes('lumber') || contra.includes('board feet')) {
+              logging_ops++;
+            } else if (opType.includes('smuggl') || contra.includes('cigarette') || contra.includes('smuggl')) {
+              smuggling_ops++;
+            } else {
+              anticrim++;
+            }
+
+            let wm = null;
+            if (r.war_materiel) {
+              try {
+                wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+              } catch(e) {}
+            }
+            if (wm) {
+              ied += Number(wm.ied) || 0;
+              uxo += Number(wm.uxo) || 0;
+              explosives += Number(wm.explosives) || 0;
+              ammo += Number(wm.ammo) || 0;
+              const wmOther = (Number(wm.magazine) || 0) + (Number(wm.radio) || 0) + (Number(wm.vehicle) || 0) + (Number(wm.motorcycle) || 0) + (Number(wm.paraphernalia) || 0) + (wm.other ? 1 : 0);
+              war_mat += wmOther;
+              if (wm.vehicle || wm.motorcycle || (wm.other && /machine|equipment|chainsaw|generator/i.test(wm.other))) {
+                machines += (Number(wm.vehicle) || 0) + (Number(wm.motorcycle) || 0) + 1;
+              }
+            }
+
+            let g = 0, v = 0;
+            if (r.drugs_grams) {
+              const m = String(r.drugs_grams).match(/[\d.]+/);
+              if (m) g = parseFloat(m[0]) || 0;
+            }
+            if (r.drugs_value) {
+              const m = String(r.drugs_value).replace(/,/g, '').match(/[\d.]+/);
+              if (m) v = parseFloat(m[0]) || 0;
+            }
+            if (g > 0 || v > 0 || opType.includes('drug')) {
+              drugs_count++;
+              drugs_grams += g;
+              drugs_val += v;
+            }
+
+            if (opType.includes('log') || contra.includes('log') || contra.includes('lumber') || contra.includes('board feet')) {
+              logging_count++;
+              const mBf = contra.match(/([\d,]+(?:\.\d+)?)\s*(?:bd\s*ft|board\s*feet|bf)/i);
+              if (mBf) logging_bf += parseFloat(mBf[1].replace(/,/g, '')) || 0;
+              const mVal = contra.match(/(?:PHP|Php|₱|Value:?|Est\.?)\s*([\d,]+(?:\.\d+)?)/i);
+              if (mVal) logging_val += parseFloat(mVal[1].replace(/,/g, '')) || 0;
+            }
+
+            if (opType.includes('smuggl') || contra.includes('cigarette') || contra.includes('smuggl') || contra.includes('box')) {
+              smuggling_count++;
+              const mBox = contra.match(/([\d,]+(?:\.\d+)?)\s*(?:cases|boxes|rims|reams|box)/i);
+              if (mBox) smuggling_boxes += parseFloat(mBox[1].replace(/,/g, '')) || 0;
+              const mVal = contra.match(/(?:PHP|Php|₱|Value:?|Est\.?)\s*([\d,]+(?:\.\d+)?)/i);
+              if (mVal) smuggling_val += parseFloat(mVal[1].replace(/,/g, '')) || 0;
+            }
+
+            if (/chainsaw|sawmill|machine|generator|equipment/i.test(contra)) {
+              machines++;
+            }
           }
+
           return {
             total: filtered.length,
             neutralized,
+            kil, wnd, sur, app,
+            fa: fa_csw + fa_hp + fa_lp,
+            fa_csw, fa_hp, fa_lp,
+            ied, uxo, explosives,
+            ammo, war_mat, machines,
+            buybust, anticrim, logging_ops, smuggling_ops,
+            drugs_count, drugs_grams, drugs_val,
+            logging_count, logging_bf, logging_val,
+            smuggling_count, smuggling_boxes, smuggling_val,
             monthly: getMonthlyCounts(filtered),
             rows: filtered
           };
         })
-        .catch(() => ({ total: 0, neutralized: 0, monthly: Array(12).fill(0), rows: [] }));
+        .catch(() => ({
+          total: 0, neutralized: 0, kil: 0, wnd: 0, sur: 0, app: 0,
+          fa: 0, fa_csw: 0, fa_hp: 0, fa_lp: 0,
+          ied: 0, uxo: 0, explosives: 0, ammo: 0, war_mat: 0, machines: 0,
+          buybust: 0, anticrim: 0, logging_ops: 0, smuggling_ops: 0,
+          drugs_count: 0, drugs_grams: 0, drugs_val: 0,
+          logging_count: 0, logging_bf: 0, logging_val: 0,
+          smuggling_count: 0, smuggling_boxes: 0, smuggling_val: 0,
+          monthly: Array(12).fill(0), rows: []
+        }));
 
       const [cur, prev, curTolf, prevTolf, curSleo, prevSleo, t, catRows, catGroupRows, provRows, bdeRows, yrRows] = await Promise.all([
         q(startDate, endDate),
@@ -613,17 +833,83 @@ export async function onRequest({ request, env, params }) {
       cur.tolf_csw = curTolf.fa_csw || 0;
       cur.tolf_hp = curTolf.fa_hp || 0;
       cur.tolf_lp = curTolf.fa_lp || 0;
+      cur.tolf_ied = curTolf.ied || 0;
+      cur.tolf_uxo = curTolf.uxo || 0;
+      cur.tolf_expl = curTolf.explosives || 0;
+
       prev.tolf = prevTolf.firearms || prev.tolf || 0;
       prev.tolf_csw = prevTolf.fa_csw || 0;
       prev.tolf_hp = prevTolf.fa_hp || 0;
       prev.tolf_lp = prevTolf.fa_lp || 0;
+      prev.tolf_ied = prevTolf.ied || 0;
+      prev.tolf_uxo = prevTolf.uxo || 0;
+      prev.tolf_expl = prevTolf.explosives || 0;
+
       cur.tolf_monthly = curTolf.monthly || Array(12).fill(0);
       prev.tolf_monthly = prevTolf.monthly || Array(12).fill(0);
       cur.tolf_wm_monthly = curTolf.wm_monthly || Array(12).fill(0);
       prev.tolf_wm_monthly = prevTolf.wm_monthly || Array(12).fill(0);
 
       cur.sleo = curSleo.total || 0;
+      cur.sleo_neutralized = curSleo.neutralized || 0;
+      cur.sleo_kil = curSleo.kil || 0;
+      cur.sleo_wnd = curSleo.wnd || 0;
+      cur.sleo_sur = curSleo.sur || 0;
+      cur.sleo_app = curSleo.app || 0;
+      cur.sleo_fa = curSleo.fa || 0;
+      cur.sleo_fa_csw = curSleo.fa_csw || 0;
+      cur.sleo_fa_hp = curSleo.fa_hp || 0;
+      cur.sleo_fa_lp = curSleo.fa_lp || 0;
+      cur.sleo_ied = curSleo.ied || 0;
+      cur.sleo_uxo = curSleo.uxo || 0;
+      cur.sleo_expl = curSleo.explosives || 0;
+      cur.sleo_ammo = curSleo.ammo || 0;
+      cur.sleo_war_mat = curSleo.war_mat || 0;
+      cur.sleo_machines = curSleo.machines || 0;
+      cur.sleo_buybust = curSleo.buybust || 0;
+      cur.sleo_anticrim = curSleo.anticrim || 0;
+      cur.sleo_logging = curSleo.logging_ops || 0;
+      cur.sleo_smuggling = curSleo.smuggling_ops || 0;
+      cur.sleo_drugs_count = curSleo.drugs_count || 0;
+      cur.sleo_drugs_grams = curSleo.drugs_grams || 0;
+      cur.sleo_drugs_val = curSleo.drugs_val || 0;
+      cur.sleo_logging_count = curSleo.logging_count || 0;
+      cur.sleo_logging_bf = curSleo.logging_bf || 0;
+      cur.sleo_logging_val = curSleo.logging_val || 0;
+      cur.sleo_smuggling_count = curSleo.smuggling_count || 0;
+      cur.sleo_smuggling_boxes = curSleo.smuggling_boxes || 0;
+      cur.sleo_smuggling_val = curSleo.smuggling_val || 0;
+
       prev.sleo = prevSleo.total || 0;
+      prev.sleo_neutralized = prevSleo.neutralized || 0;
+      prev.sleo_kil = prevSleo.kil || 0;
+      prev.sleo_wnd = prevSleo.wnd || 0;
+      prev.sleo_sur = prevSleo.sur || 0;
+      prev.sleo_app = prevSleo.app || 0;
+      prev.sleo_fa = prevSleo.fa || 0;
+      prev.sleo_fa_csw = prevSleo.fa_csw || 0;
+      prev.sleo_fa_hp = prevSleo.fa_hp || 0;
+      prev.sleo_fa_lp = prevSleo.fa_lp || 0;
+      prev.sleo_ied = prevSleo.ied || 0;
+      prev.sleo_uxo = prevSleo.uxo || 0;
+      prev.sleo_expl = prevSleo.explosives || 0;
+      prev.sleo_ammo = prevSleo.ammo || 0;
+      prev.sleo_war_mat = prevSleo.war_mat || 0;
+      prev.sleo_machines = prevSleo.machines || 0;
+      prev.sleo_buybust = prevSleo.buybust || 0;
+      prev.sleo_anticrim = prevSleo.anticrim || 0;
+      prev.sleo_logging = prevSleo.logging_ops || 0;
+      prev.sleo_smuggling = prevSleo.smuggling_ops || 0;
+      prev.sleo_drugs_count = prevSleo.drugs_count || 0;
+      prev.sleo_drugs_grams = prevSleo.drugs_grams || 0;
+      prev.sleo_drugs_val = prevSleo.drugs_val || 0;
+      prev.sleo_logging_count = prevSleo.logging_count || 0;
+      prev.sleo_logging_bf = prevSleo.logging_bf || 0;
+      prev.sleo_logging_val = prevSleo.logging_val || 0;
+      prev.sleo_smuggling_count = prevSleo.smuggling_count || 0;
+      prev.sleo_smuggling_boxes = prevSleo.smuggling_boxes || 0;
+      prev.sleo_smuggling_val = prevSleo.smuggling_val || 0;
+
       cur.sleo_monthly = curSleo.monthly || Array(12).fill(0);
       prev.sleo_monthly = prevSleo.monthly || Array(12).fill(0);
 
