@@ -499,62 +499,54 @@ async function load() {
           subtitle: "GOV'T ENCOUNTERS",
           val: c.enc || 0,
           subHtml: `<div>${c.enc_ltg || 0} LTG</div><div>${c.enc_ctg || 0} CTG</div>`,
-          deltaHtml: delta(c.enc, p.enc),
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'Government Casualties',
           val: (c.kia || 0) + (c.wia || 0),
           subHtml: `<div>${c.kia || 0} KIA</div><div>${c.wia || 0} WIA</div>`,
-          deltaHtml: delta((c.kia || 0) + (c.wia || 0), (p.kia || 0) + (p.wia || 0), true),
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'Enemy Casualties <span class="text-rose-600 font-extrabold">(LTGs)</span>',
           val: (c.kil_ltg || 0) + (c.wnd_ltg || 0),
           subHtml: `<div>${c.kil_ltg || 0} KLD</div><div>${c.wnd_ltg || 0} WND</div>`,
-          deltaHtml: delta((c.kil_ltg || 0) + (c.wnd_ltg || 0), (p.kil_ltg || 0) + (p.wnd_ltg || 0)),
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'Enemy Casualties <span class="text-rose-600 font-extrabold">(CTGs)</span>',
           val: (c.kil_ctg || 0) + (c.wnd_ctg || 0),
           subHtml: `<div>${c.kil_ctg || 0} KLD</div><div>${c.wnd_ctg || 0} WND</div>`,
-          deltaHtml: delta((c.kil_ctg || 0) + (c.wnd_ctg || 0), (p.kil_ctg || 0) + (p.wnd_ctg || 0)),
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'FAs Gained (LTGs)',
           val: c.fa_ltg || 0,
           subHtml: `<div>${c.fa_ltg_hp || 0} HPFAs</div><div>${c.fa_ltg_lp || 0} LPFAs</div><div>${c.fa_ltg_csw || 0} CSW</div>`,
-          deltaHtml: delta(c.fa_ltg, p.fa_ltg),
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'FAs Gained (CTGs)',
           val: c.fa_ctg || 0,
           subHtml: `<div>${c.fa_ctg_hp || 0} HPFAs</div><div>${c.fa_ctg_lp || 0} LPFAs</div><div>${c.fa_ctg_csw || 0} CSW</div>`,
-          deltaHtml: delta(c.fa_ctg, p.fa_ctg),
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'Discovered EN Encampment',
           val: c.camps || 0,
           subHtml: `<div>${c.camps_ltg || 0} LTG</div><div>${c.camps_ctg || 0} CTG</div>`,
-          deltaHtml: delta(c.camps, p.camps),
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'Recovered IED/UXO',
           val: (c.ied || 0) + (c.uxo || 0),
           subHtml: `<div>${(c.ied_ltg || 0) + (c.uxo_ltg || 0)} LTG</div><div>${(c.ied_ctg || 0) + (c.uxo_ctg || 0)} CTG</div>`,
-          deltaHtml: delta((c.ied || 0) + (c.uxo || 0), (p.ied || 0) + (p.uxo || 0)),
           borderColor: '#219ebc'
         })}
       </div>
     </div>
 
-    <!-- SECTION 2 & 3: Surrendered LTG/CTG (#023047) and SALW (#ffb703) -->
+    <!-- SECTION 2 & 3: Surrendered LTG/CTG (#023047) and SALW (#22c55e Light Green) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
       <div class="lg:col-span-7 flex flex-col justify-between space-y-2">
         <div class="flex items-center gap-2">
@@ -567,21 +559,18 @@ async function load() {
             title: 'Nr of Surrendered LTGs/CTGs',
             val: c.sur || 0,
             subHtml: `<div>${c.sur_ltg || 0} LTGs</div><div>${c.sur_ctg || 0} CTGs</div><div>${c.sur_piag || 0} PAGs</div>`,
-            deltaHtml: delta(c.sur, p.sur),
             borderColor: '#023047'
           })}
           ${kpiCard({
             title: 'Nr of Surrendered Firearms',
             val: c.sur_fa || 0,
             subHtml: `<div>${c.sur_fa_hp || 0} HPFAs</div><div>${c.sur_fa_lp || 0} LPFAs</div><div>${c.sur_fa_csw || 0} CSW</div>`,
-            deltaHtml: delta(c.sur_fa, p.sur_fa),
             borderColor: '#023047'
           })}
           ${kpiCard({
             title: 'Nr of Surr IED/UXO/EPLSV',
             val: (c.sur_ied || 0) + (c.sur_uxo || 0) + (c.sur_expl || 0),
             subHtml: `<div>${c.sur_ied || 0} IED</div><div>${c.sur_uxo || 0} UXO</div><div>${c.sur_expl || 0} Explosives</div>`,
-            deltaHtml: delta((c.sur_ied || 0) + (c.sur_uxo || 0) + (c.sur_expl || 0), (p.sur_ied || 0) + (p.sur_uxo || 0) + (p.sur_expl || 0)),
             borderColor: '#023047'
           })}
         </div>
@@ -589,7 +578,7 @@ async function load() {
 
       <div class="lg:col-span-5 flex flex-col justify-between space-y-2">
         <div class="flex items-center gap-2">
-          <div class="px-3 py-1 text-slate-900 font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #ffb703;">
+          <div class="px-3 py-1 text-black font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #22c55e;">
             <span class="ms !text-base">inventory_2</span> Small Arms and Light Weapons (SALW) Management Program
           </div>
         </div>
@@ -598,15 +587,13 @@ async function load() {
             title: 'Nr of FAs Surrendered',
             val: c.tolf || 0,
             subHtml: `<div>${c.tolf_hp || 0} HPFAs</div><div>${c.tolf_lp || 0} LPFAs</div><div>${c.tolf_csw || 0} CSW</div>`,
-            deltaHtml: delta(c.tolf, p.tolf),
-            borderColor: '#ffb703'
+            borderColor: '#22c55e'
           })}
           ${kpiCard({
             title: 'Surrendered IED/UXO/Explosive',
             val: (c.tolf_ied || 0) + (c.tolf_uxo || 0) + (c.tolf_expl || 0),
             subHtml: `<div>${c.tolf_ied || 0} IED</div><div>${c.tolf_uxo || 0} UXO</div><div>${c.tolf_expl || 0} Explosives</div>`,
-            deltaHtml: delta((c.tolf_ied || 0) + (c.tolf_uxo || 0) + (c.tolf_expl || 0), (p.tolf_ied || 0) + (p.tolf_uxo || 0) + (p.tolf_expl || 0)),
-            borderColor: '#ffb703'
+            borderColor: '#22c55e'
           })}
         </div>
       </div>
@@ -624,63 +611,54 @@ async function load() {
           title: 'Nr Operations Conducted',
           val: c.sleo || 0,
           subHtml: `<div>${c.sleo_buybust || 0} Buy Bust Opns</div><div>${c.sleo_anticrim || 0} Anti-Crim</div><div>${c.sleo_logging || 0} Logging</div><div>${c.sleo_smuggling || 0} Smuggling</div>`,
-          deltaHtml: delta(c.sleo, p.sleo),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Neutralized Personalities',
           val: c.sleo_neutralized || 0,
           subHtml: `<div>${c.sleo_kil || 0} KLD</div><div>${c.sleo_wnd || 0} WND</div><div>${c.sleo_sur || 0} Surrendered</div><div>${c.sleo_app || 0} Apprehended</div>`,
-          deltaHtml: delta(c.sleo_neutralized, p.sleo_neutralized),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Neutralized Firearms',
           val: c.sleo_fa || 0,
           subHtml: `<div>${c.sleo_fa_hp || 0} HPFAs</div><div>${c.sleo_fa_lp || 0} LPFAs</div><div>${c.sleo_fa_csw || 0} CSW</div>`,
-          deltaHtml: delta(c.sleo_fa, p.sleo_fa),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Recovered IED/UXO/Explosive',
           val: (c.sleo_ied || 0) + (c.sleo_uxo || 0) + (c.sleo_expl || 0),
           subHtml: `<div>${c.sleo_ied || 0} IED</div><div>${c.sleo_uxo || 0} UXO</div><div>${c.sleo_expl || 0} Explosives</div>`,
-          deltaHtml: delta((c.sleo_ied || 0) + (c.sleo_uxo || 0) + (c.sleo_expl || 0), (p.sleo_ied || 0) + (p.sleo_uxo || 0) + (p.sleo_expl || 0)),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Other Recovered/War Materials',
           val: (c.sleo_ammo || 0) + (c.sleo_war_mat || 0),
           subHtml: `<div>${c.sleo_ammo || 0} Ammunition</div><div>${c.sleo_war_mat || 0} War Materials</div>`,
-          deltaHtml: delta((c.sleo_ammo || 0) + (c.sleo_war_mat || 0), (p.sleo_ammo || 0) + (p.sleo_war_mat || 0)),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Confiscated Machines/Equipment',
           val: c.sleo_machines || 0,
           subHtml: `<div>Nr of Machine/Equipment</div>`,
-          deltaHtml: delta(c.sleo_machines, p.sleo_machines),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Confiscated Illegal Drugs',
           val: c.sleo_drugs_count || 0,
           subHtml: `<div>₱${(c.sleo_drugs_val || 0).toLocaleString()} Est Amount</div><div>${c.sleo_drugs_grams || 0} Grams</div>`,
-          deltaHtml: delta(c.sleo_drugs_count, p.sleo_drugs_count),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Confiscated Logging',
           val: c.sleo_logging_count || 0,
           subHtml: `<div>₱${(c.sleo_logging_val || 0).toLocaleString()} Est Amount</div><div>${(c.sleo_logging_bf || 0).toLocaleString()} Est Board feet</div>`,
-          deltaHtml: delta(c.sleo_logging_count, p.sleo_logging_count),
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Smuggling (Cigarettes)',
           val: c.sleo_smuggling_count || 0,
           subHtml: `<div>₱${(c.sleo_smuggling_val || 0).toLocaleString()} Est Amount</div><div>${(c.sleo_smuggling_boxes || 0).toLocaleString()} Boxes</div>`,
-          deltaHtml: delta(c.sleo_smuggling_count, p.sleo_smuggling_count),
           borderColor: '#fb8500'
         })}
       </div>
