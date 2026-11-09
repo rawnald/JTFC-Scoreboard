@@ -563,18 +563,48 @@ async function load() {
             </div>
           </div>
         </div>
-        ${kpiCard({
-          title: 'FAs Gained (LTGs)',
-          val: c.fa_ltg || 0,
-          subHtml: `<div>${c.fa_ltg_hp || 0} HPFAs</div><div>${c.fa_ltg_lp || 0} LPFAs</div><div>${c.fa_ltg_csw || 0} CSW</div>`,
-          borderColor: '#219ebc'
-        })}
-        ${kpiCard({
-          title: 'FAs Gained (CTGs)',
-          val: c.fa_ctg || 0,
-          subHtml: `<div>${c.fa_ctg_hp || 0} HPFAs</div><div>${c.fa_ctg_lp || 0} LPFAs</div><div>${c.fa_ctg_csw || 0} CSW</div>`,
-          borderColor: '#219ebc'
-        })}
+        <div class="card p-2.5 sm:p-3 flex flex-col justify-between shadow-sm transition hover:shadow-md bg-white col-span-2" style="border: 2px solid #219ebc;">
+          <div>
+            <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-tight truncate leading-tight text-[#0b1b5e]">
+              FAS GAINED
+            </div>
+            <div class="grid grid-cols-2 gap-2 sm:gap-3 mt-1.5 pt-0.5">
+              <!-- LTGS Column -->
+              <div class="flex flex-col justify-between">
+                <div class="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-tight text-rose-600 leading-none">
+                  LTGS
+                </div>
+                <div class="flex items-center justify-between gap-1.5 mt-1.5">
+                  <div class="text-2xl sm:text-3xl font-black text-[#0b1b5e] leading-none shrink-0">
+                    ${c.fa_ltg || 0}
+                  </div>
+                  <div class="text-[9px] sm:text-[9.5px] font-bold text-slate-800 leading-tight border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap">
+                    <div>${c.fa_ltg_hp || 0} HPFAs</div>
+                    <div>${c.fa_ltg_lp || 0} LPFAs</div>
+                    <div>${c.fa_ltg_csw || 0} CSW</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CTGS Column with left divider -->
+              <div class="flex flex-col justify-between border-l border-slate-200 pl-2 sm:pl-3">
+                <div class="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-tight text-rose-600 leading-none">
+                  CTGS
+                </div>
+                <div class="flex items-center justify-between gap-1.5 mt-1.5">
+                  <div class="text-2xl sm:text-3xl font-black text-[#0b1b5e] leading-none shrink-0">
+                    ${c.fa_ctg || 0}
+                  </div>
+                  <div class="text-[9px] sm:text-[9.5px] font-bold text-slate-800 leading-tight border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap">
+                    <div>${c.fa_ctg_hp || 0} HPFAs</div>
+                    <div>${c.fa_ctg_lp || 0} LPFAs</div>
+                    <div>${c.fa_ctg_csw || 0} CSW</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         ${kpiCard({
           title: 'Discovered EN Encampment',
           val: c.camps || 0,
