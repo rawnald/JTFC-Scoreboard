@@ -154,7 +154,9 @@
     <!-- Trend 1: Monthly Operational Trend (Combat) -->
     <div class="card p-5 flex flex-col">
       <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-        <h2 class="font-bold text-base sm:text-lg text-slate-800">Combat/Military Operations</h2>
+        <h2 class="font-bold text-base sm:text-lg text-slate-800 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full shrink-0" style="background-color: #219ebc;"></span> Combat/Military Operations
+        </h2>
       </div>
       <div class="h-64 sm:h-72 w-full"><canvas id="trend"></canvas></div>
     </div>
@@ -162,7 +164,9 @@
     <!-- Trend 2: Support to Law Enforcement Operations (SLEO) -->
     <div class="card p-5 flex flex-col">
       <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-        <h2 class="font-bold text-base sm:text-lg text-slate-800">Support to Law Enforcement Operations (SLEO)</h2>
+        <h2 class="font-bold text-base sm:text-lg text-slate-800 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full shrink-0" style="background-color: #fb8500;"></span> Support to Law Enforcement Operations (SLEO)
+        </h2>
       </div>
       <div class="h-64 sm:h-72 w-full"><canvas id="trend-sleo"></canvas></div>
     </div>
@@ -170,7 +174,9 @@
     <!-- Trend 3: Turn-Over of Loose FAs (SALW) -->
     <div class="card p-5 flex flex-col">
       <div class="flex flex-wrap items-center justify-between mb-2 gap-2">
-        <h2 class="font-bold text-base sm:text-lg text-slate-800">Turn-Over of Loose FAs (SALW)</h2>
+        <h2 class="font-bold text-base sm:text-lg text-slate-800 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full shrink-0" style="background-color: #22c55e;"></span> Turn-Over of Loose FAs (SALW)
+        </h2>
       </div>
       <div class="h-64 sm:h-72 w-full"><canvas id="trend-tolf"></canvas></div>
     </div>
@@ -191,7 +197,7 @@
   </section>
 </main>
 <script>
-const $=id=>document.getElementById(id), blue='#1d5bff', charts={};
+const $=id=>document.getElementById(id), blue='#219ebc', charts={};
 const delta=(c,p,inv)=>{if(!p)return'<span class="text-slate-400">—</span>';const d=(c-p)/p*100,good=inv?d<=0:d>=0;return `<span class="${good?'text-green-600':'text-red-600'} font-medium flex items-center"><span class="ms !text-base">${d>=0?'arrow_upward':'arrow_downward'}</span>${d>=0?'+':''}${d.toFixed(1)}%</span>`};
 const draw=(id,cfg)=>{charts[id]?.destroy();charts[id]=new Chart($(id),cfg)};
 const opt={responsive:true,maintainAspectRatio:false};
@@ -674,13 +680,13 @@ async function load() {
         {
           label: `Initiated Operations (${currentYear})`,
           data: c.monthly || Array(12).fill(0),
-          borderColor: blue,
-          backgroundColor: 'rgba(29,91,255,.15)',
+          borderColor: '#219ebc',
+          backgroundColor: 'rgba(33,158,188,.18)',
           fill: true,
           tension: 0,
           pointRadius: 4,
           pointHoverRadius: 6,
-          pointBackgroundColor: blue
+          pointBackgroundColor: '#219ebc'
         },
         {
           label: `Initiated Operations (${currentYear - 1})`,
@@ -707,7 +713,7 @@ async function load() {
     plugins: [lineLabelsPlugin]
   });
 
-  // Support to Law Enforcement Operations (SLEO) Trend
+  // Support to Law Enforcement Operations (SLEO) Trend (#fb8500)
   draw('trend-sleo', {
     type: 'line',
     data: {
@@ -716,13 +722,13 @@ async function load() {
         {
           label: `SLEO Operations (${currentYear})`,
           data: c.sleo_monthly || Array(12).fill(0),
-          borderColor: '#6366f1',
-          backgroundColor: 'rgba(99,102,241,.15)',
+          borderColor: '#fb8500',
+          backgroundColor: 'rgba(251,133,0,.18)',
           fill: true,
           tension: 0,
           pointRadius: 4,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#6366f1'
+          pointBackgroundColor: '#fb8500'
         },
         {
           label: `SLEO Operations (${currentYear - 1})`,
@@ -749,7 +755,7 @@ async function load() {
     plugins: [lineLabelsPlugin]
   });
 
-  // Turn-Over of Loose FAs (SALW) Trend
+  // Turn-Over of Loose FAs (SALW) Trend (#22c55e)
   draw('trend-tolf', {
     type: 'line',
     data: {
@@ -758,24 +764,24 @@ async function load() {
         {
           label: `Firearms (${currentYear})`,
           data: c.tolf_monthly || Array(12).fill(0),
-          borderColor: '#0891b2',
-          backgroundColor: 'rgba(8,145,178,.15)',
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34,197,94,.18)',
           fill: true,
           tension: 0,
           pointRadius: 4,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#0891b2'
+          pointBackgroundColor: '#22c55e'
         },
         {
           label: `Other War Materials (${currentYear})`,
           data: c.tolf_wm_monthly || Array(12).fill(0),
-          borderColor: '#f59e0b',
-          backgroundColor: 'rgba(245,158,11,.15)',
+          borderColor: '#15803d',
+          backgroundColor: 'rgba(21,128,61,.12)',
           fill: false,
           tension: 0,
           pointRadius: 4,
           pointHoverRadius: 6,
-          pointBackgroundColor: '#f59e0b'
+          pointBackgroundColor: '#15803d'
         }
       ]
     },
@@ -885,7 +891,7 @@ async function load() {
       labels: ['Surrendered', 'Killed', 'Captured', 'Apprehended'],
       datasets: [{
         data: totalNz > 0 ? [c.sur || 0, c.kil || 0, c.cap || 0, c.app || 0] : [0, 0, 0, 0],
-        backgroundColor: ['#2196f3', '#0d3b8c', '#26b5a8', '#f5a623'],
+        backgroundColor: ['#023047', '#e11d48', '#219ebc', '#fb8500'],
         borderWidth: 2,
         hoverOffset: 4
       }]
@@ -919,11 +925,11 @@ async function load() {
   $('matrix').innerHTML = (s.matrix || []).map(u => `
     <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition">
       <td class="py-2.5 pr-2 font-semibold text-slate-800 whitespace-nowrap">${esc(u.brigade || u.unit || '—')}</td>
-      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-green-100 text-green-800 px-2 py-0.5 rounded font-bold text-xs">${u.enc || 0}</span></td>
+      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-sky-100 text-[#0284c7] px-2 py-0.5 rounded font-bold text-xs">${u.enc || 0}</span></td>
       <td class="py-2.5 px-1 text-center font-bold text-slate-700" title="HPFAs: ${u.fa_hp || 0}, LPFAs: ${u.fa_lp || 0}, CSW: ${u.fa_csw || 0}">${u.firearms || 0}</td>
-      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-bold text-xs">${u.sur || 0}</span></td>
-      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold text-xs">${u.sleo || 0}</span></td>
-      <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded font-bold text-xs" title="HPFAs: ${u.salw_hp || 0}, LPFAs: ${u.salw_lp || 0}, CSW: ${u.salw_csw || 0}">${u.salw || 0}</span></td>
+      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-slate-100 text-[#023047] px-2 py-0.5 rounded font-bold text-xs">${u.sur || 0}</span></td>
+      <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-amber-100 text-[#ea580c] px-2 py-0.5 rounded font-bold text-xs">${u.sleo || 0}</span></td>
+      <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-xs" title="HPFAs: ${u.salw_hp || 0}, LPFAs: ${u.salw_lp || 0}, CSW: ${u.salw_csw || 0}">${u.salw || 0}</span></td>
     </tr>
   `).join('') || '<tr><td colspan="6" class="py-4 text-center text-slate-400">No data yet</td></tr>';
 }
