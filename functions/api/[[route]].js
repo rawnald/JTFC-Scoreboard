@@ -313,7 +313,7 @@ async function setLatestControlNumber(db, val) {
 }
 
 async function syncLatestControlNumberFromDb(db) {
-  const tables = ['incident_reports', 'ops', 'sleo', 'tolf', 'rido', 'hadr'];
+  const tables = ['incident_reports', 'ops', 'surrendered', 'sleo', 'tolf', 'rido', 'hadr'];
   let bestId = -1;
   let bestCtrl = '';
 
@@ -528,9 +528,19 @@ export async function onRequest({ request, env, params }) {
         return m;
       }
 
-      const q = (sDate, eDate) => db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?')
-        .bind(sDate, eDate).all()
-        .then(x => agg(filterRows(x.results || [])));
+      const q = async (sDate, eDate) => {
+        const opsRows = await db.prepare('SELECT * FROM ops WHERE op_date BETWEEN ? AND ?')
+          .bind(sDate, eDate).all()
+          .then(x => x.results || [])
+          .catch(() => []);
+        let surRows = [];
+        try {
+          const sRes = await db.prepare('SELECT * FROM surrendered WHERE op_date BETWEEN ? AND ?')
+            .bind(sDate, eDate).all();
+          surRows = sRes.results || [];
+        } catch(e) {}
+        return agg(filterRows(opsRows.concat(surRows)));
+      };
 
       const qTolf = (sDate, eDate) => db.prepare('SELECT * FROM tolf WHERE op_date BETWEEN ? AND ?')
         .bind(sDate, eDate).all()
@@ -592,11 +602,11 @@ export async function onRequest({ request, env, params }) {
         qSleo(startDate, endDate),
         qSleo(prevStartDate, prevEndDate),
         db.prepare("SELECT value FROM settings WHERE key='firearms_target'").first().catch(() => null),
-        db.prepare("SELECT DISTINCT threat_category FROM ops WHERE threat_category IS NOT NULL AND threat_category != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT threat_category, threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM rido WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != '' UNION SELECT DISTINCT unit, war_materiel FROM tolf WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
-        db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM tolf WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
+        db.prepare("SELECT DISTINCT threat_category FROM ops WHERE threat_category IS NOT NULL AND threat_category != '' UNION SELECT DISTINCT threat_category FROM surrendered WHERE threat_category IS NOT NULL AND threat_category != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT threat_category, threat_group FROM ops WHERE threat_group IS NOT NULL AND threat_group != '' UNION SELECT DISTINCT threat_category, threat_group FROM surrendered WHERE threat_group IS NOT NULL AND threat_group != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT province FROM ops WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM surrendered WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM sleo WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM tolf WHERE province IS NOT NULL AND province != '' UNION SELECT DISTINCT province FROM rido WHERE province IS NOT NULL AND province != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT unit, war_materiel FROM ops WHERE unit IS NOT NULL AND unit != '' UNION SELECT DISTINCT unit, war_materiel FROM surrendered WHERE unit IS NOT NULL AND unit != '' UNION SELECT DISTINCT unit, war_materiel FROM tolf WHERE unit IS NOT NULL AND unit != ''").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM ops WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM surrendered WHERE op_date IS NOT NULL AND op_date != '' UNION SELECT DISTINCT SUBSTR(op_date, 1, 4) as yr FROM tolf WHERE op_date IS NOT NULL AND op_date != '' ORDER BY yr DESC").all().catch(() => ({ results: [] }))
       ]);
 
       cur.tolf = curTolf.firearms || cur.tolf || 0;
@@ -1484,6 +1494,179 @@ export async function onRequest({ request, env, params }) {
       }
       if (method === 'DELETE' && r1) {
         await db.prepare('DELETE FROM ops WHERE id=?').bind(n(r1)).run();
+        await syncLatestControlNumberFromDb(db);
+        return json({ ok: true });
+      }
+    }
+
+    // 1b. Surrendered Personalities & Firearms (surrendered)
+    if (r0 === 'surrendered') {
+      try {
+        await db.prepare(`CREATE TABLE IF NOT EXISTS surrendered (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          control_number TEXT,
+          op_date TEXT NOT NULL,
+          unit TEXT NOT NULL,
+          area TEXT NOT NULL,
+          province TEXT,
+          threat_category TEXT,
+          threat_group TEXT NOT NULL,
+          engagement_type TEXT,
+          surrendered INTEGER DEFAULT 0,
+          killed INTEGER DEFAULT 0,
+          enemy_wounded INTEGER DEFAULT 0,
+          captured INTEGER DEFAULT 0,
+          apprehended INTEGER DEFAULT 0,
+          firearms INTEGER DEFAULT 0,
+          fa_captured INTEGER DEFAULT 0,
+          fa_confiscated INTEGER DEFAULT 0,
+          fa_surrendered INTEGER DEFAULT 0,
+          fa_recovered INTEGER DEFAULT 0,
+          fa_csw INTEGER DEFAULT 0,
+          fa_high_powered INTEGER DEFAULT 0,
+          fa_low_powered INTEGER DEFAULT 0,
+          tolf INTEGER DEFAULT 0,
+          kia INTEGER DEFAULT 0,
+          wia INTEGER DEFAULT 0,
+          war_materiel TEXT,
+          remarks TEXT
+        )`).run();
+      } catch(e) {}
+      try { await db.prepare('CREATE INDEX IF NOT EXISTS idx_surrendered_date ON surrendered(op_date)').run(); } catch(e) {}
+      try { await db.prepare('ALTER TABLE surrendered ADD COLUMN control_number TEXT').run(); } catch(e) {}
+
+      if (method === 'GET') {
+        const url = new URL(request.url);
+        const y = url.searchParams.get('year');
+        let sql = 'SELECT * FROM surrendered';
+        const params = [];
+        if (y) {
+          sql += ' WHERE op_date LIKE ?';
+          params.push(`${y}-%`);
+        }
+        sql += ' ORDER BY op_date DESC, id DESC LIMIT 500';
+        const q = params.length ? db.prepare(sql).bind(...params) : db.prepare(sql);
+        const x = await q.all();
+        return json({ rows: x.results });
+      }
+      if (method === 'POST') {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
+          return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
+        }
+        if (b.fa_breakdown) {
+          const bd = b.fa_breakdown;
+          const sur = bd.surrendered || {};
+          const surCSW = n(sur.csw), surHP = n(sur.hp), surLP = n(sur.lp);
+          b.fa_captured = 0;
+          b.fa_confiscated = 0;
+          b.fa_surrendered = surCSW + surHP + surLP;
+          b.fa_recovered = 0;
+          b.fa_csw = surCSW;
+          b.fa_high_powered = surHP;
+          b.fa_low_powered = surLP;
+          b.firearms = b.fa_surrendered;
+          if (typeof b.war_materiel === 'object' && b.war_materiel !== null) {
+            b.war_materiel.fa_breakdown = bd;
+          }
+        }
+        const totalFA = n(b.firearms) || n(b.fa_surrendered) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
+        const ctrlNum = txt(b.control_number, 100);
+        try {
+          await db.prepare(`INSERT INTO surrendered (
+            control_number,op_date,unit,area,province,threat_category,threat_group,engagement_type,
+            surrendered,killed,enemy_wounded,captured,apprehended,
+            firearms,fa_captured,fa_confiscated,fa_surrendered,fa_recovered,
+            fa_csw,fa_high_powered,fa_low_powered,tolf,kia,wia,
+            war_materiel,remarks
+          ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+            .bind(
+              ctrlNum, b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type || 'Surrender'),
+              n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+              totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+              n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+              warMat, txt(b.remarks, 1000)
+            ).run();
+        } catch(err) {
+          await db.prepare(`INSERT INTO surrendered (
+            op_date,unit,area,province,threat_category,threat_group,engagement_type,
+            surrendered,killed,enemy_wounded,captured,apprehended,
+            firearms,fa_captured,fa_confiscated,fa_surrendered,fa_recovered,
+            fa_csw,fa_high_powered,fa_low_powered,tolf,kia,wia,
+            war_materiel,remarks
+          ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+            .bind(
+              b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type || 'Surrender'),
+              n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+              totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+              n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+              warMat, txt(b.remarks, 1000)
+            ).run();
+        }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
+        return json({ ok: true });
+      }
+      if (method === 'PUT' && r1) {
+        const b = await request.json();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.op_date) || !txt(b.unit) || !txt(b.threat_group)) {
+          return json({ error: 'Date, Unit, and Threat Group are required' }, 400);
+        }
+        if (b.fa_breakdown) {
+          const bd = b.fa_breakdown;
+          const sur = bd.surrendered || {};
+          const surCSW = n(sur.csw), surHP = n(sur.hp), surLP = n(sur.lp);
+          b.fa_captured = 0;
+          b.fa_confiscated = 0;
+          b.fa_surrendered = surCSW + surHP + surLP;
+          b.fa_recovered = 0;
+          b.fa_csw = surCSW;
+          b.fa_high_powered = surHP;
+          b.fa_low_powered = surLP;
+          b.firearms = b.fa_surrendered;
+          if (typeof b.war_materiel === 'object' && b.war_materiel !== null) {
+            b.war_materiel.fa_breakdown = bd;
+          }
+        }
+        const totalFA = n(b.firearms) || n(b.fa_surrendered) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
+        const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
+        const ctrlNum = txt(b.control_number, 100);
+        try {
+          await db.prepare(`UPDATE surrendered SET
+            control_number=?,op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
+            surrendered=?,killed=?,enemy_wounded=?,captured=?,apprehended=?,
+            firearms=?,fa_captured=?,fa_confiscated=?,fa_surrendered=?,fa_recovered=?,
+            fa_csw=?,fa_high_powered=?,fa_low_powered=?,tolf=?,kia=?,wia=?,
+            war_materiel=?,remarks=?
+          WHERE id=?`)
+            .bind(
+              ctrlNum, b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type || 'Surrender'),
+              n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+              totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+              n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+              warMat, txt(b.remarks, 1000), n(r1)
+            ).run();
+        } catch(err) {
+          await db.prepare(`UPDATE surrendered SET
+            op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
+            surrendered=?,killed=?,enemy_wounded=?,captured=?,apprehended=?,
+            firearms=?,fa_captured=?,fa_confiscated=?,fa_surrendered=?,fa_recovered=?,
+            fa_csw=?,fa_high_powered=?,fa_low_powered=?,tolf=?,kia=?,wia=?,
+            war_materiel=?,remarks=?
+          WHERE id=?`)
+            .bind(
+              b.op_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.threat_category), txt(b.threat_group), txt(b.engagement_type || 'Surrender'),
+              n(b.surrendered), n(b.killed), n(b.enemy_wounded), n(b.captured), n(b.apprehended),
+              totalFA, n(b.fa_captured), n(b.fa_confiscated), n(b.fa_surrendered), n(b.fa_recovered),
+              n(b.fa_csw), n(b.fa_high_powered), n(b.fa_low_powered), n(b.tolf), n(b.kia), n(b.wia),
+              warMat, txt(b.remarks, 1000), n(r1)
+            ).run();
+        }
+        if (ctrlNum) await setLatestControlNumber(db, ctrlNum);
+        return json({ ok: true });
+      }
+      if (method === 'DELETE' && r1) {
+        await db.prepare('DELETE FROM surrendered WHERE id=?').bind(n(r1)).run();
         await syncLatestControlNumberFromDb(db);
         return json({ ok: true });
       }

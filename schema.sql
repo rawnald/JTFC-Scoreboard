@@ -29,6 +29,37 @@ CREATE TABLE IF NOT EXISTS ops (
 );
 CREATE INDEX IF NOT EXISTS idx_ops_date ON ops(op_date);
 
+CREATE TABLE IF NOT EXISTS surrendered (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  control_number TEXT,
+  op_date TEXT NOT NULL,            -- YYYY-MM-DD
+  unit TEXT NOT NULL,               -- e.g. 602nd Bde
+  area TEXT NOT NULL,               -- e.g. Pikit
+  province TEXT,                    -- e.g. Cotabato, Maguindanao del Sur
+  threat_category TEXT,             -- Local Terrorist Groups (LTG), Communist Terrorist Group (CTG), PIAGs
+  threat_group TEXT NOT NULL,       -- e.g. BIFF-PSRL, GF Musa, MILF
+  engagement_type TEXT,             -- Surrender
+  surrendered INTEGER DEFAULT 0,
+  killed INTEGER DEFAULT 0,
+  enemy_wounded INTEGER DEFAULT 0,
+  captured INTEGER DEFAULT 0,
+  apprehended INTEGER DEFAULT 0,
+  firearms INTEGER DEFAULT 0,       -- Total firearms gained (sum of all categories)
+  fa_captured INTEGER DEFAULT 0,
+  fa_confiscated INTEGER DEFAULT 0,
+  fa_surrendered INTEGER DEFAULT 0, -- Surrendered total (CSW + HP + LP)
+  fa_recovered INTEGER DEFAULT 0,
+  fa_csw INTEGER DEFAULT 0,         -- Crew-Served Weapons (.50 cal, M60, Mortar)
+  fa_high_powered INTEGER DEFAULT 0,-- High Powered Rifles (M16, M14, AK47)
+  fa_low_powered INTEGER DEFAULT 0, -- Low Powered Firearms (Pistols, Revolvers, Shotguns)
+  tolf INTEGER DEFAULT 0,
+  kia INTEGER DEFAULT 0,
+  wia INTEGER DEFAULT 0,
+  war_materiel TEXT,
+  remarks TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_surrendered_date ON surrendered(op_date);
+
 CREATE TABLE IF NOT EXISTS sleo (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   control_number TEXT,

@@ -72,6 +72,10 @@
           <span class="ms text-blue-400">swords</span>
           <span class="truncate">Combat / Military Ops</span>
         </button>
+        <button onclick="switchTab('surrendered')" id="tab-surrendered" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
+          <span class="ms text-amber-400">handshake</span>
+          <span class="truncate">Surrendered</span>
+        </button>
         <button onclick="switchTab('sleo')" id="tab-sleo" class="side-tab w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-slate-200 text-left">
           <span class="ms text-indigo-400">local_police</span>
           <span class="truncate">Support to Law Enf. (SLEO)</span>
@@ -162,6 +166,7 @@
     <!-- Horizontal Swipeable Tabs on Mobile -->
     <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-3 pb-3 border-t border-white/10 pt-2 text-xs">
       <button onclick="switchTab('ops')" id="mob-tab-ops" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Combat Ops</button>
+      <button onclick="switchTab('surrendered')" id="mob-tab-surrendered" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">Surrendered</button>
       <button onclick="switchTab('sleo')" id="mob-tab-sleo" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">SLEO</button>
       <button onclick="switchTab('tolf')" id="mob-tab-tolf" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">TOLF</button>
       <button onclick="switchTab('hadr')" id="mob-tab-hadr" class="whitespace-nowrap px-3.5 py-2 rounded-xl bg-white/10 font-medium">HADR</button>
@@ -312,7 +317,7 @@ const $ = id => document.getElementById(id);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
 
 let currentTab = 'ops';
-let tabData = { ops: [], sleo: [], tolf: [], rido: [], hadr: [], incident_reports: [] };
+let tabData = { ops: [], surrendered: [], sleo: [], tolf: [], rido: [], hadr: [], incident_reports: [] };
 
 // Threat Group Mapping per Category
 const THREAT_MAPPING = {
@@ -437,6 +442,79 @@ const CATEGORIES = {
           }
         } catch(e) {}
         return (o.kia || o.wia) ? `<span class="badge bg-red-100 text-red-700 font-medium text-[10px] px-1.5 py-0 whitespace-nowrap" title="${esc(casDetails)}">${o.kia}K / ${o.wia}W</span>` : '<span class="text-slate-400 text-[10px]">0</span>';
+      }},
+      { key: 'war_mat', label: 'War Materiel', render: o => {
+        let parsed = null;
+        try { parsed = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel; } catch(e){}
+        if (!parsed) return '<span class="text-slate-400 text-[10px]">—</span>';
+        const badges = [];
+        if (parsed.enemy_camp) badges.push(`${parsed.enemy_camp} Camp`);
+        if (parsed.ied) badges.push(`${parsed.ied} IED`);
+        if (parsed.uxo) badges.push(`${parsed.uxo} UXO`);
+        if (parsed.ammo) badges.push(`${parsed.ammo} Ammo`);
+        if (parsed.magazine) badges.push(`${parsed.magazine} Mag`);
+        if (parsed.radio) badges.push(`${parsed.radio} Radio`);
+        if (parsed.vehicle || parsed.motorcycle) badges.push(`${(parsed.vehicle||0)+(parsed.motorcycle||0)} Veh`);
+        if (!badges.length) return '<span class="text-slate-400 text-[10px]">—</span>';
+        const allText = badges.join(', ');
+        return `<div class="max-w-[80px] sm:max-w-[110px] xl:max-w-[140px] truncate" title="${esc(allText)}"><span class="badge bg-amber-50 text-amber-900 border border-amber-200 text-[10px] px-1.5 py-0 truncate max-w-full inline-block">${esc(badges[0])}${badges.length > 1 ? ` +${badges.length - 1}` : ''}</span></div>`;
+      }},
+      { key: 'remarks', label: 'Remarks', render: o => `<span class="text-[11px] text-slate-500 truncate max-w-[70px] sm:max-w-[105px] xl:max-w-[150px] block" title="${esc(o.remarks || '')}">${esc(o.remarks || '—')}</span>` }
+    ]
+  },
+  surrendered: {
+    title: 'Surrendered Personalities & Firearms',
+    desc: 'Voluntary surrenders of threat personalities, turned-in firearms, and ordnance',
+    icon: 'handshake',
+    columns: [
+      { key: 'control_number', label: 'Control #', render: o => o.control_number ? `<span class="badge bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[11px] px-1.5 py-0.5 whitespace-nowrap">${esc(o.control_number)}</span>` : '<span class="text-slate-400 text-[11px]">—</span>' },
+      { key: 'op_date', label: 'Date', render: o => `<span class="font-mono text-slate-700 whitespace-nowrap text-[11px]">${esc(o.op_date || '—')}</span>` },
+      { key: 'unit', label: 'Unit / Brigade', render: o => {
+        let b = '';
+        let u = o.unit || '—';
+        try {
+          const wm = typeof o.war_materiel === 'string' ? JSON.parse(o.war_materiel) : o.war_materiel;
+          if (wm && wm.brigade) b = wm.brigade;
+          if (wm && wm.unit_only) u = wm.unit_only;
+        } catch(e) {}
+        const full = b && u && u !== b ? `${u} (${b})` : (o.unit || '—');
+        if (b && u && u !== b) {
+          return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] leading-tight" title="${esc(full)}"><div class="font-bold text-slate-800 truncate">${esc(u)}</div><div class="text-[10px] text-blue-600 font-semibold truncate">${esc(b)}</div></div>`;
+        }
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[155px] font-bold text-slate-800 truncate" title="${esc(full)}">${esc(o.unit || '—')}</div>`;
+      }},
+      { key: 'location', label: 'Location', render: o => {
+        const full = `${o.area || '—'}${o.province ? ', ' + o.province : ''}`;
+        return `<div class="max-w-[85px] sm:max-w-[120px] xl:max-w-[150px] leading-tight" title="${esc(full)}"><div class="text-slate-800 font-medium truncate">${esc(o.area || '—')}</div>${o.province ? `<div class="text-[10px] text-slate-400 truncate">${esc(o.province)}</div>` : ''}</div>`;
+      }},
+      { key: 'threat', label: 'Threat Classification', render: o => {
+        const tc = o.threat_category || '';
+        let acro = '—';
+        let badgeColor = 'bg-red-100 text-red-800 border-red-200';
+        if (tc.includes('LTG') || tc.toLowerCase().includes('local terrorist')) {
+          acro = 'LTG';
+          badgeColor = 'bg-red-100 text-red-800 border-red-200';
+        } else if (tc.includes('CTG') || tc.toLowerCase().includes('communist')) {
+          acro = 'CTG';
+          badgeColor = 'bg-purple-100 text-purple-800 border-purple-200';
+        } else if (tc.includes('PIAGs') || tc.toLowerCase().includes('piag')) {
+          acro = 'PIAGs';
+          badgeColor = 'bg-amber-100 text-amber-800 border-amber-200';
+        } else if (tc) {
+          acro = tc;
+        }
+        const grp = o.threat_group || '—';
+        return `<div class="flex items-center gap-1 max-w-[90px] sm:max-w-[125px] xl:max-w-[160px]" title="[${esc(acro)}] ${esc(grp)}${tc ? ' (' + esc(tc) + ')' : ''}"><span class="badge ${badgeColor} text-[10px] font-bold px-1.5 py-0 border shrink-0">${esc(acro)}</span><span class="font-bold text-slate-800 truncate">${esc(grp)}</span></div>`;
+      }},
+      { key: 'surrendered', label: 'Surrendered', render: o => {
+        const s = o.surrendered || 0;
+        return `<span class="badge bg-amber-50 text-amber-900 border border-amber-300 font-bold text-xs px-2 py-0.5 whitespace-nowrap" title="Surrendered: ${s}">${s} ${s === 1 ? 'Personality' : 'Personalities'}</span>`;
+      }},
+      { key: 'firearms', label: 'FAs Surrendered', render: o => {
+        const tot = o.fa_surrendered ?? o.firearms ?? 0;
+        const csw = o.fa_csw || 0, hp = o.fa_high_powered || 0, lp = o.fa_low_powered || 0;
+        let details = `Surrendered: ${tot} (${csw} CSW, ${hp} HP, ${lp} LP)`;
+        return `<div title="${esc(details)}" class="max-w-[95px] sm:max-w-[125px] whitespace-nowrap"><span class="font-bold text-green-700 text-xs">+${tot}</span> <span class="text-[10px] text-slate-500 font-mono">(${csw}C/${hp}H/${lp}L)</span></div>`;
       }},
       { key: 'war_mat', label: 'War Materiel', render: o => {
         let parsed = null;
@@ -736,6 +814,8 @@ const OPS_MONTHS = [
 
 let opsSelectedYear = new Date().getFullYear();
 let opsSelectedMonth = new Date().getMonth() + 1; // 1 to 12, or 'all'
+let surrenderedSelectedYear = new Date().getFullYear();
+let surrenderedSelectedMonth = new Date().getMonth() + 1;
 let sleoSelectedYear = new Date().getFullYear();
 let sleoSelectedMonth = new Date().getMonth() + 1;
 let tolfSelectedYear = new Date().getFullYear();
@@ -748,6 +828,7 @@ let incidentReportsSelectedYear = new Date().getFullYear();
 let incidentReportsSelectedMonth = new Date().getMonth() + 1;
 
 function getSelectedYear() {
+  if (currentTab === 'surrendered') return surrenderedSelectedYear;
   if (currentTab === 'sleo') return sleoSelectedYear;
   if (currentTab === 'tolf') return tolfSelectedYear;
   if (currentTab === 'rido') return ridoSelectedYear;
@@ -756,7 +837,8 @@ function getSelectedYear() {
   return opsSelectedYear;
 }
 function setSelectedYear(y) {
-  if (currentTab === 'sleo') sleoSelectedYear = y;
+  if (currentTab === 'surrendered') surrenderedSelectedYear = y;
+  else if (currentTab === 'sleo') sleoSelectedYear = y;
   else if (currentTab === 'tolf') tolfSelectedYear = y;
   else if (currentTab === 'rido') ridoSelectedYear = y;
   else if (currentTab === 'hadr') hadrSelectedYear = y;
@@ -764,6 +846,7 @@ function setSelectedYear(y) {
   else opsSelectedYear = y;
 }
 function getSelectedMonth() {
+  if (currentTab === 'surrendered') return surrenderedSelectedMonth;
   if (currentTab === 'sleo') return sleoSelectedMonth;
   if (currentTab === 'tolf') return tolfSelectedMonth;
   if (currentTab === 'rido') return ridoSelectedMonth;
@@ -772,7 +855,8 @@ function getSelectedMonth() {
   return opsSelectedMonth;
 }
 function setSelectedMonth(m) {
-  if (currentTab === 'sleo') sleoSelectedMonth = m;
+  if (currentTab === 'surrendered') surrenderedSelectedMonth = m;
+  else if (currentTab === 'sleo') sleoSelectedMonth = m;
   else if (currentTab === 'tolf') tolfSelectedMonth = m;
   else if (currentTab === 'rido') ridoSelectedMonth = m;
   else if (currentTab === 'hadr') hadrSelectedMonth = m;
@@ -931,7 +1015,7 @@ async function updateLatestControlNumber() {
   } catch(e) {}
 
   let latest = '';
-  for (const key of ['incident_reports', 'ops', 'sleo', 'tolf', 'rido', 'hadr']) {
+  for (const key of ['incident_reports', 'ops', 'surrendered', 'sleo', 'tolf', 'rido', 'hadr']) {
     const rows = tabData[key] || [];
     const withCtrl = rows.filter(x => x && x.control_number && String(x.control_number).trim() !== '');
     if (withCtrl.length) {
@@ -1077,6 +1161,7 @@ function renderTable() {
   if (!rows.length) {
     const entities = {
       ops: 'operations',
+      surrendered: 'surrendered records',
       sleo: 'SLEO records',
       tolf: 'TOLF records',
       rido: 'Rido cases',
@@ -1369,8 +1454,8 @@ function openModal(mode, id) {
   $('modal-subtitle').textContent = id ? `Updating record #${id}` : `Fill in the operation details below`;
   $('modal-submit-btn').innerHTML = `<span class="ms">save</span> ${id ? 'Update Record' : 'Save Record'}`;
 
-  // Specially customized form for Combat / Military Operations, Incident Reports, SLEO, TOLF & Rido Cases
-  if (currentTab === 'ops' || currentTab === 'incident_reports') {
+  // Specially customized form for Combat / Military Operations, Surrendered, Incident Reports, SLEO, TOLF & Rido Cases
+  if (currentTab === 'ops' || currentTab === 'incident_reports' || currentTab === 'surrendered') {
     renderCombatModalForm(record);
   } else if (currentTab === 'sleo') {
     renderSleoModalForm(record);
@@ -1387,6 +1472,7 @@ function openModal(mode, id) {
 
 function renderCombatModalForm(record) {
   const isIncidentReport = currentTab === 'incident_reports';
+  const isSurrendered = currentTab === 'surrendered';
 
   let warMat = {};
   if (record && record.war_materiel) {
@@ -1544,7 +1630,7 @@ function renderCombatModalForm(record) {
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
         <div>
-          <label>${isIncidentReport ? 'Date of Incident' : 'Date of Operation'} <span class="text-red-500">*</span></label>
+          <label>${isIncidentReport ? 'Date of Incident' : (isSurrendered ? 'Date of Surrender' : 'Date of Operation')} <span class="text-red-500">*</span></label>
           <input id="f_op_date" type="date" value="${esc(opDate)}" class="f" required>
         </div>
         <div>
@@ -1579,10 +1665,10 @@ function renderCombatModalForm(record) {
       </div>
     </div>
 
-    <!-- SECTION 2: Threat Classification & Engagement Type -->
+    <!-- SECTION 2: Threat Classification ${isSurrendered ? '' : '& Engagement Type'} -->
     <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-4">
       <div class="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-2">
-        <span class="ms !text-lg text-red-600">radar</span> Threat Classification & Engagement Type
+        <span class="ms !text-lg text-red-600">radar</span> ${isSurrendered ? 'Threat Classification' : 'Threat Classification & Engagement Type'}
       </div>
       
       <!-- Threat Category & Group Dropdowns (2 Columns) -->
@@ -1604,6 +1690,7 @@ function renderCombatModalForm(record) {
         </div>
       </div>
 
+      ${!isSurrendered ? `
       <!-- ENGAGEMENT TYPE SPREADSHEET TABLE -->
       <div class="space-y-1.5 pt-1">
         <label class="!mb-0 text-slate-700 font-bold">Engagement Type</label>
@@ -1741,9 +1828,21 @@ function renderCombatModalForm(record) {
             </tbody>
           </table>
         </div>`}
-      </div>
+      </div>` : ''}
     </div>
 
+    ${isSurrendered ? `
+    <!-- SECTION 3: Surrendered Personalities -->
+    <div class="card p-4 sm:p-5 border border-amber-300 bg-amber-50/30 space-y-3">
+      <div class="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+        <span class="ms !text-lg text-amber-700">how_to_reg</span> Surrendered Threat Personalities
+      </div>
+      <div class="max-w-xs">
+        <label>Number of Surrendered Personalities <span class="text-red-500">*</span></label>
+        <input id="f_surrendered" type="number" min="0" value="${record?.surrendered ?? 1}" class="f font-bold text-base" placeholder="e.g. 1" required>
+      </div>
+    </div>
+    ` : `
     <!-- SECTION 3: Casualties (Friendly & Enemy) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Friendly Casualties -->
@@ -1838,6 +1937,7 @@ function renderCombatModalForm(record) {
         </div>
       </div>
     </div>
+    `}
 
     <!-- SECTION 4: Firearms Gained (4 Exact Spreadsheet Blocks Matching User's Image) -->
     <div class="card p-4 sm:p-5 border border-slate-300 bg-white space-y-4 shadow-sm">
@@ -1850,6 +1950,37 @@ function renderCombatModalForm(record) {
         </div>
       </div>
 
+      ${isSurrendered ? `
+      <!-- Single FAs SURRENDERED Table for Surrendered Modal -->
+      <div class="max-w-md mx-auto sm:max-w-none border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+        <table class="w-full text-center border-collapse">
+          <thead>
+            <tr>
+              <th colspan="3" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border-b-2 border-black tracking-wider text-xs sm:text-sm">
+                FAs SURRENDERED
+              </th>
+            </tr>
+            <tr class="font-bold text-black text-xs">
+              <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">CSW</th>
+              <th class="bg-[#84cc58] py-1.5 px-1 border-r border-b border-black w-1/3">HP</th>
+              <th class="bg-[#84cc58] py-1.5 px-1 border-b border-black w-1/3">LP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="bg-white">
+              <td class="p-0 border-r border-b border-black"><input id="f_sur_csw" type="number" min="0" value="${fa.surrendered.csw}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+              <td class="p-0 border-r border-b border-black"><input id="f_sur_hp" type="number" min="0" value="${fa.surrendered.hp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+              <td class="p-0 border-b border-black"><input id="f_sur_lp" type="number" min="0" value="${fa.surrendered.lp}" oninput="calcCombatFirearms()" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition"></td>
+            </tr>
+            <tr class="bg-[#cbe5f8] font-bold text-xs text-black">
+              <td colspan="3" class="py-1.5 px-2 text-center border-t border-black">
+                Surrendered Total: <span id="sub-sur-badge" class="font-extrabold text-blue-950 ml-1">0</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      ` : `
       <!-- 4 Spreadsheet Tables Grid: Captured, Confiscated, Surrendered, Recovered -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
 
@@ -1974,6 +2105,7 @@ function renderCombatModalForm(record) {
         </div>
 
       </div>
+      `}
 
       <!-- Combined TOTAL FAs GAINED Table (Light Blue Theme) -->
       <div class="border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm">
@@ -2016,7 +2148,7 @@ function renderCombatModalForm(record) {
     <!-- SECTION 5: Captured/Seized War Materiel -->
     <div class="card p-4 sm:p-5 border border-slate-200/90 bg-slate-50/50 space-y-3.5">
       <div class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-        <span class="ms !text-lg text-amber-600">inventory_2</span> Captured / Seized War Materiel & Items
+        <span class="ms !text-lg text-amber-600">inventory_2</span> ${isSurrendered ? 'Turned-In / Recovered War Materiel & Items' : 'Captured / Seized War Materiel & Items'}
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
         <div>
@@ -3038,7 +3170,7 @@ async function handleFormSubmit(e) {
     control_number: ctrlNum
   };
 
-  if (currentTab === 'ops' || currentTab === 'incident_reports') {
+  if (currentTab === 'ops' || currentTab === 'incident_reports' || currentTab === 'surrendered') {
     const warMat = {
       enemy_camp: parseInt($('wm_enemy_camp')?.value || 0, 10) || 0,
       ied: parseInt($('wm_ied')?.value || 0, 10) || 0,
@@ -3173,7 +3305,8 @@ async function handleFormSubmit(e) {
     if (greCount > 0)    activeEngTypes.push(greCount > 1 ? `Grenade Throwing (${greCount})` : 'Grenade Throwing');
     if (othCount > 0)    activeEngTypes.push(othCount > 1 ? `Other Activities (${othCount})` : 'Other Activities');
 
-    const engTypeStr = activeEngTypes.length > 0 ? activeEngTypes.join(', ') : '—';
+    let engTypeStr = activeEngTypes.length > 0 ? activeEngTypes.join(', ') : '—';
+    if (currentTab === 'surrendered') engTypeStr = 'Surrender';
 
     const brigadeSel = ($('f_brigade')?.value || '').trim();
     const brigadeOther = ($('f_brigade_other')?.value || '').trim();
