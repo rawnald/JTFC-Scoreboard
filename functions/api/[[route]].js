@@ -209,6 +209,8 @@ function agg(rows) {
     tolf: 0, kia: 0, wia: 0,
     monthly: Array(12).fill(0), monthly_ops: Array(12).fill(0),
     monthly_sur: Array(12).fill(0), sur_monthly: Array(12).fill(0),
+    monthly_sur_ops: Array(12).fill(0), sur_ops_monthly: Array(12).fill(0),
+    monthly_sur_program: Array(12).fill(0), sur_program_monthly: Array(12).fill(0),
     monthly_sur_fa: Array(12).fill(0),
     groups: initGroups, brigades: {}, units: {}
   };
@@ -368,6 +370,13 @@ function agg(rows) {
         a.monthly_ops[mIdx] += opCount;
         a.monthly_sur[mIdx] += rSur;
         a.sur_monthly[mIdx] += rSur;
+        if (r._source_table === 'surrendered') {
+          a.monthly_sur_program[mIdx] += rSur;
+          a.sur_program_monthly[mIdx] += rSur;
+        } else {
+          a.monthly_sur_ops[mIdx] += rSur;
+          a.sur_ops_monthly[mIdx] += rSur;
+        }
         a.monthly_sur_fa[mIdx] += surFa;
       }
     }
@@ -642,6 +651,8 @@ export async function onRequest({ request, env, params }) {
             .bind(sDate, eDate).all();
           surRows = sRes.results || [];
         } catch(e) {}
+        for (const r of opsRows) r._source_table = 'ops';
+        for (const r of surRows) r._source_table = 'surrendered';
         return agg(filterRows(opsRows.concat(surRows)));
       };
 
@@ -860,6 +871,11 @@ export async function onRequest({ request, env, params }) {
       prev.sur_monthly = prev.sur_monthly || prev.monthly_sur || Array(12).fill(0);
       cur.monthly_sur = cur.sur_monthly;
       prev.monthly_sur = prev.sur_monthly;
+
+      cur.sur_ops_monthly = cur.sur_ops_monthly || cur.monthly_sur_ops || Array(12).fill(0);
+      cur.sur_program_monthly = cur.sur_program_monthly || cur.monthly_sur_program || Array(12).fill(0);
+      prev.sur_ops_monthly = prev.sur_ops_monthly || prev.monthly_sur_ops || Array(12).fill(0);
+      prev.sur_program_monthly = prev.sur_program_monthly || prev.monthly_sur_program || Array(12).fill(0);
 
       cur.sleo = curSleo.total || 0;
       cur.sleo_neutralized = curSleo.neutralized || 0;

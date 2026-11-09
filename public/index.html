@@ -873,8 +873,8 @@ async function load() {
       labels: M,
       datasets: [
         {
-          label: `Surrendered (${currentYear})`,
-          data: c.sur_monthly || c.monthly_sur || Array(12).fill(0),
+          label: `Surrendered LTG/CTG (${currentYear})`,
+          data: c.sur_program_monthly || c.monthly_sur_program || Array(12).fill(0),
           borderColor: '#023047',
           backgroundColor: 'rgba(2,48,71,.18)',
           fill: true,
@@ -884,14 +884,15 @@ async function load() {
           pointBackgroundColor: '#023047'
         },
         {
-          label: `Surrendered (${currentYear - 1})`,
-          data: p.sur_monthly || p.monthly_sur || Array(12).fill(0),
-          borderColor: '#94a3b8',
-          borderDash: [5, 5],
+          label: `Decisive Military Operations (${currentYear})`,
+          data: c.sur_ops_monthly || c.monthly_sur_ops || Array(12).fill(0),
+          borderColor: '#219ebc',
+          backgroundColor: 'rgba(33,158,188,.15)',
+          fill: false,
           tension: 0,
-          pointRadius: 3,
-          pointHoverRadius: 5,
-          pointBackgroundColor: '#94a3b8'
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#219ebc'
         }
       ]
     },
