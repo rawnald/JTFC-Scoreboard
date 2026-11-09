@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>JTFC Combat Scoreboard</title>
 <link rel="icon" type="image/png" href="/logo.png">
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
@@ -419,6 +422,7 @@ async function load() {
   if (currentBrigade) params.set('brigade', currentBrigade);
   if (currentRegion) params.set('region', currentRegion);
   if (currentProvince) params.set('province', currentProvince);
+  params.set('_t', Date.now());
 
   const res = await fetch('/api/stats?' + params.toString());
   const s = await res.json();

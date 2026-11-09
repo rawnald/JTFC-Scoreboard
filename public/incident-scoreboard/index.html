@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>JTFC Incident Scoreboard</title>
 <link rel="icon" type="image/png" href="/logo.png">
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
@@ -32,7 +35,7 @@
     <div class="flex items-center gap-3.5">
       <img src="/logo.png" alt="6ID Kampilan JTFC Logo" class="w-12 h-12 lg:w-16 lg:h-16 object-contain drop-shadow shrink-0">
       <div>
-        <h1 class="text-2xl lg:text-3xl font-bold text-[#0b1b5e] tracking-tight">JTFC INCIDENT SCOREBOARD</h1>
+        <h1 class="text-2xl lg:text-3xl font-bold text-[#0b1b5e] tracking-tight">JTFC INCIDENT MONITORING</h1>
         <p class="text-slate-600 text-sm">Summary of Significant Incident Reports & Monitored Engagements</p>
         <!-- Navigation Pill Switcher -->
         <div class="mt-2.5 flex items-center gap-2">
@@ -40,7 +43,7 @@
             <span class="ms !text-sm text-blue-600">military_tech</span> Combat Scoreboard
           </a>
           <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#0b1b5e] text-white shadow-sm ring-1 ring-[#0b1b5e]">
-            <span class="ms !text-sm text-teal-400">crisis_alert</span> Incident Scoreboard
+            <span class="ms !text-sm text-teal-400">crisis_alert</span> Incident Monitoring
           </span>
         </div>
       </div>
@@ -236,7 +239,8 @@
               <th class="py-2 pr-2">Brigade</th>
               <th class="py-2 px-1 text-center">Incidents</th>
               <th class="py-2 px-1 text-center">Harassment</th>
-              <th class="py-2 px-1 text-center">Ambush/Clash</th>
+              <th class="py-2 px-1 text-center">Armed Clash</th>
+              <th class="py-2 px-1 text-center">Ambush</th>
               <th class="py-2 px-1 text-center">Casualties</th>
               <th class="py-2 pl-1 text-center">FAs Gained</th>
             </tr>
@@ -500,13 +504,23 @@ function parseIncidentRow(o) {
   const a = getCount('ambush', [/ambush\s*(?:\((\d+)\))?/i]);
   const l = getCount('liquidation', [/liquidation\s*(?:\((\d+)\))?/i, /liquidate[d]?/i]);
   const s = getCount('shooting', [/shooting\s*(?:\((\d+)\))?/i, /shot\s+dead/i]);
+  const str = getCount('strafing', [/strafing\s*(?:\((\d+)\))?/i]);
   const c = (Number(we.armed_clash) || Number(we.clash) || 0) || (()=>{
     const m = et.match(/(?:armed\s*clash|clash|encounter)\s*(?:\((\d+)\))?/i);
     return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('armed clash') ? 1 : 0);
   })();
-  const i = (Number(we.ied) || Number(we.ied_explosion) || 0) || (()=>{
-    const m = et.match(/(?:ied\s*explosion|ied|explosion)\s*(?:\((\d+)\))?/i);
-    return m ? (m[1] ? Number(m[1]) : 1) : (rem.includes('ied explosion') ? 1 : 0);
+  const i = (Number(we.ied_explosion) || Number(we.ied) || 0) || (()=>{
+    if (et.includes('loud explosion') && !et.includes('ied')) return 0;
+    const m = et.match(/(?:ied\s*explosion|\bied\b)\s*(?:\((\d+)\))?/i);
+    if (m) return m[1] ? Number(m[1]) : 1;
+    if (et.includes('explosion') && !et.includes('loud')) return 1;
+    return 0;
+  })();
+  const le = (Number(we.loud_explosion) || 0) || (()=>{
+    const m = et.match(/loud\s*explosion\s*(?:\((\d+)\))?/i);
+    if (m) return m[1] ? Number(m[1]) : 1;
+    if (et.includes('loud explosion')) return 1;
+    return 0;
   })();
   const b = (Number(we.bus_bombing) || 0) || (()=>{
     const m = et.match(/bus\s*bomb(?:ing)?\s*(?:\((\d+)\))?/i);
@@ -525,20 +539,22 @@ function parseIncidentRow(o) {
     return m ? (m[1] ? Number(m[1]) : 1) : 0;
   })();
 
-  const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && c === 0 && i === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
+  const isOther = (h === 0 && a === 0 && l === 0 && s === 0 && str === 0 && c === 0 && i === 0 && le === 0 && b === 0 && cr === 0 && ar === 0 && oCount === 0) ? 1 : oCount;
 
   return {
     harassment: h,
     ambush: a,
     liquidation: l,
     shooting: s,
+    strafing: str,
     armed_clash: c,
     ied_explosion: i,
+    loud_explosion: le,
     bus_bombing: b,
     carnapping: cr,
     active_rido: ar,
     other_incidents: isOther,
-    total: h + a + l + s + c + i + b + cr + ar + isOther
+    total: h + a + l + s + str + c + i + le + b + cr + ar + isOther
   };
 }
 
@@ -548,7 +564,9 @@ function getPrimaryEngagementType(eng, fallback) {
   if (eng.armed_clash > 0) return 'Armed Clash';
   if (eng.liquidation > 0) return 'Liquidation';
   if (eng.shooting > 0) return 'Shooting';
+  if (eng.strafing > 0) return 'Strafing';
   if (eng.ied_explosion > 0) return 'IED Explosion';
+  if (eng.loud_explosion > 0) return 'Loud Explosion';
   if (eng.bus_bombing > 0) return 'Bus Bombing';
   if (eng.carnapping > 0) return 'Carnapping';
   if (eng.active_rido > 0) return 'Active Rido';
@@ -568,6 +586,7 @@ async function load() {
   if (currentBrigade) params.set('brigade', currentBrigade);
   if (currentRegion) params.set('region', currentRegion);
   if (currentProvince) params.set('province', currentProvince);
+  params.set('_t', Date.now());
 
   let s = null;
   try {
@@ -893,7 +912,9 @@ async function load() {
     { label: 'Armed Clash', val: c.armed_clash || 0, color: '#ea580c' },
     { label: 'Liquidation', val: c.liquidation || 0, color: '#8b5cf6' },
     { label: 'Shooting', val: c.shooting || 0, color: '#475569' },
+    { label: 'Strafing', val: c.strafing || 0, color: '#64748b' },
     { label: 'IED Explosion', val: c.ied_explosion || 0, color: '#eab308' },
+    { label: 'Loud Explosion', val: c.loud_explosion || 0, color: '#f97316' },
     { label: 'Bus Bombing', val: c.bus_bombing || 0, color: '#ec4899' },
     { label: 'Carnapping', val: c.carnapping || 0, color: '#0d9488' },
     { label: 'Active Rido', val: c.active_rido || 0, color: '#6366f1' },
@@ -949,11 +970,12 @@ async function load() {
       <td class="py-2.5 pr-2 font-semibold text-slate-800 whitespace-nowrap">${esc(u.brigade || u.unit || '—')}</td>
       <td class="py-2.5 px-1 text-center"><span class="inline-block min-w-[28px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-xs">${u.incidents || 0}</span></td>
       <td class="py-2.5 px-1 text-center font-bold text-amber-700">${u.harassment || 0}</td>
-      <td class="py-2.5 px-1 text-center font-bold text-rose-700">${(u.ambush || 0) + (u.armed_clash || 0)}</td>
+      <td class="py-2.5 px-1 text-center font-bold text-orange-700">${u.armed_clash || 0}</td>
+      <td class="py-2.5 px-1 text-center font-bold text-rose-700">${u.ambush || 0}</td>
       <td class="py-2.5 px-1 text-center text-xs font-semibold text-slate-700" title="Govt: ${u.govt_casualties || 0} (KIA: ${u.kia || 0}, WIA: ${u.wia || 0}) | Enemy: ${u.neutralized || 0}">${u.govt_casualties || 0} G / ${u.neutralized || 0} E</td>
       <td class="py-2.5 pl-1 text-center"><span class="inline-block min-w-[28px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-xs" title="HPFAs: ${u.fa_hp || 0}, LPFAs: ${u.fa_lp || 0}, CSW: ${u.fa_csw || 0}">${u.firearms || 0}</span></td>
     </tr>
-  `).join('') || '<tr><td colspan="6" class="py-4 text-center text-slate-400">No incident records found for this selection</td></tr>';
+  `).join('') || '<tr><td colspan="7" class="py-4 text-center text-slate-400">No incident records found for this selection</td></tr>';
 
   // RENDER RECENT INCIDENT REPORTS LOG
   renderIncidentLogTable();
@@ -1024,10 +1046,10 @@ function renderPrimaryIncidentKpis(c, p) {
       shadow: 'shadow-orange-500/20'
     },
     {
-      title: 'IED Explosion',
-      val: fmt(c.ied_explosion || 0),
-      sub: 'IED Detonations / Blasts',
-      delta: delta(c.ied_explosion || 0, p.ied_explosion || 0),
+      title: 'Explosion',
+      val: `${fmt(c.ied_explosion || 0)} IED Explosion / ${fmt(c.loud_explosion || 0)} Loud Explosion`,
+      sub: 'From Incident Reports',
+      delta: delta((c.ied_explosion || 0) + (c.loud_explosion || 0), (p.ied_explosion || 0) + (p.loud_explosion || 0)),
       icon: '<span class="ms !text-2xl">bomb</span>',
       bg: 'bg-gradient-to-br from-yellow-600 to-amber-700',
       shadow: 'shadow-yellow-500/20'
@@ -1069,7 +1091,7 @@ function renderPrimaryIncidentKpis(c, p) {
         </div>
         <div class="min-w-0 flex-1">
           <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate" title="${esc(card.title)}">${esc(card.title)}</div>
-          <div class="text-xl sm:text-2xl font-extrabold text-[#0b1b5e] leading-tight mt-0.5 truncate" title="${esc(String(card.val))}">${esc(String(card.val))}</div>
+          <div class="${String(card.val).includes('/') ? 'text-xs sm:text-sm font-extrabold' : 'text-xl sm:text-2xl font-extrabold'} text-[#0b1b5e] leading-tight mt-0.5 truncate" title="${esc(String(card.val))}">${esc(String(card.val))}</div>
         </div>
       </div>
       <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10.5px] sm:text-[11px] font-medium text-slate-600">
@@ -1087,6 +1109,7 @@ function renderSecondaryImpactKpis(c, p) {
 
   const curGovtCas = (c.kia || 0) + (c.wia || 0);
   const prevGovtCas = (p.kia || 0) + (p.wia || 0);
+  const govtCasSub = `${c.govt_afp || 0} Regular Forces / ${c.govt_caa || 0} CAA / ${c.govt_pnp || 0} PNP`;
 
   const curNz = c.enemy_neutralized || ((c.killed || 0) + (c.captured || 0) + (c.surrendered || 0) + (c.apprehended || 0));
   const prevNz = p.enemy_neutralized || ((p.killed || 0) + (p.captured || 0) + (p.surrendered || 0) + (p.apprehended || 0));
@@ -1122,8 +1145,8 @@ function renderSecondaryImpactKpis(c, p) {
   }
 
   container.innerHTML =
-    cardHtml('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta(curGovtCas, prevGovtCas, true), 'Govt Forces Affected') +
-    cardHtml('shield', '#2563eb', 'Enemy Neutralized', curNz, delta(curNz, prevNz), `${c.killed || 0} KIA, ${c.captured || 0} Cap, ${c.surrendered || 0} Surr`) +
+    cardHtml('healing', '#e11d48', 'Government Casualties', `${c.kia || 0} KIA / ${c.wia || 0} WIA`, delta(curGovtCas, prevGovtCas, true), govtCasSub) +
+    cardHtml('shield', '#2563eb', 'Enemy Neutralized', curNz, delta(curNz, prevNz), `${c.killed || 0} Killed, ${c.captured || 0} Cap, ${c.surrendered || 0} Surr`) +
     cardHtml(pistolIcon, '#16a34a', 'Firearms Gained', curFa, delta(curFa, prevFa), faSub) +
     cardHtml('warning', '#d97706', 'War Materiel Intercepted', curWm, delta(curWm, prevWm), 'IEDs, UXOs & Explosives');
 }
@@ -1252,9 +1275,10 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
     const a = {
       total_records: rows.length,
       total_incidents: 0,
-      harassment: 0, ambush: 0, liquidation: 0, shooting: 0,
-      armed_clash: 0, ied_explosion: 0, bus_bombing: 0, carnapping: 0,
+      harassment: 0, ambush: 0, liquidation: 0, shooting: 0, strafing: 0,
+      armed_clash: 0, ied_explosion: 0, loud_explosion: 0, bus_bombing: 0, carnapping: 0,
       active_rido: 0, other_incidents: 0, kia: 0, wia: 0, govt_casualties: 0,
+      govt_afp: 0, govt_caa: 0, govt_pnp: 0,
       killed: 0, enemy_wounded: 0, captured: 0, apprehended: 0, surrendered: 0, sur_ctg: 0, sur_ltg: 0, sur_piag: 0, enemy_neutralized: 0,
       firearms: 0, fa_ctg: 0, fa_ltg: 0, fa_piag: 0, fa_hp: 0, fa_lp: 0, fa_csw: 0, war_materiel_count: 0,
       monthly: Array(12).fill(0),
@@ -1276,16 +1300,35 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       a.ambush += eng.ambush;
       a.liquidation += eng.liquidation;
       a.shooting += eng.shooting;
+      a.strafing = (a.strafing || 0) + eng.strafing;
       a.armed_clash += eng.armed_clash;
       a.ied_explosion += eng.ied_explosion;
+      a.loud_explosion = (a.loud_explosion || 0) + eng.loud_explosion;
       a.bus_bombing += eng.bus_bombing;
       a.carnapping += eng.carnapping;
       a.active_rido += eng.active_rido;
       a.other_incidents += eng.other_incidents;
 
+      const rGovtCas = (r.kia || 0) + (r.wia || 0);
       a.kia += (r.kia || 0);
       a.wia += (r.wia || 0);
-      a.govt_casualties += (r.kia || 0) + (r.wia || 0);
+      a.govt_casualties += rGovtCas;
+
+      let rAfp = 0, rCaa = 0, rPnp = 0;
+      if (r.war_materiel) {
+        try {
+          const wm = typeof r.war_materiel === 'object' ? r.war_materiel : JSON.parse(r.war_materiel);
+          rAfp = wm?.govt_casualties?.afp ?? wm?.cas_afp ?? wm?.afp ?? ((wm?.govt_casualties?.afp_kia || 0) + (wm?.govt_casualties?.afp_wia || 0));
+          rCaa = wm?.govt_casualties?.caa ?? wm?.cas_caa ?? wm?.caa ?? ((wm?.govt_casualties?.caa_kia || 0) + (wm?.govt_casualties?.caa_wia || 0));
+          rPnp = wm?.govt_casualties?.pnp ?? wm?.cas_pnp ?? wm?.pnp ?? ((wm?.govt_casualties?.pnp_kia || 0) + (wm?.govt_casualties?.pnp_wia || 0));
+        } catch(e) {}
+      }
+      if ((rAfp + rCaa + rPnp) < rGovtCas) {
+        rAfp += (rGovtCas - (rAfp + rCaa + rPnp));
+      }
+      a.govt_afp += Number(rAfp || 0);
+      a.govt_caa += Number(rCaa || 0);
+      a.govt_pnp += Number(rPnp || 0);
 
       const nz = (r.killed || 0) + (r.captured || 0) + (r.surrendered || 0) + (r.apprehended || 0);
       a.killed += (r.killed || 0);
@@ -1356,7 +1399,7 @@ function processIncidentStatsClient(allRows, sDate, eDate, threatCat, bde, reg, 
       b.firearms += fa;
     });
 
-    const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + a.armed_clash + a.ied_explosion + a.bus_bombing + a.carnapping + a.active_rido + a.other_incidents;
+    const sumAll = a.harassment + a.ambush + a.liquidation + a.shooting + (a.strafing || 0) + a.armed_clash + a.ied_explosion + (a.loud_explosion || 0) + a.bus_bombing + a.carnapping + a.active_rido + a.other_incidents;
     a.total_incidents = Math.max(a.total_incidents, sumAll, a.total_records);
     return a;
   }
