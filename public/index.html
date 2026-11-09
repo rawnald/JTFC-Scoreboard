@@ -546,60 +546,7 @@ async function load() {
       </div>
     </div>
 
-    <!-- SECTION 2 & 3: Surrendered LTG/CTG (#023047) and SALW (#22c55e Light Green) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
-      <div class="lg:col-span-7 flex flex-col justify-between space-y-2">
-        <div class="flex items-center gap-2">
-          <div class="px-3 py-1 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #023047;">
-            <span class="ms !text-base">handshake</span> Surrendered LTG/CTG
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 flex-1">
-          ${kpiCard({
-            title: 'Nr of Surrendered LTGs/CTGs',
-            val: c.sur || 0,
-            subHtml: `<div>${c.sur_ltg || 0} LTGs</div><div>${c.sur_ctg || 0} CTGs</div><div>${c.sur_piag || 0} PAGs</div>`,
-            borderColor: '#023047'
-          })}
-          ${kpiCard({
-            title: 'Nr of Surrendered Firearms',
-            val: c.sur_fa || 0,
-            subHtml: `<div>${c.sur_fa_hp || 0} HPFAs</div><div>${c.sur_fa_lp || 0} LPFAs</div><div>${c.sur_fa_csw || 0} CSW</div>`,
-            borderColor: '#023047'
-          })}
-          ${kpiCard({
-            title: 'Nr of Surr IED/UXO/EPLSV',
-            val: (c.sur_ied || 0) + (c.sur_uxo || 0) + (c.sur_expl || 0),
-            subHtml: `<div>${c.sur_ied || 0} IED</div><div>${c.sur_uxo || 0} UXO</div><div>${c.sur_expl || 0} Explosives</div>`,
-            borderColor: '#023047'
-          })}
-        </div>
-      </div>
-
-      <div class="lg:col-span-5 flex flex-col justify-between space-y-2">
-        <div class="flex items-center gap-2">
-          <div class="px-3 py-1 text-black font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #22c55e;">
-            <span class="ms !text-base">inventory_2</span> Small Arms and Light Weapons (SALW) Management Program
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 flex-1">
-          ${kpiCard({
-            title: 'Nr of FAs Surrendered',
-            val: c.tolf || 0,
-            subHtml: `<div>${c.tolf_hp || 0} HPFAs</div><div>${c.tolf_lp || 0} LPFAs</div><div>${c.tolf_csw || 0} CSW</div>`,
-            borderColor: '#22c55e'
-          })}
-          ${kpiCard({
-            title: 'Surrendered IED/UXO/Explosive',
-            val: (c.tolf_ied || 0) + (c.tolf_uxo || 0) + (c.tolf_expl || 0),
-            subHtml: `<div>${c.tolf_ied || 0} IED</div><div>${c.tolf_uxo || 0} UXO</div><div>${c.tolf_expl || 0} Explosives</div>`,
-            borderColor: '#22c55e'
-          })}
-        </div>
-      </div>
-    </div>
-
-    <!-- SECTION 4: Support to Law Enforcement Operation (SLEO) (#fb8500) -->
+    <!-- SECTION 2: Support to Law Enforcement Operation (SLEO) (#fb8500) -->
     <div class="space-y-2">
       <div class="flex items-center gap-2">
         <div class="px-3 py-1 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #fb8500;">
@@ -661,6 +608,59 @@ async function load() {
           subHtml: `<div>₱${(c.sleo_smuggling_val || 0).toLocaleString()} Est Amount</div><div>${(c.sleo_smuggling_boxes || 0).toLocaleString()} Boxes</div>`,
           borderColor: '#fb8500'
         })}
+      </div>
+    </div>
+
+    <!-- SECTION 3 & 4: Surrendered LTG/CTG (#023047) and SALW (#22c55e Light Green) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
+      <div class="lg:col-span-7 flex flex-col justify-between space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #023047;">
+            <span class="ms !text-base">handshake</span> Surrendered LTG/CTG
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 flex-1">
+          ${kpiCard({
+            title: 'Nr of Surrendered LTGs/CTGs',
+            val: c.sur || 0,
+            subHtml: `<div>${c.sur_ltg || 0} LTGs</div><div>${c.sur_ctg || 0} CTGs</div><div>${c.sur_piag || 0} PAGs</div>`,
+            borderColor: '#023047'
+          })}
+          ${kpiCard({
+            title: 'Nr of Surrendered Firearms',
+            val: c.sur_fa || 0,
+            subHtml: `<div>${c.sur_fa_hp || 0} HPFAs</div><div>${c.sur_fa_lp || 0} LPFAs</div><div>${c.sur_fa_csw || 0} CSW</div>`,
+            borderColor: '#023047'
+          })}
+          ${kpiCard({
+            title: 'Nr of Surr IED/UXO/EPLSV',
+            val: (c.sur_ied || 0) + (c.sur_uxo || 0) + (c.sur_expl || 0),
+            subHtml: `<div>${c.sur_ied || 0} IED</div><div>${c.sur_uxo || 0} UXO</div><div>${c.sur_expl || 0} Explosives</div>`,
+            borderColor: '#023047'
+          })}
+        </div>
+      </div>
+
+      <div class="lg:col-span-5 flex flex-col justify-between space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1 text-black font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded shadow-sm inline-flex items-center gap-1.5" style="background-color: #22c55e;">
+            <span class="ms !text-base">inventory_2</span> Small Arms and Light Weapons (SALW) Management Program
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 flex-1">
+          ${kpiCard({
+            title: 'Nr of FAs Surrendered',
+            val: c.tolf || 0,
+            subHtml: `<div>${c.tolf_hp || 0} HPFAs</div><div>${c.tolf_lp || 0} LPFAs</div><div>${c.tolf_csw || 0} CSW</div>`,
+            borderColor: '#22c55e'
+          })}
+          ${kpiCard({
+            title: 'Surrendered IED/UXO/Explosive',
+            val: (c.tolf_ied || 0) + (c.tolf_uxo || 0) + (c.tolf_expl || 0),
+            subHtml: `<div>${c.tolf_ied || 0} IED</div><div>${c.tolf_uxo || 0} UXO</div><div>${c.tolf_expl || 0} Explosives</div>`,
+            borderColor: '#22c55e'
+          })}
+        </div>
       </div>
     </div>
   `;
