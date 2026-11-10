@@ -208,6 +208,8 @@
 </main>
 <script>
 const $=id=>document.getElementById(id), blue='#219ebc', charts={};
+const fmtNum=n=>{if(n===null||n===undefined||n==='')return '0';if(typeof n==='number')return n.toLocaleString('en-US');const num=Number(n);return isNaN(num)?String(n):num.toLocaleString('en-US')};
+const fmtGrams=n=>{const num=Number(n)||0;return num.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
 const delta=(c,p,inv)=>{if(!p)return'<span class="text-slate-400">—</span>';const d=(c-p)/p*100,good=inv?d<=0:d>=0;return `<span class="${good?'text-green-600':'text-red-600'} font-medium flex items-center"><span class="ms !text-base">${d>=0?'arrow_upward':'arrow_downward'}</span>${d>=0?'+':''}${d.toFixed(1)}%</span>`};
 const draw=(id,cfg)=>{charts[id]?.destroy();charts[id]=new Chart($(id),cfg)};
 const opt={responsive:true,maintainAspectRatio:false};
@@ -215,8 +217,11 @@ const pistolIcon = `<svg class="w-6 h-6" viewBox="0 0 576 512" fill="currentColo
 const armaliteIcon = `<svg class="w-7 h-7" viewBox="0 1 32 16" fill="currentColor"><path d="M1 5 L8 6.5 L10.5 6.5 L10.8 3.5 L15 3.5 L16 6.5 L23 6.5 L23.5 3 L24.2 3 L24.5 6.8 L29.5 7.2 L29.5 6.8 L31 6.8 L31 8.3 L29.5 8.3 L29.5 8 L24.5 8 L24.2 9.6 L23.2 9.6 L23 8.8 L16 8.8 L15.5 9.5 L15.5 14.8 L14 15.2 L13.5 9.5 L13 10.8 L11.5 10.8 L11.5 9.5 L10.6 14.5 L9 14.2 L9.8 9 L8 9 L1.5 11 Z M11.8 4.5 L14.2 4.5 L14.8 5.7 L11.4 5.7 Z"/></svg>`;
 
 function kpiCard({ title, subtitle, val, subHtml, borderColor = '#219ebc', titleColor = '#0b1b5e' }) {
-  const valStr = String(val ?? 0);
-  const valSize = valStr.length > 7 ? 'text-lg sm:text-xl' : (valStr.length > 4 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl');
+  const displayVal = (typeof val === 'number')
+    ? fmtNum(val)
+    : (!isNaN(val) && val !== '' && val !== null ? fmtNum(Number(val)) : (val ?? 0));
+  const valStr = String(displayVal ?? 0);
+  const valSize = valStr.length > 8 ? 'text-base sm:text-lg' : (valStr.length > 6 ? 'text-lg sm:text-xl' : (valStr.length > 5 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'));
   return `
     <div class="card p-2.5 sm:p-3 flex flex-col justify-between shadow-sm transition hover:shadow-md bg-white" style="border: 2px solid ${borderColor};">
       <div>
@@ -226,7 +231,7 @@ function kpiCard({ title, subtitle, val, subHtml, borderColor = '#219ebc', title
         ${subtitle ? `<div class="text-[8.5px] font-extrabold uppercase tracking-tight text-amber-600 leading-none mt-0.5">${subtitle}</div>` : ''}
         <div class="flex items-center justify-between gap-1.5 mt-2 pt-0.5">
           <div class="${valSize} font-black text-[#0b1b5e] leading-none shrink-0">
-            ${val}
+            ${displayVal}
           </div>
           <div class="text-[9.5px] sm:text-[10px] font-bold text-slate-800 leading-snug border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap overflow-hidden">
             ${subHtml}
@@ -514,13 +519,13 @@ async function load() {
           title: 'Nr of Encounters',
           subtitle: "GOV'T ENCOUNTERS",
           val: c.enc || 0,
-          subHtml: `<div>${c.enc_ltg || 0} LTG</div><div>${c.enc_ctg || 0} CTG</div>`,
+          subHtml: `<div>${fmtNum(c.enc_ltg || 0)} LTG</div><div>${fmtNum(c.enc_ctg || 0)} CTG</div>`,
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'Government Casualties',
           val: (c.kia || 0) + (c.wia || 0),
-          subHtml: `<div>${c.kia || 0} KIA</div><div>${c.wia || 0} WIA</div>`,
+          subHtml: `<div>${fmtNum(c.kia || 0)} KIA</div><div>${fmtNum(c.wia || 0)} WIA</div>`,
           borderColor: '#219ebc'
         })}
         <div class="card p-2.5 sm:p-3 flex flex-col justify-between shadow-sm transition hover:shadow-md bg-white col-span-2" style="border: 2px solid #219ebc;">
@@ -536,11 +541,11 @@ async function load() {
                 </div>
                 <div class="flex items-center justify-between gap-1.5 mt-1.5">
                   <div class="text-2xl sm:text-3xl font-black text-[#0b1b5e] leading-none shrink-0">
-                    ${(c.kil_ltg || 0) + (c.wnd_ltg || 0)}
+                    ${fmtNum((c.kil_ltg || 0) + (c.wnd_ltg || 0))}
                   </div>
                   <div class="text-[9.5px] sm:text-[10px] font-bold text-slate-800 leading-snug border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap">
-                    <div>${c.kil_ltg || 0} KLD</div>
-                    <div>${c.wnd_ltg || 0} WND</div>
+                    <div>${fmtNum(c.kil_ltg || 0)} KLD</div>
+                    <div>${fmtNum(c.wnd_ltg || 0)} WND</div>
                   </div>
                 </div>
               </div>
@@ -552,11 +557,11 @@ async function load() {
                 </div>
                 <div class="flex items-center justify-between gap-1.5 mt-1.5">
                   <div class="text-2xl sm:text-3xl font-black text-[#0b1b5e] leading-none shrink-0">
-                    ${(c.kil_ctg || 0) + (c.wnd_ctg || 0)}
+                    ${fmtNum((c.kil_ctg || 0) + (c.wnd_ctg || 0))}
                   </div>
                   <div class="text-[9.5px] sm:text-[10px] font-bold text-slate-800 leading-snug border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap">
-                    <div>${c.kil_ctg || 0} KLD</div>
-                    <div>${c.wnd_ctg || 0} WND</div>
+                    <div>${fmtNum(c.kil_ctg || 0)} KLD</div>
+                    <div>${fmtNum(c.wnd_ctg || 0)} WND</div>
                   </div>
                 </div>
               </div>
@@ -576,12 +581,12 @@ async function load() {
                 </div>
                 <div class="flex items-center justify-between gap-1.5 mt-1.5">
                   <div class="text-2xl sm:text-3xl font-black text-[#0b1b5e] leading-none shrink-0">
-                    ${c.fa_ltg || 0}
+                    ${fmtNum(c.fa_ltg || 0)}
                   </div>
                   <div class="text-[9px] sm:text-[9.5px] font-bold text-slate-800 leading-tight border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap">
-                    <div>${c.fa_ltg_hp || 0} HPFAs</div>
-                    <div>${c.fa_ltg_lp || 0} LPFAs</div>
-                    <div>${c.fa_ltg_csw || 0} CSW</div>
+                    <div>${fmtNum(c.fa_ltg_hp || 0)} HPFAs</div>
+                    <div>${fmtNum(c.fa_ltg_lp || 0)} LPFAs</div>
+                    <div>${fmtNum(c.fa_ltg_csw || 0)} CSW</div>
                   </div>
                 </div>
               </div>
@@ -593,12 +598,12 @@ async function load() {
                 </div>
                 <div class="flex items-center justify-between gap-1.5 mt-1.5">
                   <div class="text-2xl sm:text-3xl font-black text-[#0b1b5e] leading-none shrink-0">
-                    ${c.fa_ctg || 0}
+                    ${fmtNum(c.fa_ctg || 0)}
                   </div>
                   <div class="text-[9px] sm:text-[9.5px] font-bold text-slate-800 leading-tight border-l-2 border-slate-100 pl-1.5 text-right whitespace-nowrap">
-                    <div>${c.fa_ctg_hp || 0} HPFAs</div>
-                    <div>${c.fa_ctg_lp || 0} LPFAs</div>
-                    <div>${c.fa_ctg_csw || 0} CSW</div>
+                    <div>${fmtNum(c.fa_ctg_hp || 0)} HPFAs</div>
+                    <div>${fmtNum(c.fa_ctg_lp || 0)} LPFAs</div>
+                    <div>${fmtNum(c.fa_ctg_csw || 0)} CSW</div>
                   </div>
                 </div>
               </div>
@@ -608,13 +613,13 @@ async function load() {
         ${kpiCard({
           title: 'Discovered EN Encampment',
           val: c.camps || 0,
-          subHtml: `<div>${c.camps_ltg || 0} LTG</div><div>${c.camps_ctg || 0} CTG</div>`,
+          subHtml: `<div>${fmtNum(c.camps_ltg || 0)} LTG</div><div>${fmtNum(c.camps_ctg || 0)} CTG</div>`,
           borderColor: '#219ebc'
         })}
         ${kpiCard({
           title: 'Recovered IED/UXO',
           val: (c.ied || 0) + (c.uxo || 0),
-          subHtml: `<div>${(c.ied_ltg || 0) + (c.uxo_ltg || 0)} LTG</div><div>${(c.ied_ctg || 0) + (c.uxo_ctg || 0)} CTG</div>`,
+          subHtml: `<div>${fmtNum((c.ied_ltg || 0) + (c.uxo_ltg || 0))} LTG</div><div>${fmtNum((c.ied_ctg || 0) + (c.uxo_ctg || 0))} CTG</div>`,
           borderColor: '#219ebc'
         })}
       </div>
@@ -631,31 +636,31 @@ async function load() {
         ${kpiCard({
           title: 'Nr Operations Conducted',
           val: c.sleo || 0,
-          subHtml: `<div>${c.sleo_buybust || 0} Buy Bust Opns</div><div>${c.sleo_anticrim || 0} Anti-Crim</div><div>${c.sleo_logging || 0} Logging</div><div>${c.sleo_smuggling || 0} Smuggling</div>`,
+          subHtml: `<div>${fmtNum(c.sleo_buybust || 0)} Buy Bust Opns</div><div>${fmtNum(c.sleo_anticrim || 0)} Anti-Crim</div><div>${fmtNum(c.sleo_logging || 0)} Logging</div><div>${fmtNum(c.sleo_smuggling || 0)} Smuggling</div>`,
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Neutralized Personalities',
           val: c.sleo_neutralized || 0,
-          subHtml: `<div>${c.sleo_kil || 0} KLD</div><div>${c.sleo_wnd || 0} WND</div><div>${c.sleo_sur || 0} Surrendered</div><div>${c.sleo_app || 0} Apprehended</div>`,
+          subHtml: `<div>${fmtNum(c.sleo_kil || 0)} KLD</div><div>${fmtNum(c.sleo_wnd || 0)} WND</div><div>${fmtNum(c.sleo_sur || 0)} Surrendered</div><div>${fmtNum(c.sleo_app || 0)} Apprehended</div>`,
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Neutralized Firearms',
           val: c.sleo_fa || 0,
-          subHtml: `<div>${c.sleo_fa_hp || 0} HPFAs</div><div>${c.sleo_fa_lp || 0} LPFAs</div><div>${c.sleo_fa_csw || 0} CSW</div>`,
+          subHtml: `<div>${fmtNum(c.sleo_fa_hp || 0)} HPFAs</div><div>${fmtNum(c.sleo_fa_lp || 0)} LPFAs</div><div>${fmtNum(c.sleo_fa_csw || 0)} CSW</div>`,
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Recovered IED/UXO/Explosive',
           val: (c.sleo_ied || 0) + (c.sleo_uxo || 0) + (c.sleo_expl || 0),
-          subHtml: `<div>${c.sleo_ied || 0} IED</div><div>${c.sleo_uxo || 0} UXO</div><div>${c.sleo_expl || 0} Explosives</div>`,
+          subHtml: `<div>${fmtNum(c.sleo_ied || 0)} IED</div><div>${fmtNum(c.sleo_uxo || 0)} UXO</div><div>${fmtNum(c.sleo_expl || 0)} Explosives</div>`,
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Other Recovered/War Materials',
           val: (c.sleo_ammo || 0) + (c.sleo_war_mat || 0),
-          subHtml: `<div>${c.sleo_ammo || 0} Ammunition</div><div>${c.sleo_war_mat || 0} War Materials</div>`,
+          subHtml: `<div>${fmtNum(c.sleo_ammo || 0)} Ammunition</div><div>${fmtNum(c.sleo_war_mat || 0)} War Materials</div>`,
           borderColor: '#fb8500'
         })}
         ${kpiCard({
@@ -667,19 +672,19 @@ async function load() {
         ${kpiCard({
           title: 'Confiscated Illegal Drugs',
           val: c.sleo_drugs_count || 0,
-          subHtml: `<div>₱${(c.sleo_drugs_val || 0).toLocaleString()} Est Amount</div><div>${c.sleo_drugs_grams || 0} Grams</div>`,
+          subHtml: `<div>₱${fmtNum(c.sleo_drugs_val || 0)} Est Amount</div><div>${fmtGrams(c.sleo_drugs_grams || 0)} Grams</div>`,
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Confiscated Logging',
           val: c.sleo_logging_count || 0,
-          subHtml: `<div>₱${(c.sleo_logging_val || 0).toLocaleString()} Est Amount</div><div>${(c.sleo_logging_bf || 0).toLocaleString()} Est Board feet</div>`,
+          subHtml: `<div>₱${fmtNum(c.sleo_logging_val || 0)} Est Amount</div><div>${fmtNum(c.sleo_logging_bf || 0)} Est Board feet</div>`,
           borderColor: '#fb8500'
         })}
         ${kpiCard({
           title: 'Smuggling (Cigarettes)',
           val: c.sleo_smuggling_count || 0,
-          subHtml: `<div>₱${(c.sleo_smuggling_val || 0).toLocaleString()} Est Amount</div><div>${(c.sleo_smuggling_boxes || 0).toLocaleString()} Boxes</div>`,
+          subHtml: `<div>₱${fmtNum(c.sleo_smuggling_val || 0)} Est Amount</div><div>${fmtNum(c.sleo_smuggling_boxes || 0)} Boxes</div>`,
           borderColor: '#fb8500'
         })}
       </div>
@@ -697,19 +702,19 @@ async function load() {
           ${kpiCard({
             title: 'Nr of Surrendered LTGs/CTGs',
             val: c.sur || 0,
-            subHtml: `<div>${c.sur_ltg || 0} LTGs</div><div>${c.sur_ctg || 0} CTGs</div><div>${c.sur_piag || 0} PAGs</div>`,
+            subHtml: `<div>${fmtNum(c.sur_ltg || 0)} LTGs</div><div>${fmtNum(c.sur_ctg || 0)} CTGs</div><div>${fmtNum(c.sur_piag || 0)} PAGs</div>`,
             borderColor: '#023047'
           })}
           ${kpiCard({
             title: 'Nr of Surrendered Firearms',
             val: c.sur_fa || 0,
-            subHtml: `<div>${c.sur_fa_hp || 0} HPFAs</div><div>${c.sur_fa_lp || 0} LPFAs</div><div>${c.sur_fa_csw || 0} CSW</div>`,
+            subHtml: `<div>${fmtNum(c.sur_fa_hp || 0)} HPFAs</div><div>${fmtNum(c.sur_fa_lp || 0)} LPFAs</div><div>${fmtNum(c.sur_fa_csw || 0)} CSW</div>`,
             borderColor: '#023047'
           })}
           ${kpiCard({
             title: 'Nr of Surr IED/UXO/EPLSV',
             val: (c.sur_ied || 0) + (c.sur_uxo || 0) + (c.sur_expl || 0),
-            subHtml: `<div>${c.sur_ied || 0} IED</div><div>${c.sur_uxo || 0} UXO</div><div>${c.sur_expl || 0} Explosives</div>`,
+            subHtml: `<div>${fmtNum(c.sur_ied || 0)} IED</div><div>${fmtNum(c.sur_uxo || 0)} UXO</div><div>${fmtNum(c.sur_expl || 0)} Explosives</div>`,
             borderColor: '#023047'
           })}
         </div>
@@ -725,13 +730,13 @@ async function load() {
           ${kpiCard({
             title: 'Nr of FAs Surrendered',
             val: c.tolf || 0,
-            subHtml: `<div>${c.tolf_hp || 0} HPFAs</div><div>${c.tolf_lp || 0} LPFAs</div><div>${c.tolf_csw || 0} CSW</div>`,
+            subHtml: `<div>${fmtNum(c.tolf_hp || 0)} HPFAs</div><div>${fmtNum(c.tolf_lp || 0)} LPFAs</div><div>${fmtNum(c.tolf_csw || 0)} CSW</div>`,
             borderColor: '#22c55e'
           })}
           ${kpiCard({
             title: 'Surrendered IED/UXO/Explosive',
             val: (c.tolf_ied || 0) + (c.tolf_uxo || 0) + (c.tolf_expl || 0),
-            subHtml: `<div>${c.tolf_ied || 0} IED</div><div>${c.tolf_uxo || 0} UXO</div><div>${c.tolf_expl || 0} Explosives</div>`,
+            subHtml: `<div>${fmtNum(c.tolf_ied || 0)} IED</div><div>${fmtNum(c.tolf_uxo || 0)} UXO</div><div>${fmtNum(c.tolf_expl || 0)} Explosives</div>`,
             borderColor: '#22c55e'
           })}
         </div>
@@ -873,7 +878,7 @@ async function load() {
       labels: M,
       datasets: [
         {
-          label: `Surrendered LTG/CTG (${currentYear})`,
+          label: `Surrendered LTG/CTG`,
           data: c.sur_program_monthly || c.monthly_sur_program || Array(12).fill(0),
           borderColor: '#023047',
           backgroundColor: 'rgba(2,48,71,.18)',
