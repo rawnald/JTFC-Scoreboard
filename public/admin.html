@@ -1467,6 +1467,8 @@ function openModal(mode, id) {
     renderStandardModalForm(cat, record);
   }
 
+  setupControlNumberValidation();
+
   $('modal').classList.remove('hidden');
 }
 
@@ -1636,9 +1638,10 @@ function renderCombatModalForm(record) {
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="!mb-0">Control #</label>
-            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'; validateControlNumberInput();" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
           </div>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
+          <div id="f_control_number_msg" class="text-xs font-semibold mt-1 hidden"></div>
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -2356,9 +2359,10 @@ function renderSleoModalForm(record) {
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="!mb-0">Control #</label>
-            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'; validateControlNumberInput();" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
           </div>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
+          <div id="f_control_number_msg" class="text-xs font-semibold mt-1 hidden"></div>
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -2749,9 +2753,10 @@ function renderTolfModalForm(record) {
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="!mb-0">Control #</label>
-            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'; validateControlNumberInput();" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
           </div>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
+          <div id="f_control_number_msg" class="text-xs font-semibold mt-1 hidden"></div>
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -2989,9 +2994,10 @@ function renderRidoModalForm(record) {
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="!mb-0">Control #</label>
-            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
+            ${!record?.control_number && getLatestCachedCtrl() ? `<button type="button" onclick="$('f_control_number').value='${esc(getLatestCachedCtrl())}'; validateControlNumberInput();" class="text-[10px] text-teal-600 hover:text-teal-800 font-semibold underline">Use Latest</button>` : ''}
           </div>
           <input id="f_control_number" type="text" value="${esc(record?.control_number || '')}" placeholder="${getLatestCachedCtrl() ? `Latest: ${esc(getLatestCachedCtrl())}` : 'e.g. CTRL-2026-001'}" class="f">
+          <div id="f_control_number_msg" class="text-xs font-semibold mt-1 hidden"></div>
         </div>
         ${renderBrigadeDropdownField(savedBrigade, true, 'f_brigade')}
         <div>
@@ -3141,6 +3147,7 @@ function renderStandardModalForm(cat, record) {
           <label>${f.label} ${f.required ? '<span class="text-red-500">*</span>' : ''}</label>
           <input id="f_${f.id}" type="${f.type || 'text'}" ${f.type === 'number' ? 'min="0"' : ''} 
                  value="${esc(val)}" placeholder="${esc(f.placeholder || '')}" class="f" ${f.required ? 'required' : ''}>
+          ${f.id === 'control_number' ? '<div id="f_control_number_msg" class="text-xs font-semibold mt-1 hidden"></div>' : ''}
         </div>`;
     }
   });
@@ -3158,6 +3165,77 @@ function renderStandardModalForm(cat, record) {
   $('modal-form-content').innerHTML = fieldsHtml;
 }
 
+let ctrlCheckTimer = null;
+let isDuplicateCtrlNum = false;
+
+async function validateControlNumberInput() {
+  const input = $('f_control_number');
+  const msg = $('f_control_number_msg');
+  if (!input) return true;
+
+  const val = input.value.trim();
+  if (!val) {
+    isDuplicateCtrlNum = false;
+    input.classList.remove('!border-red-500', '!bg-red-50', '!text-red-900', '!focus:border-red-500');
+    if (msg) {
+      msg.textContent = '';
+      msg.classList.add('hidden');
+    }
+    return true;
+  }
+
+  const editId = $('edit-id')?.value || '';
+  try {
+    const res = await fetch(`/api/check_control_number?ctrl=${encodeURIComponent(val)}&table=${encodeURIComponent(currentTab)}&id=${encodeURIComponent(editId)}`);
+    const data = await res.json();
+    if (data && data.exists) {
+      isDuplicateCtrlNum = true;
+      input.classList.add('!border-red-500', '!bg-red-50', '!text-red-900', '!focus:border-red-500');
+      if (msg) {
+        msg.textContent = `⚠️ Control # "${val}" already exists in ${data.table} (Record #${data.id}). Control number must be unique.`;
+        msg.className = 'text-xs font-bold text-red-600 mt-1 flex items-center gap-1';
+        msg.classList.remove('hidden');
+      }
+      return false;
+    } else {
+      isDuplicateCtrlNum = false;
+      input.classList.remove('!border-red-500', '!bg-red-50', '!text-red-900', '!focus:border-red-500');
+      if (msg) {
+        msg.textContent = '✓ Control number is available';
+        msg.className = 'text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1';
+        msg.classList.remove('hidden');
+        setTimeout(() => {
+          if (!isDuplicateCtrlNum && msg) msg.classList.add('hidden');
+        }, 2500);
+      }
+      return true;
+    }
+  } catch(e) {
+    return true;
+  }
+}
+
+function setupControlNumberValidation() {
+  const input = $('f_control_number');
+  const msg = $('f_control_number_msg');
+  if (!input) return;
+  isDuplicateCtrlNum = false;
+  if (msg) {
+    msg.textContent = '';
+    msg.classList.add('hidden');
+  }
+  input.classList.remove('!border-red-500', '!bg-red-50', '!text-red-900', '!focus:border-red-500');
+
+  input.oninput = () => {
+    clearTimeout(ctrlCheckTimer);
+    ctrlCheckTimer = setTimeout(validateControlNumberInput, 300);
+  };
+  input.onblur = () => {
+    clearTimeout(ctrlCheckTimer);
+    validateControlNumberInput();
+  };
+}
+
 function closeModal() {
   $('modal').classList.add('hidden');
 }
@@ -3170,6 +3248,16 @@ async function handleFormSubmit(e) {
   const url = editId ? `${currentTab}/${editId}` : currentTab;
 
   const ctrlNum = ($('f_control_number')?.value || '').trim();
+  if (ctrlNum) {
+    const isAvail = await validateControlNumberInput();
+    if (!isAvail || isDuplicateCtrlNum) {
+      $('modal-msg').textContent = `Error: Control # "${ctrlNum}" already exists. Control number must be unique.`;
+      $('modal-msg').className = 'text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 block';
+      $('f_control_number')?.focus();
+      return false;
+    }
+  }
+
   let payload = {
     remarks: $('f_remarks').value,
     control_number: ctrlNum
@@ -3608,7 +3696,17 @@ async function handleFormSubmit(e) {
   } else {
     const err = await r.json().catch(() => ({}));
     $('modal-msg').textContent = err.error || 'Failed to save record';
-    $('modal-msg').className = 'text-xs font-medium text-red-600';
+    $('modal-msg').className = 'text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded px-2.5 py-1.5 block';
+    if (err.error && err.error.toLowerCase().includes('control')) {
+      $('f_control_number')?.classList.add('!border-red-500', '!bg-red-50', '!text-red-900');
+      const msg = $('f_control_number_msg');
+      if (msg) {
+        msg.textContent = `⚠️ ${err.error}`;
+        msg.className = 'text-xs font-bold text-red-600 mt-1 flex items-center gap-1';
+        msg.classList.remove('hidden');
+      }
+      $('f_control_number')?.focus();
+    }
   }
 
   return false;

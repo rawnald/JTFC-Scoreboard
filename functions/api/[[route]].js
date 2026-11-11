@@ -449,6 +449,46 @@ async function syncLatestControlNumberFromDb(db) {
   return bestCtrl;
 }
 
+async function checkDuplicateControlNumber(db, ctrlNum, currentTable = null, currentId = null) {
+  if (!ctrlNum || !String(ctrlNum).trim()) return null;
+  const cleanCtrl = String(ctrlNum).trim().toLowerCase();
+  const tables = [
+    { name: 'ops', label: 'Combat Operations' },
+    { name: 'surrendered', label: 'Surrendered Personalities' },
+    { name: 'sleo', label: 'Law Enforcement Operations' },
+    { name: 'tolf', label: 'Loose Firearms (SALW)' },
+    { name: 'rido', label: 'Rido Settlement' },
+    { name: 'hadr', label: 'Disaster Relief (HADR)' },
+    { name: 'incident_reports', label: 'Incident Reports' }
+  ];
+
+  const normCurrentTable = currentTable === 'incidents' ? 'incident_reports' : currentTable;
+  const numId = currentId ? Number(currentId) : null;
+
+  for (const t of tables) {
+    try {
+      let sql = `SELECT id, control_number FROM ${t.name} WHERE control_number IS NOT NULL AND LOWER(TRIM(control_number)) = ?`;
+      const params = [cleanCtrl];
+      if (t.name === normCurrentTable && numId) {
+        sql += ` AND id != ?`;
+        params.push(numId);
+      }
+      sql += ` LIMIT 1`;
+      const row = await db.prepare(sql).bind(...params).first();
+      if (row && row.control_number) {
+        return {
+          table: t.label,
+          tableName: t.name,
+          id: row.id,
+          controlNumber: row.control_number
+        };
+      }
+    } catch(e) {}
+  }
+
+  return null;
+}
+
 export async function onRequest({ request, env, params }) {
   const db = env.DB || env.DB_Scoreboard;
   const route = [].concat(params.route || []);
@@ -1635,6 +1675,26 @@ export async function onRequest({ request, env, params }) {
       }
     }
 
+    // Check Control Number availability (ensures uniqueness across all records and tables)
+    if (r0 === 'check_control_number' && method === 'GET') {
+      const url = new URL(request.url);
+      const ctrl = url.searchParams.get('ctrl') || url.searchParams.get('control_number') || '';
+      const tbl = url.searchParams.get('table') || '';
+      const excludeId = url.searchParams.get('id') || url.searchParams.get('exclude_id') || '';
+
+      const dup = await checkDuplicateControlNumber(db, ctrl, tbl, excludeId);
+      if (dup) {
+        return json({
+          exists: true,
+          table: dup.table,
+          id: dup.id,
+          controlNumber: dup.controlNumber,
+          error: `Control # "${ctrl}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.`
+        });
+      }
+      return json({ exists: false });
+    }
+
     // Authentication endpoints
     if (r0 === 'login' && method === 'POST') {
       const { password } = await request.json();
@@ -1706,6 +1766,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'ops');
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare(`INSERT INTO ops (
             control_number,op_date,unit,area,province,threat_category,threat_group,engagement_type,
@@ -1771,6 +1837,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'ops', r1);
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare(`UPDATE ops SET
             control_number=?,op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
@@ -1886,6 +1958,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms) || n(b.fa_surrendered) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'surrendered');
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare(`INSERT INTO surrendered (
             control_number,op_date,unit,area,province,threat_category,threat_group,engagement_type,
@@ -1944,6 +2022,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms) || n(b.fa_surrendered) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'surrendered', r1);
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare(`UPDATE surrendered SET
             control_number=?,op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
@@ -2033,6 +2117,12 @@ export async function onRequest({ request, env, params }) {
         const tg = txt(b.threat_group) || txt(b.target_group);
         const tgt = txt(b.target_group) || tg;
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'sleo');
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
 
         try {
           await db.prepare('INSERT INTO sleo (control_number,op_date,unit,area,province,lead_agency,operation_type,threat_group,target_group,arrested,killed,enemy_wounded,surrendered,captured,apprehended,firearms_seized,fa_csw,fa_high_powered,fa_low_powered,drugs_grams,drugs_value,contraband_details,war_materiel,kia,wia,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
@@ -2083,6 +2173,12 @@ export async function onRequest({ request, env, params }) {
         const tg = txt(b.threat_group) || txt(b.target_group);
         const tgt = txt(b.target_group) || tg;
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'sleo', r1);
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
 
         try {
           await db.prepare('UPDATE sleo SET control_number=?,op_date=?,unit=?,area=?,province=?,lead_agency=?,operation_type=?,threat_group=?,target_group=?,arrested=?,killed=?,enemy_wounded=?,surrendered=?,captured=?,apprehended=?,firearms_seized=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,drugs_grams=?,drugs_value=?,contraband_details=?,war_materiel=?,kia=?,wia=?,remarks=? WHERE id=?')
@@ -2155,6 +2251,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms_count) || (csw + hp + lp);
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'tolf');
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
 
         try {
           await db.prepare('INSERT INTO tolf (control_number,op_date,unit,area,province,source_group,firearms_count,small_arms,light_weapons,crew_served,fa_csw,fa_high_powered,fa_low_powered,explosives_count,war_materiel,facilitated_by,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
@@ -2187,6 +2289,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms_count) || (csw + hp + lp);
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'tolf', r1);
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
 
         try {
           await db.prepare('UPDATE tolf SET control_number=?,op_date=?,unit=?,area=?,province=?,source_group=?,firearms_count=?,small_arms=?,light_weapons=?,crew_served=?,fa_csw=?,fa_high_powered=?,fa_low_powered=?,explosives_count=?,war_materiel=?,facilitated_by=?,remarks=? WHERE id=?')
@@ -2240,6 +2348,12 @@ export async function onRequest({ request, env, params }) {
           return json({ error: 'Date, Unit, and Parties Involved are required' }, 400);
         }
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'rido');
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare('INSERT INTO rido (control_number,case_date,unit,area,province,parties_involved,status,casualties_killed,casualties_wounded,firearms_surrendered,mediators,agreement_details,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
             .bind(ctrlNum, b.case_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500)).run();
@@ -2261,6 +2375,12 @@ export async function onRequest({ request, env, params }) {
           return json({ error: 'Date, Unit, and Parties Involved are required' }, 400);
         }
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'rido', r1);
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare('UPDATE rido SET control_number=?,case_date=?,unit=?,area=?,province=?,parties_involved=?,status=?,casualties_killed=?,casualties_wounded=?,firearms_surrendered=?,mediators=?,agreement_details=?,remarks=? WHERE id=?')
             .bind(ctrlNum, b.case_date, txt(b.unit), txt(b.area), txt(b.province), txt(b.parties_involved), txt(b.status || 'Ongoing Mediation'), n(b.casualties_killed), n(b.casualties_wounded), n(b.firearms_surrendered), txt(b.mediators), txt(b.agreement_details, 500), txt(b.remarks, 500), n(r1)).run();
@@ -2306,6 +2426,12 @@ export async function onRequest({ request, env, params }) {
           return json({ error: 'Date, Unit, and Disaster Type are required' }, 400);
         }
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'hadr');
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare('INSERT INTO hadr (control_number,op_date,unit,area,disaster_type,assisted_families,assisted_individuals,rescued_persons,relief_packs_distributed,personnel_deployed,partner_agencies,remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
             .bind(ctrlNum, b.op_date, txt(b.unit), txt(b.area), txt(b.disaster_type), n(b.assisted_families), n(b.assisted_individuals), n(b.rescued_persons), n(b.relief_packs_distributed), n(b.personnel_deployed), txt(b.partner_agencies), txt(b.remarks, 500)).run();
@@ -2322,6 +2448,12 @@ export async function onRequest({ request, env, params }) {
           return json({ error: 'Date, Unit, and Disaster Type are required' }, 400);
         }
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'hadr', r1);
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare('UPDATE hadr SET control_number=?,op_date=?,unit=?,area=?,disaster_type=?,assisted_families=?,assisted_individuals=?,rescued_persons=?,relief_packs_distributed=?,personnel_deployed=?,partner_agencies=?,remarks=? WHERE id=?')
             .bind(ctrlNum, b.op_date, txt(b.unit), txt(b.area), txt(b.disaster_type), n(b.assisted_families), n(b.assisted_individuals), n(b.rescued_persons), n(b.relief_packs_distributed), n(b.personnel_deployed), txt(b.partner_agencies), txt(b.remarks, 500), n(r1)).run();
@@ -2425,6 +2557,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'incident_reports');
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare(`INSERT INTO incident_reports (
             control_number,op_date,unit,area,province,threat_category,threat_group,engagement_type,
@@ -2490,6 +2628,12 @@ export async function onRequest({ request, env, params }) {
         const totalFA = n(b.firearms) || (n(b.fa_captured) + n(b.fa_confiscated) + n(b.fa_surrendered) + n(b.fa_recovered)) || (n(b.fa_csw) + n(b.fa_high_powered) + n(b.fa_low_powered));
         const warMat = typeof b.war_materiel === 'object' ? JSON.stringify(b.war_materiel) : txt(b.war_materiel, 4000);
         const ctrlNum = txt(b.control_number, 100);
+        if (ctrlNum) {
+          const dup = await checkDuplicateControlNumber(db, ctrlNum, 'incident_reports', r1);
+          if (dup) {
+            return json({ error: `Control # "${ctrlNum}" already exists in ${dup.table} (Record #${dup.id}). Control number must be unique.` }, 400);
+          }
+        }
         try {
           await db.prepare(`UPDATE incident_reports SET
             control_number=?,op_date=?,unit=?,area=?,province=?,threat_category=?,threat_group=?,engagement_type=?,
