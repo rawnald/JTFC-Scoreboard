@@ -1259,10 +1259,10 @@ const ENGAGEMENT_TYPES = [
   { id: 'ied', label: 'IED Explosion' },
   { id: 'loud_explosion', label: 'Loud Explosion' },
   { id: 'bus_bombing', label: 'Bus Bombing' },
+  { id: 'grenade', label: 'Grenade Throwing' },
   { id: 'carnapping', label: 'Carnapping' },
   { id: 'active_rido', label: 'Active Rido' },
   { id: 'other_incidents', label: 'Other Incident Reports' },
-  { id: 'grenade', label: 'Grenade Throwing' },
   { id: 'other_act', label: 'Other Activities' }
 ];
 
@@ -1697,28 +1697,29 @@ function renderCombatModalForm(record) {
 
         ${isIncidentReport ? `
         <div class="overflow-x-auto rounded-lg border-2 border-black bg-white shadow-sm">
-          <table class="w-full text-center border-collapse min-w-[960px]">
+          <table class="w-full text-center border-collapse min-w-[1040px]">
             <thead>
               <!-- Top Header Row -->
               <tr>
-                <th colspan="12" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border border-black tracking-wider text-xs sm:text-sm">
+                <th colspan="13" class="bg-[#a8e090] text-black font-extrabold uppercase py-2 px-2 border border-black tracking-wider text-xs sm:text-sm">
                   ENEMY-INITIATED ENGAGEMENT / INCIDENT TYPE
                 </th>
               </tr>
-              <!-- Subheaders Row: 12 Incident Categories -->
+              <!-- Subheaders Row: 13 Incident Categories -->
               <tr class="font-extrabold text-black text-[10px] sm:text-[11px]">
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">HARASSMENT</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">AMBUSH</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">LIQUIDATION</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">SHOOTING</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">STRAFING</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">ARMED<br>CLASH</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">IED<br>EXPLOSION</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">LOUD<br>EXPLOSION</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">BUS<br>BOMBING</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">CARNAPPING</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">ACTIVE<br>RIDO</th>
-                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[8.3%]">OTHER<br>INCIDENTS</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">HARASSMENT</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">AMBUSH</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">LIQUIDATION</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">SHOOTING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">STRAFING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">ARMED<br>CLASH</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">IED<br>EXPLOSION</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">LOUD<br>EXPLOSION</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">BUS<br>BOMBING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">GRENADE<br>THROWING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">CARNAPPING</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">ACTIVE<br>RIDO</th>
+                <th class="bg-[#ba8efc] py-2 px-1 border border-black w-[7.7%]">OTHER<br>INCIDENTS</th>
               </tr>
             </thead>
             <tbody>
@@ -1759,6 +1760,10 @@ function renderCombatModalForm(record) {
                 <!-- Bus Bombing -->
                 <td class="p-0 border border-black">
                   <input id="f_eng_bus_bombing" type="number" min="0" value="${eng.bus_bombing}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
+                </td>
+                <!-- Grenade Throwing -->
+                <td class="p-0 border border-black">
+                  <input id="f_eng_grenade" type="number" min="0" value="${eng.grenade || 0}" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'" class="w-full text-center font-bold text-base outline-none py-2 bg-transparent hover:bg-yellow-50 focus:bg-yellow-100 transition">
                 </td>
                 <!-- Carnapping -->
                 <td class="p-0 border border-black">
@@ -3262,10 +3267,10 @@ async function handleFormSubmit(e) {
     const iedCount = parseInt($('f_eng_ied')?.value || 0, 10) || 0;
     const loudCount = parseInt($('f_eng_loud_explosion')?.value || 0, 10) || 0;
     const busCount = parseInt($('f_eng_bus_bombing')?.value || 0, 10) || 0;
+    const greCount = parseInt($('f_eng_grenade')?.value || 0, 10) || 0;
     const carCount = parseInt($('f_eng_carnapping')?.value || 0, 10) || 0;
     const ridoCount = parseInt($('f_eng_active_rido')?.value || 0, 10) || 0;
     const othIncCount = parseInt($('f_eng_other_incidents')?.value || 0, 10) || 0;
-    const greCount = parseInt($('f_eng_grenade')?.value || 0, 10) || 0;
     const othCount = parseInt($('f_eng_other_act')?.value || 0, 10) || 0;
 
     const engBreakdown = {
@@ -3279,10 +3284,10 @@ async function handleFormSubmit(e) {
       ied: iedCount,
       loud_explosion: loudCount,
       bus_bombing: busCount,
+      grenade: greCount,
       carnapping: carCount,
       active_rido: ridoCount,
       other_incidents: othIncCount,
-      grenade: greCount,
       other_act: othCount
     };
 
@@ -3299,10 +3304,10 @@ async function handleFormSubmit(e) {
     if (iedCount > 0)    activeEngTypes.push(iedCount > 1 ? `IED Explosion (${iedCount})` : 'IED Explosion');
     if (loudCount > 0)   activeEngTypes.push(loudCount > 1 ? `Loud Explosion (${loudCount})` : 'Loud Explosion');
     if (busCount > 0)    activeEngTypes.push(busCount > 1 ? `Bus Bombing (${busCount})` : 'Bus Bombing');
+    if (greCount > 0)    activeEngTypes.push(greCount > 1 ? `Grenade Throwing (${greCount})` : 'Grenade Throwing');
     if (carCount > 0)    activeEngTypes.push(carCount > 1 ? `Carnapping (${carCount})` : 'Carnapping');
     if (ridoCount > 0)   activeEngTypes.push(ridoCount > 1 ? `Active Rido (${ridoCount})` : 'Active Rido');
     if (othIncCount > 0) activeEngTypes.push(othIncCount > 1 ? `Other Incident Reports (${othIncCount})` : 'Other Incident Reports');
-    if (greCount > 0)    activeEngTypes.push(greCount > 1 ? `Grenade Throwing (${greCount})` : 'Grenade Throwing');
     if (othCount > 0)    activeEngTypes.push(othCount > 1 ? `Other Activities (${othCount})` : 'Other Activities');
 
     let engTypeStr = activeEngTypes.length > 0 ? activeEngTypes.join(', ') : '—';
